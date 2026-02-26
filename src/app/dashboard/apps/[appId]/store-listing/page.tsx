@@ -289,49 +289,25 @@ export default function StoreListingPage() {
             {/* Name & subtitle */}
             <section className="space-y-2">
               <h3 className="section-title">Name &amp; subtitle</h3>
-              <div className="grid grid-cols-[1fr,auto] gap-6">
-                <div className="space-y-4">
-                  <Card className="gap-0 py-0">
-                    <CardContent className="px-5 py-4">
-                      <Input
-                        value={current.name}
-                        onChange={(e) => updateField("name", e.target.value)}
-                        readOnly={readOnly}
-                        placeholder="App name"
-                        className="border-0 p-0 shadow-none focus-visible:ring-0 font-mono text-sm h-auto"
-                      />
-                    </CardContent>
-                    <div className="flex items-center justify-end border-t px-3 py-1.5">
-                      <CharCount
-                        value={current.name}
-                        limit={FIELD_LIMITS.name}
-                      />
-                    </div>
-                  </Card>
-                  <Card className="gap-0 py-0">
-                    <CardContent className="px-5 py-4">
-                      <Input
-                        value={current.subtitle}
-                        onChange={(e) =>
-                          updateField("subtitle", e.target.value)
-                        }
-                        readOnly={readOnly}
-                        placeholder="Subtitle"
-                        className="border-0 p-0 shadow-none focus-visible:ring-0 font-mono text-sm h-auto"
-                      />
-                    </CardContent>
-                    <div className="flex items-center justify-end border-t px-3 py-1.5">
-                      <CharCount
-                        value={current.subtitle}
-                        limit={FIELD_LIMITS.subtitle}
-                      />
-                    </div>
-                  </Card>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <label className="text-sm text-muted-foreground">Name</label>
+                  <Input
+                    value={current.name}
+                    onChange={(e) => updateField("name", e.target.value)}
+                    readOnly={readOnly}
+                    className="text-sm"
+                  />
                 </div>
-                <AppStorePreview
-                  name={current.name}
-                  subtitle={current.subtitle}
-                />
+                <div className="space-y-2">
+                  <label className="text-sm text-muted-foreground">Subtitle</label>
+                  <Input
+                    value={current.subtitle}
+                    onChange={(e) => updateField("subtitle", e.target.value)}
+                    readOnly={readOnly}
+                    className="text-sm"
+                  />
+                </div>
               </div>
             </section>
 
@@ -518,37 +494,6 @@ function BuildSection({ version }: { version?: { build: { id: string; attributes
   );
 }
 
-function AppStorePreview({
-  name,
-  subtitle,
-}: {
-  name: string;
-  subtitle: string;
-}) {
-  return (
-    <div className="space-y-2">
-      <h3 className="section-title">Preview</h3>
-      <div className="w-64 rounded-2xl border bg-card p-3">
-        <div className="flex items-center gap-3">
-          <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-b from-blue-500 to-blue-600 text-white shadow-sm">
-            <AppWindow size={22} weight="fill" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold leading-tight">
-              {name || "App name"}
-            </p>
-            <p className="truncate text-xs text-muted-foreground leading-tight mt-0.5">
-              {subtitle || "Subtitle"}
-            </p>
-          </div>
-          <span className="shrink-0 rounded-full bg-muted px-3.5 py-1 text-xs font-bold text-primary">
-            GET
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function CharCount({ value, limit }: { value: string; limit?: number }) {
   const count = value?.length ?? 0;

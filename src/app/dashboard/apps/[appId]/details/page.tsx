@@ -70,29 +70,6 @@ export default function AppDetailsPage() {
         </div>
       </section>
 
-      {/* Name & subtitle (from app info localizations) */}
-      {primaryLoc && (
-        <section className="space-y-2">
-          <h3 className="section-title">Name &amp; subtitle</h3>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm text-muted-foreground">Name</label>
-              <Input
-                defaultValue={primaryLoc.attributes.name ?? ""}
-                className="text-sm"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm text-muted-foreground">Subtitle</label>
-              <Input
-                defaultValue={primaryLoc.attributes.subtitle ?? ""}
-                className="text-sm"
-              />
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* Base language */}
       <section className="space-y-2">
         <h3 className="section-title">Base language</h3>
