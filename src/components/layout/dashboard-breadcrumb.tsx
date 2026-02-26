@@ -22,11 +22,6 @@ const PAGE_TITLES: Record<string, string> = {
   details: "App details",
 };
 
-const SETTINGS_SUB_TITLES: Record<string, string> = {
-  ai: "AI",
-  profile: "Profile",
-};
-
 const TF_SUB_TITLES: Record<string, string> = {
   "": "Builds",
   groups: "Groups",
@@ -137,36 +132,9 @@ export function DashboardBreadcrumb() {
     <Breadcrumb>
       <BreadcrumbList>
         {isSettings ? (
-          <>
-            {(() => {
-              const settingsSub = pathname
-                .replace("/dashboard/settings", "")
-                .replace(/^\//, "")
-                .split("/")[0];
-              if (settingsSub && SETTINGS_SUB_TITLES[settingsSub]) {
-                return (
-                  <>
-                    <BreadcrumbItem className="hidden md:block">
-                      <BreadcrumbLink href="/dashboard/settings">
-                        Settings
-                      </BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator className="hidden md:block" />
-                    <BreadcrumbItem>
-                      <BreadcrumbPage>
-                        {SETTINGS_SUB_TITLES[settingsSub]}
-                      </BreadcrumbPage>
-                    </BreadcrumbItem>
-                  </>
-                );
-              }
-              return (
-                <BreadcrumbItem>
-                  <BreadcrumbPage>Settings</BreadcrumbPage>
-                </BreadcrumbItem>
-              );
-            })()}
-          </>
+          <BreadcrumbItem>
+            <BreadcrumbPage>Settings</BreadcrumbPage>
+          </BreadcrumbItem>
         ) : app ? (
           <>
             <BreadcrumbItem className="hidden md:block">
