@@ -39,8 +39,8 @@ export default function DashboardLayout({
       <ReadySignal />
       <SidebarProvider>
         <AppSidebar />
-        <SidebarInset>
-          <header className="drag sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b bg-background transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+        <SidebarInset className="h-screen overflow-hidden">
+          <header className="drag flex h-16 shrink-0 items-center gap-2 border-b bg-background transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
             <div className="flex flex-1 items-center gap-2 px-4">
               <div className="no-drag">
                 <DashboardBreadcrumb />
@@ -54,7 +54,7 @@ export default function DashboardLayout({
               </div>
             </div>
           </header>
-          <div className="flex flex-1 flex-col gap-4 pt-6 pb-8">
+          <div className="flex-1 overflow-y-auto pt-6 pb-8">
             <div className="mx-auto w-full max-w-6xl px-6">
               <Suspense>{children}</Suspense>
             </div>
