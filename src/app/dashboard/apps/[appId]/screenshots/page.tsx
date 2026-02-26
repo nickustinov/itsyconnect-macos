@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useParams } from "next/navigation";
+import { useState, useMemo, useEffect } from "react";
+import { useParams, useSearchParams } from "next/navigation";
 import { Images, CloudArrowUp, Plus } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,12 +19,10 @@ import {
 } from "@/components/ui/popover";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { VersionBar } from "@/components/layout/version-bar";
 import {
   MOCK_APPS,
-  getDefaultVersion,
   getVersionLocalizations,
-  type MockVersion,
+  resolveVersion,
 } from "@/lib/mock-data";
 import { localeName, LOCALE_NAMES } from "@/lib/asc/locale-names";
 
@@ -37,30 +35,31 @@ const EDITABLE_STATES = new Set([
 
 export default function ScreenshotsPage() {
   const { appId } = useParams<{ appId: string }>();
+  const searchParams = useSearchParams();
   const app = MOCK_APPS.find((a) => a.id === appId);
-  const defaultVersion = getDefaultVersion(appId);
-  const [selectedVersion, setSelectedVersion] = useState<
-    MockVersion | undefined
-  >(defaultVersion);
+
+  const selectedVersion = useMemo(
+    () => resolveVersion(appId, searchParams.get("version")),
+    [appId, searchParams],
+  );
+  const versionId = selectedVersion?.id ?? "";
 
   const readOnly = selectedVersion
     ? !EDITABLE_STATES.has(selectedVersion.appVersionState)
     : false;
 
   const [locales, setLocales] = useState<string[]>(() =>
-    getVersionLocalizations(selectedVersion?.id ?? "").map((l) => l.locale)
+    getVersionLocalizations(versionId).map((l) => l.locale)
   );
   const [selectedLocale, setSelectedLocale] = useState(locales[0] ?? "");
   const [addLocaleOpen, setAddLocaleOpen] = useState(false);
 
-  function handleVersionChange(version: MockVersion) {
-    setSelectedVersion(version);
-    const newLocales = getVersionLocalizations(version.id).map(
-      (l) => l.locale
-    );
+  // Reset locales when version changes via header picker
+  useEffect(() => {
+    const newLocales = getVersionLocalizations(versionId).map((l) => l.locale);
     setLocales(newLocales);
     setSelectedLocale(newLocales[0] ?? "");
-  }
+  }, [versionId]);
 
   function handleAddLocale(locale: string) {
     setLocales((prev) => [...prev, locale]);
@@ -83,12 +82,6 @@ export default function ScreenshotsPage() {
 
   return (
     <div className="space-y-6">
-      <VersionBar
-        appId={appId}
-        selectedVersion={selectedVersion}
-        onVersionChange={handleVersionChange}
-      />
-
       {/* Locale tabs + add locale */}
       <div className="flex items-center gap-2">
         {locales.length > 0 && (

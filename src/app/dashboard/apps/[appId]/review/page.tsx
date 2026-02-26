@@ -1,24 +1,21 @@
 "use client";
 
-import { useState } from "react";
-import { useParams } from "next/navigation";
+import { useMemo } from "react";
+import { useParams, useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { VersionBar } from "@/components/layout/version-bar";
-import {
-  MOCK_APPS,
-  getDefaultVersion,
-  type MockVersion,
-} from "@/lib/mock-data";
+import { MOCK_APPS, resolveVersion } from "@/lib/mock-data";
 
 export default function AppReviewPage() {
   const { appId } = useParams<{ appId: string }>();
+  const searchParams = useSearchParams();
   const app = MOCK_APPS.find((a) => a.id === appId);
-  const defaultVersion = getDefaultVersion(appId);
-  const [selectedVersion, setSelectedVersion] = useState<
-    MockVersion | undefined
-  >(defaultVersion);
+
+  const selectedVersion = useMemo(
+    () => resolveVersion(appId, searchParams.get("version")),
+    [appId, searchParams],
+  );
 
   if (!app) {
     return (
@@ -30,12 +27,6 @@ export default function AppReviewPage() {
 
   return (
     <div className="space-y-6">
-      <VersionBar
-        appId={appId}
-        selectedVersion={selectedVersion}
-        onVersionChange={setSelectedVersion}
-      />
-
       {/* Review notes */}
       <section className="space-y-2">
         <h3 className="section-title">Notes for App Review</h3>

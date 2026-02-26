@@ -478,3 +478,16 @@ export function getDefaultVersion(appId: string): MockVersion | undefined {
     ) ?? versions[0]
   );
 }
+
+export function resolveVersion(
+  appId: string,
+  versionId: string | null,
+): MockVersion | undefined {
+  if (versionId) {
+    const found = MOCK_VERSIONS.find(
+      (v) => v.id === versionId && v.appId === appId,
+    );
+    if (found) return found;
+  }
+  return getDefaultVersion(appId);
+}

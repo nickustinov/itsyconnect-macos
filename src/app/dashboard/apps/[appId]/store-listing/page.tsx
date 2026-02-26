@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,17 +22,14 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AppWindow, FloppyDisk, Lock, Plus } from "@phosphor-icons/react";
+import { AppWindow, Lock, PencilSimple, Plus } from "@phosphor-icons/react";
 import { toast } from "sonner";
-import { VersionBar } from "@/components/layout/version-bar";
 import {
   MOCK_APPS,
-  MOCK_VERSIONS,
   getAppVersions,
-  getDefaultVersion,
   getVersionLocalizations,
   getVersionBuild,
-  type MockVersion,
+  resolveVersion,
 } from "@/lib/mock-data";
 import {
   localeName,
@@ -82,35 +79,24 @@ function buildLocaleData(versionId: string): Record<string, LocaleFields> {
   return data;
 }
 
-function resolveInitialVersion(
-  appId: string,
-  versionParam: string | null
-): MockVersion | undefined {
-  if (versionParam) {
-    const fromParam = MOCK_VERSIONS.find(
-      (v) => v.id === versionParam && v.appId === appId
-    );
-    if (fromParam) return fromParam;
-  }
-  return getDefaultVersion(appId);
-}
-
 export default function StoreListingPage() {
   const { appId } = useParams<{ appId: string }>();
   const searchParams = useSearchParams();
   const app = MOCK_APPS.find((a) => a.id === appId);
   const versions = getAppVersions(appId);
 
-  const [selectedVersion, setSelectedVersion] = useState<
-    MockVersion | undefined
-  >(() => resolveInitialVersion(appId, searchParams.get("version")));
+  const selectedVersion = useMemo(
+    () => resolveVersion(appId, searchParams.get("version")),
+    [appId, searchParams],
+  );
+  const versionId = selectedVersion?.id ?? "";
 
   const readOnly = selectedVersion
     ? !EDITABLE_STATES.has(selectedVersion.appVersionState)
     : false;
 
   const [localeData, setLocaleData] = useState<Record<string, LocaleFields>>(
-    () => buildLocaleData(selectedVersion?.id ?? "")
+    () => buildLocaleData(versionId)
   );
 
   const locales = Object.keys(localeData);
@@ -123,6 +109,14 @@ export default function StoreListingPage() {
   const [releaseType, setReleaseType] = useState("manually");
   const [phasedRelease, setPhasedRelease] = useState(false);
 
+  // Reset locale data when version changes via header picker
+  useEffect(() => {
+    const data = buildLocaleData(versionId);
+    setLocaleData(data);
+    const newLocales = Object.keys(data);
+    setSelectedLocale(newLocales[0] ?? "");
+  }, [versionId]);
+
   const updateField = useCallback(
     (field: keyof LocaleFields, value: string) => {
       setLocaleData((prev) => ({
@@ -132,14 +126,6 @@ export default function StoreListingPage() {
     },
     [selectedLocale]
   );
-
-  function handleVersionChange(version: MockVersion) {
-    setSelectedVersion(version);
-    const newData = buildLocaleData(version.id);
-    setLocaleData(newData);
-    const newLocales = Object.keys(newData);
-    setSelectedLocale(newLocales[0] ?? "");
-  }
 
   function handleAddLocale(locale: string) {
     setLocaleData((prev) => ({ ...prev, [locale]: emptyLocaleFields() }));
@@ -172,15 +158,7 @@ export default function StoreListingPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col">
-      <div className="flex-1 space-y-6">
-        {/* Version bar */}
-        <VersionBar
-          appId={appId}
-          selectedVersion={selectedVersion}
-          onVersionChange={handleVersionChange}
-        />
-
+    <div className="space-y-6">
         {/* Read-only banner */}
         {readOnly && (
           <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
@@ -189,6 +167,28 @@ export default function StoreListingPage() {
             editable version to make changes.
           </div>
         )}
+
+        {/* Version string */}
+        <section className="space-y-2">
+          <h3 className="section-title">Version</h3>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-2xl font-bold tracking-tight">
+              {selectedVersion?.versionString ?? "–"}
+            </span>
+            {!readOnly && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7 text-muted-foreground"
+                onClick={() =>
+                  toast.info("Version editing not available in prototype")
+                }
+              >
+                <PencilSimple size={14} />
+              </Button>
+            )}
+          </div>
+        </section>
 
         {/* Locale tabs + add locale */}
         <div className="flex items-center gap-2">
@@ -438,20 +438,6 @@ export default function StoreListingPage() {
             </div>
           </div>
         </section>
-      </div>
-
-      {/* Bottom bar – hidden in read-only mode */}
-      {!readOnly && (
-        <div className="sticky bottom-0 flex items-center justify-end border-t bg-background py-3">
-          <Button
-            size="sm"
-            onClick={() => toast.success("Changes saved (prototype)")}
-          >
-            <FloppyDisk size={14} className="mr-1.5" />
-            Save
-          </Button>
-        </div>
-      )}
     </div>
   );
 }
