@@ -56,7 +56,7 @@ import {
 } from "@/lib/asc/version-types";
 
 const VERSION_PAGES = new Set(["store-listing", "screenshots", "review"]);
-const SAVE_PAGES = new Set(["details", "store-listing", "screenshots", "review"]);
+const SAVE_PAGES = new Set(["details", "store-listing", "review"]);
 const OVERVIEW_PAGE = "";
 
 const LIVE_STATES = new Set([

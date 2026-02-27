@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { useApps } from "@/lib/apps-context";
 import { useVersions } from "@/lib/versions-context";
@@ -37,7 +37,16 @@ export function SectionLocaleSeeder() {
   const { localizations: versionLocs } = useLocalizations(appId, versionId);
   const { localizations: detailLocs } = useAppInfoLocalizations(appId, appInfoId);
 
-  const seed = useSeedSectionLocales();
+  const { seed, reset } = useSeedSectionLocales();
+
+  // Reset all sections when version changes so seed() can repopulate
+  const prevVersionIdRef = useRef(versionId);
+  useEffect(() => {
+    if (versionId && versionId !== prevVersionIdRef.current) {
+      prevVersionIdRef.current = versionId;
+      reset();
+    }
+  }, [versionId, reset]);
 
   useEffect(() => {
     if (!primaryLocale || versionLocs.length === 0) return;

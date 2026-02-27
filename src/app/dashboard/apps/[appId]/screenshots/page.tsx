@@ -31,7 +31,6 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useApps } from "@/lib/apps-context";
 import { useVersions } from "@/lib/versions-context";
-import { useFormDirty } from "@/lib/form-dirty-context";
 import { resolveVersion, EDITABLE_STATES } from "@/lib/asc/version-types";
 import { useLocalizations } from "@/lib/hooks/use-localizations";
 import { useScreenshotSets } from "@/lib/hooks/use-screenshot-sets";
@@ -380,8 +379,6 @@ export default function ScreenshotsPage() {
     versionId,
   );
   const primaryLocale = app?.primaryLocale ?? "";
-  const { setDirty, registerSave } = useFormDirty();
-  const [pendingCreates, setPendingCreates] = useState<Set<string>>(new Set());
 
   const [locales, setLocales] = useState<string[]>([]);
   const [selectedLocale, setSelectedLocale] = useState(
@@ -400,86 +397,35 @@ export default function ScreenshotsPage() {
 
   const { reportLocales, otherSectionLocales } = useSectionLocales("screenshots");
 
-  // Only offer locales that have a version localization
   const versionLocales = useMemo(
     () => localizations.map((l) => l.attributes.locale),
     [localizations],
   );
 
-  // Start with only the primary locale
+  // Reset locale state when version changes
+  const [prevVersionId, setPrevVersionId] = useState(versionId);
+  if (versionId !== prevVersionId) {
+    setPrevVersionId(versionId);
+    if (primaryLocale) {
+      setLocales([primaryLocale]);
+      setSelectedLocale(primaryLocale);
+    }
+  }
+
+  // Start with only the primary locale (initial mount)
   useEffect(() => {
     if (!primaryLocale) return;
     setLocales((prev) => {
-      const current = prev.length > 0 ? prev : [primaryLocale];
-      setSelectedLocale((prevSel) => {
-        if (prevSel && current.includes(prevSel)) return prevSel;
-        const fromUrl = searchParams.get("locale");
-        if (fromUrl && current.includes(fromUrl)) return fromUrl;
-        return primaryLocale;
-      });
-      return current;
+      if (prev.length > 0) return prev;
+      setSelectedLocale(primaryLocale);
+      return [primaryLocale];
     });
-  }, [primaryLocale, searchParams]);
+  }, [primaryLocale]);
 
   // Report locales to cross-section context
   useEffect(() => {
     reportLocales(locales);
   }, [locales, reportLocales]);
-
-  // Clear pending creates when localizations refresh
-  useEffect(() => {
-    setPendingCreates((prev) => {
-      if (prev.size === 0) return prev;
-      const next = new Set(prev);
-      for (const locale of prev) {
-        if (versionLocales.includes(locale)) next.delete(locale);
-      }
-      return next;
-    });
-  }, [versionLocales]);
-
-  // Register save handler – creates version localizations for newly added locales
-  useEffect(() => {
-    registerSave(async () => {
-      if (pendingCreates.size === 0) return;
-
-      const localesPayload: Record<string, Record<string, string>> = {};
-      for (const locale of pendingCreates) {
-        localesPayload[locale] = {
-          description: "",
-          keywords: "",
-          whatsNew: "",
-          promotionalText: "",
-          supportUrl: "",
-          marketingUrl: "",
-        };
-      }
-
-      const res = await fetch(
-        `/api/apps/${appId}/versions/${versionId}/localizations`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ locales: localesPayload, originalLocaleIds: {} }),
-        },
-      );
-
-      const data = await res.json();
-      if (!res.ok && !data.errors) {
-        toast.error(data.error ?? "Failed to create localizations");
-        return;
-      }
-      if (data.errors?.length > 0) {
-        toast.warning(`Saved with ${data.errors.length} error(s)`);
-      } else {
-        toast.success("Localizations saved");
-      }
-
-      setPendingCreates(new Set());
-      setDirty(false);
-      await refreshLocalizations();
-    });
-  }, [appId, versionId, pendingCreates, registerSave, setDirty, refreshLocalizations]);
 
   const selectedLocalization = localizations.find(
     (l) => l.attributes.locale === selectedLocale,
@@ -705,31 +651,66 @@ export default function ScreenshotsPage() {
     [apiBase, refresh],
   );
 
-  function handleAddLocale(locale: string) {
+  async function createLocalization(locale: string) {
+    const res = await fetch(
+      `/api/apps/${appId}/versions/${versionId}/localizations`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          locales: {
+            [locale]: {
+              description: "",
+              keywords: "",
+              whatsNew: "",
+              promotionalText: "",
+              supportUrl: "",
+              marketingUrl: "",
+            },
+          },
+          originalLocaleIds: {},
+        }),
+      },
+    );
+    const data = await res.json();
+    if (!res.ok && !data.errors) throw new Error(data.error ?? "Failed");
+  }
+
+  async function handleAddLocale(locale: string) {
     setLocales((prev) => sortLocales([...prev, locale], primaryLocale));
     changeLocale(locale);
     if (!versionLocales.includes(locale)) {
-      setPendingCreates((prev) => new Set(prev).add(locale));
-      setDirty(true);
+      try {
+        await createLocalization(locale);
+        await refreshLocalizations();
+        toast.success(`Added ${localeName(locale)}`);
+      } catch {
+        setLocales((prev) => prev.filter((l) => l !== locale));
+        toast.error(`Failed to add ${localeName(locale)}`);
+      }
+    } else {
+      toast.success(`Added ${localeName(locale)}`);
     }
-    toast.success(`Added ${localeName(locale)}`);
   }
 
-  function handleBulkAddLocales(codes: string[]) {
+  async function handleBulkAddLocales(codes: string[]) {
     setLocales((prev) => {
       const combined = new Set([...prev, ...codes]);
       return sortLocales([...combined], primaryLocale);
     });
     const newCodes = codes.filter((c) => !versionLocales.includes(c));
     if (newCodes.length > 0) {
-      setPendingCreates((prev) => {
-        const next = new Set(prev);
-        for (const c of newCodes) next.add(c);
-        return next;
-      });
-      setDirty(true);
+      try {
+        await Promise.all(newCodes.map((c) => createLocalization(c)));
+        await refreshLocalizations();
+        toast.success(`Added ${codes.length} locales`);
+      } catch {
+        setLocales((prev) => prev.filter((l) => !newCodes.includes(l)));
+        toast.error("Failed to add some locales");
+      }
+    } else {
+      toast.success(`Added ${codes.length} locales`);
     }
-    toast.success(`Added ${codes.length} locales`);
   }
 
   function handleDeleteLocale(code: string) {
