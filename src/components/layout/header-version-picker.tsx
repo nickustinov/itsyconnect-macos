@@ -95,7 +95,7 @@ export function HeaderVersionPicker() {
         <>
           <Separator orientation="vertical" className="mx-2 !h-4" />
           <Select value={currentPlatform} onValueChange={handlePlatformChange}>
-            <SelectTrigger className="!h-7 gap-1 px-2 text-xs">
+            <SelectTrigger className="!h-7 gap-1 bg-background px-2 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -111,7 +111,7 @@ export function HeaderVersionPicker() {
             value={selectedVersion?.id ?? ""}
             onValueChange={navigate}
           >
-            <SelectTrigger className="!h-7 gap-1 px-2 font-mono text-xs">
+            <SelectTrigger className="!h-7 gap-1 bg-background px-2 font-mono text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

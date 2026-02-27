@@ -233,14 +233,6 @@ export default function StoreListingPage() {
             <span className="font-mono text-2xl font-bold tracking-tight">
               {selectedVersion?.attributes.versionString ?? "–"}
             </span>
-            {selectedVersion && (
-              <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <span
-                  className={`size-1.5 shrink-0 rounded-full ${STATE_DOT_COLORS[selectedVersion.attributes.appVersionState] ?? "bg-muted-foreground"}`}
-                />
-                {stateLabel(selectedVersion.attributes.appVersionState)}
-              </span>
-            )}
             {!readOnly && (
               <Button
                 variant="ghost"
@@ -252,6 +244,14 @@ export default function StoreListingPage() {
               >
                 <PencilSimple size={14} />
               </Button>
+            )}
+            {selectedVersion && (
+              <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <span
+                  className={`size-1.5 shrink-0 rounded-full ${STATE_DOT_COLORS[selectedVersion.attributes.appVersionState] ?? "bg-muted-foreground"}`}
+                />
+                {stateLabel(selectedVersion.attributes.appVersionState)}
+              </span>
             )}
           </div>
         </section>
