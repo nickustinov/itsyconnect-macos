@@ -68,7 +68,7 @@ export default function AppReviewPage() {
 
   if (versionsLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
+      <div className="flex flex-1 items-center justify-center">
         <SpinnerGap size={24} className="animate-spin text-muted-foreground" />
       </div>
     );

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, safeStorage, ipcMain } from "electron";
+import { app, BrowserWindow, Menu, safeStorage, ipcMain, screen } from "electron";
 import { spawn, ChildProcess } from "node:child_process";
 import path from "node:path";
 import fs from "node:fs";
@@ -29,6 +29,49 @@ function ensureMasterKey(): void {
 
 function setDatabasePath(): void {
   process.env.DATABASE_PATH = path.join(app.getPath("userData"), "itsyship.db");
+}
+
+// --- Window state persistence ---
+
+interface WindowState {
+  x?: number;
+  y?: number;
+  width: number;
+  height: number;
+}
+
+const windowStatePath = path.join(app.getPath("userData"), "window-state.json");
+
+function loadWindowState(): WindowState {
+  const defaults: WindowState = { width: 1200, height: 800 };
+  try {
+    const data = JSON.parse(fs.readFileSync(windowStatePath, "utf-8")) as WindowState;
+    const width = data.width > 0 ? data.width : defaults.width;
+    const height = data.height > 0 ? data.height : defaults.height;
+
+    if (data.x == null || data.y == null) return { width, height };
+
+    const rect = { x: data.x, y: data.y, width, height };
+    const visible = screen.getAllDisplays().some((d) => {
+      const b = d.bounds;
+      return (
+        rect.x < b.x + b.width &&
+        rect.x + rect.width > b.x &&
+        rect.y < b.y + b.height &&
+        rect.y + rect.height > b.y
+      );
+    });
+
+    return visible ? { x: data.x, y: data.y, width, height } : { width, height };
+  } catch {
+    return defaults;
+  }
+}
+
+function saveWindowState(win: BrowserWindow): void {
+  if (win.isMaximized() || win.isFullScreen()) return;
+  const { x, y, width, height } = win.getBounds();
+  fs.writeFileSync(windowStatePath, JSON.stringify({ x, y, width, height }));
 }
 
 // --- Port finder (pure Node.js, no external deps) ---
@@ -161,9 +204,10 @@ function setupMenu(): void {
 let mainWindow: BrowserWindow | null = null;
 
 function createWindow(port: number): void {
+  const state = loadWindowState();
+
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    ...state,
     show: false,
     titleBarStyle: "hiddenInset",
     icon: path.join(app.getAppPath(), "public", "icon.png"),
@@ -179,6 +223,17 @@ function createWindow(port: number): void {
   ipcMain.once("app-ready", () => {
     mainWindow?.show();
   });
+
+  let saveTimeout: ReturnType<typeof setTimeout> | null = null;
+  const debouncedSave = () => {
+    if (saveTimeout) clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+      if (mainWindow) saveWindowState(mainWindow);
+    }, 300);
+  };
+
+  mainWindow.on("resize", debouncedSave);
+  mainWindow.on("move", debouncedSave);
 
   mainWindow.on("closed", () => {
     mainWindow = null;
