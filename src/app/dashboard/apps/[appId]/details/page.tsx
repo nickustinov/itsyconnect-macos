@@ -74,7 +74,7 @@ export default function AppDetailsPage() {
   const { appId } = useParams<{ appId: string }>();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { apps } = useApps();
+  const { apps, updateApp } = useApps();
   const app = apps.find((a) => a.id === appId);
   const { appInfos, loading: infoLoading } = useAppInfo(appId);
   const appInfo = pickAppInfo(appInfos);
@@ -299,9 +299,16 @@ export default function AppDetailsPage() {
         if (!localeData[locale]) delete ids[locale];
       }
       originalLocaleIdsRef.current = ids;
+
+      // Update app name in context if primary locale name changed
+      const primaryName = localeData[primaryLocale]?.name;
+      if (primaryName && primaryName !== app?.name) {
+        updateApp(appId, (a) => ({ ...a, name: primaryName }));
+      }
+
       setDirty(false);
     });
-  }, [appId, appInfoId, localeData, contentRights, primaryCategoryId, secondaryCategoryId, notifUrl, notifSandboxUrl, registerSave, setDirty]);
+  }, [appId, appInfoId, localeData, contentRights, primaryCategoryId, secondaryCategoryId, notifUrl, notifSandboxUrl, primaryLocale, app?.name, updateApp, registerSave, setDirty]);
 
   const updateField = useCallback(
     (field: keyof AppInfoLocaleFields, value: string) => {

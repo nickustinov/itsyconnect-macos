@@ -140,7 +140,7 @@ export function DashboardBreadcrumb() {
           <>
             <BreadcrumbItem className="hidden md:block">
               <BreadcrumbLink href={`/dashboard/apps/${app.id}`}>
-                {app.name}
+                {app.name.length > 10 ? `${app.name.slice(0, 10)}…` : app.name}
               </BreadcrumbLink>
             </BreadcrumbItem>
             {pageSegment === "testflight" ? (

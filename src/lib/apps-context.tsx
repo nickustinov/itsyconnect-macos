@@ -19,6 +19,8 @@ interface AppsContextValue {
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
+  /** Update a single app in-place without refetching. */
+  updateApp: (appId: string, updater: (a: App) => App) => void;
 }
 
 const AppsContext = createContext<AppsContextValue>({
@@ -26,6 +28,7 @@ const AppsContext = createContext<AppsContextValue>({
   loading: true,
   error: null,
   refresh: async () => {},
+  updateApp: () => {},
 });
 
 /** Normalize ASC API shape to flat App interface. */
@@ -79,8 +82,15 @@ export function AppsProvider({ children }: { children: React.ReactNode }) {
     refresh();
   }, [refresh]);
 
+  const updateApp = useCallback(
+    (appId: string, updater: (a: App) => App) => {
+      setApps((prev) => prev.map((a) => (a.id === appId ? updater(a) : a)));
+    },
+    [],
+  );
+
   return (
-    <AppsContext.Provider value={{ apps, loading, error, refresh }}>
+    <AppsContext.Provider value={{ apps, loading, error, refresh, updateApp }}>
       {children}
     </AppsContext.Provider>
   );
