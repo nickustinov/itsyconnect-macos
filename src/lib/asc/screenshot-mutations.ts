@@ -162,6 +162,13 @@ export async function createScreenshotSet(
   return res.data.id;
 }
 
+/** Delete an empty screenshot set. */
+export async function deleteScreenshotSet(setId: string): Promise<void> {
+  await ascFetch<null>(`/v1/appScreenshotSets/${setId}`, {
+    method: "DELETE",
+  });
+}
+
 /** Invalidate the screenshot cache for a localization. */
 export function invalidateScreenshotCache(localizationId: string): void {
   cacheInvalidate(`screenshotSets:${localizationId}`);

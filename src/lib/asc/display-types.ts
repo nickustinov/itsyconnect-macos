@@ -17,6 +17,26 @@ export const DISPLAY_TYPE_LABELS: Record<string, string> = {
   APP_APPLE_VISION_PRO: "Apple Vision Pro",
 };
 
+/** Primary portrait resolution for each display type (width × height). */
+export const DISPLAY_TYPE_SIZES: Record<string, string> = {
+  APP_IPHONE_67: "1290 × 2796",
+  APP_IPHONE_61: "1170 × 2532",
+  APP_IPHONE_65: "1284 × 2778",
+  APP_IPHONE_58: "1125 × 2436",
+  APP_IPHONE_55: "1242 × 2208",
+  APP_IPHONE_47: "750 × 1334",
+  APP_IPHONE_40: "640 × 1136",
+  APP_IPHONE_35: "640 × 960",
+  APP_IPAD_PRO_3GEN_129: "2048 × 2732",
+  APP_IPAD_PRO_3GEN_11: "1668 × 2388",
+  APP_IPAD_PRO_129: "2048 × 2732",
+  APP_IPAD_105: "1668 × 2224",
+  APP_IPAD_97: "1536 × 2048",
+  APP_DESKTOP: "2880 × 1800",
+  APP_APPLE_TV: "1920 × 1080",
+  APP_APPLE_VISION_PRO: "3840 × 2160",
+};
+
 /** Consistent display order for screenshot sets. Types not listed sort to end alphabetically. */
 export const DISPLAY_TYPE_ORDER: string[] = [
   "APP_IPHONE_67",
@@ -36,6 +56,48 @@ export const DISPLAY_TYPE_ORDER: string[] = [
   "APP_APPLE_TV",
   "APP_APPLE_VISION_PRO",
 ];
+
+/** Device categories group display types for the tab bar. */
+export type DeviceCategory = "iPhone" | "iPad" | "Mac" | "Apple TV" | "Apple Vision Pro";
+
+export const DEVICE_CATEGORY_TYPES: Record<DeviceCategory, string[]> = {
+  iPhone: [
+    "APP_IPHONE_67",
+    "APP_IPHONE_61",
+    "APP_IPHONE_65",
+    "APP_IPHONE_58",
+    "APP_IPHONE_55",
+    "APP_IPHONE_47",
+    "APP_IPHONE_40",
+    "APP_IPHONE_35",
+  ],
+  iPad: [
+    "APP_IPAD_PRO_3GEN_129",
+    "APP_IPAD_PRO_3GEN_11",
+    "APP_IPAD_PRO_129",
+    "APP_IPAD_105",
+    "APP_IPAD_97",
+  ],
+  Mac: ["APP_DESKTOP"],
+  "Apple TV": ["APP_APPLE_TV"],
+  "Apple Vision Pro": ["APP_APPLE_VISION_PRO"],
+};
+
+/** Maps ASC platform codes to the device categories available for that platform. */
+export const PLATFORM_DEVICE_CATEGORIES: Record<string, DeviceCategory[]> = {
+  IOS: ["iPhone", "iPad"],
+  MAC_OS: ["Mac"],
+  TV_OS: ["Apple TV"],
+  VISION_OS: ["Apple Vision Pro"],
+};
+
+/** Get the device category for a display type. */
+export function getDeviceCategory(displayType: string): DeviceCategory | undefined {
+  for (const [cat, types] of Object.entries(DEVICE_CATEGORY_TYPES) as [DeviceCategory, string[]][]) {
+    if (types.includes(displayType)) return cat;
+  }
+  return undefined;
+}
 
 export function displayTypeLabel(type: string): string {
   return DISPLAY_TYPE_LABELS[type] ?? type;

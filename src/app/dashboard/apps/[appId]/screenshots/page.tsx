@@ -3,7 +3,6 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import {
-  Images,
   CloudArrowUp,
   Plus,
   SpinnerGap,
@@ -13,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import {
   DndContext,
   closestCenter,
@@ -40,7 +40,13 @@ import {
   screenshotImageUrl,
   displayTypeLabel,
   sortDisplayTypes,
+  DISPLAY_TYPE_SIZES,
+  DEVICE_CATEGORY_TYPES,
+  PLATFORM_DEVICE_CATEGORIES,
+  getDeviceCategory,
+  type DeviceCategory,
   type AscScreenshot,
+  type AscScreenshotSet,
 } from "@/lib/asc/display-types";
 import { useSectionLocales } from "@/lib/section-locales-context";
 import { useRegisterHeaderLocale } from "@/lib/header-locale-context";
@@ -143,6 +149,210 @@ function UploadingPlaceholder() {
 }
 
 // ---------------------------------------------------------------------------
+// Screenshot set card
+// ---------------------------------------------------------------------------
+
+function ScreenshotSetCard({
+  set,
+  readOnly,
+  uploading,
+  sensors,
+  onUpload,
+  onDelete,
+  onDeleteSet,
+  onDragEnd,
+}: {
+  set: AscScreenshotSet;
+  readOnly: boolean;
+  uploading: boolean;
+  sensors: ReturnType<typeof useSensors>;
+  onUpload: (setId: string, file: File) => void;
+  onDelete: (screenshotId: string) => void;
+  onDeleteSet: (setId: string) => void;
+  onDragEnd: (setId: string, event: DragEndEvent) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const displayType = set.attributes.screenshotDisplayType;
+  const size = DISPLAY_TYPE_SIZES[displayType];
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-sm font-medium">
+          {displayTypeLabel(displayType)}
+          {size && (
+            <span className="ml-2 text-xs font-normal text-muted-foreground">
+              {size} px
+            </span>
+          )}
+          <span className="ml-2 text-xs font-normal text-muted-foreground">
+            · {set.screenshots.length} screenshot
+            {set.screenshots.length !== 1 ? "s" : ""}
+          </span>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {set.screenshots.length === 0 && !uploading ? (
+          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center">
+            <CloudArrowUp size={32} className="text-muted-foreground/40" />
+            <p className="mt-2 text-sm text-muted-foreground">
+              No screenshots uploaded
+            </p>
+            {!readOnly && (
+              <div className="mt-3 flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => inputRef.current?.click()}
+                >
+                  <Plus size={14} className="mr-1.5" />
+                  Add screenshot
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground"
+                  onClick={() => onDeleteSet(set.id)}
+                >
+                  Remove variant
+                </Button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={(event) => onDragEnd(set.id, event)}
+          >
+            <SortableContext
+              items={set.screenshots.map((s) => s.id)}
+              strategy={horizontalListSortingStrategy}
+            >
+              <div className="flex gap-3 overflow-x-auto pb-2">
+                {set.screenshots.map((ss) => (
+                  <SortableScreenshot
+                    key={ss.id}
+                    screenshot={ss}
+                    readOnly={readOnly}
+                    onDelete={onDelete}
+                  />
+                ))}
+
+                {uploading && <UploadingPlaceholder />}
+
+                {!readOnly && (
+                  <button
+                    type="button"
+                    onClick={() => inputRef.current?.click()}
+                    className="flex h-[232px] w-[80px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed text-muted-foreground hover:border-foreground/30 hover:text-foreground/70"
+                  >
+                    <Plus size={20} />
+                    <span className="text-xs">Add</span>
+                  </button>
+                )}
+              </div>
+            </SortableContext>
+          </DndContext>
+        )}
+
+        {!readOnly && (
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/png,image/jpeg"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                onUpload(set.id, file);
+                e.target.value = "";
+              }
+            }}
+          />
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Device category tab bar
+// ---------------------------------------------------------------------------
+
+function DeviceCategoryTabs({
+  categories,
+  selected,
+  onSelect,
+}: {
+  categories: DeviceCategory[];
+  selected: DeviceCategory;
+  onSelect: (cat: DeviceCategory) => void;
+}) {
+  return (
+    <div className="border-b">
+      <nav className="-mb-px flex">
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            type="button"
+            onClick={() => onSelect(cat)}
+            className={cn(
+              "border-b-2 px-4 py-2.5 text-sm font-medium transition-colors",
+              cat === selected
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {cat}
+          </button>
+        ))}
+      </nav>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Add variant popover
+// ---------------------------------------------------------------------------
+
+function AddVariantButton({
+  category,
+  existingTypes,
+  onAdd,
+}: {
+  category: DeviceCategory;
+  existingTypes: Set<string>;
+  onAdd: (displayType: string) => void;
+}) {
+  const available = DEVICE_CATEGORY_TYPES[category].filter(
+    (dt) => !existingTypes.has(dt),
+  );
+
+  if (available.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {available.map((dt) => (
+        <Button
+          key={dt}
+          variant="outline"
+          size="sm"
+          className="gap-1.5 text-xs"
+          onClick={() => onAdd(dt)}
+        >
+          <Plus size={12} />
+          {displayTypeLabel(dt)}
+          {DISPLAY_TYPE_SIZES[dt] && (
+            <span className="text-muted-foreground">{DISPLAY_TYPE_SIZES[dt]}</span>
+          )}
+        </Button>
+      ))}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main page
 // ---------------------------------------------------------------------------
 
@@ -159,6 +369,7 @@ export default function ScreenshotsPage() {
     [versions, searchParams],
   );
   const versionId = selectedVersion?.id ?? "";
+  const platform = selectedVersion?.attributes.platform ?? "IOS";
 
   const readOnly = selectedVersion
     ? !EDITABLE_STATES.has(selectedVersion.attributes.appVersionState)
@@ -200,7 +411,6 @@ export default function ScreenshotsPage() {
     if (!primaryLocale) return;
     setLocales((prev) => {
       const current = prev.length > 0 ? prev : [primaryLocale];
-      // Validate selected locale against current locales
       setSelectedLocale((prevSel) => {
         if (prevSel && current.includes(prevSel)) return prevSel;
         const fromUrl = searchParams.get("locale");
@@ -216,7 +426,7 @@ export default function ScreenshotsPage() {
     reportLocales(locales);
   }, [locales, reportLocales]);
 
-  // Clear pending creates when localizations refresh (e.g. after save)
+  // Clear pending creates when localizations refresh
   useEffect(() => {
     setPendingCreates((prev) => {
       if (prev.size === 0) return prev;
@@ -292,11 +502,65 @@ export default function ScreenshotsPage() {
     );
   }, [rawSets]);
 
-  // ---- Upload state ----
-  const [uploadingSetIds, setUploadingSetIds] = useState<Set<string>>(
-    new Set(),
+  // Device category tabs
+  const allCategories = useMemo(
+    () => PLATFORM_DEVICE_CATEGORIES[platform] ?? ["iPhone" as DeviceCategory],
+    [platform],
   );
-  const fileInputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
+
+  const categoriesWithSets = useMemo(() => {
+    const cats = new Set<DeviceCategory>();
+    for (const set of screenshotSets) {
+      const cat = getDeviceCategory(set.attributes.screenshotDisplayType);
+      if (cat) cats.add(cat);
+    }
+    return cats;
+  }, [screenshotSets]);
+
+  // For editable versions, show all platform categories; for read-only, show only those with sets
+  const visibleCategories = useMemo(() => {
+    if (readOnly) {
+      return allCategories.filter((c) => categoriesWithSets.has(c));
+    }
+    return allCategories;
+  }, [readOnly, allCategories, categoriesWithSets]);
+
+  const [selectedCategory, setSelectedCategory] = useState<DeviceCategory>(
+    () => visibleCategories[0] ?? "iPhone",
+  );
+
+  // Reset selected category when visible categories change
+  useEffect(() => {
+    if (visibleCategories.length > 0 && !visibleCategories.includes(selectedCategory)) {
+      setSelectedCategory(visibleCategories[0]);
+    }
+  }, [visibleCategories, selectedCategory]);
+
+  // Filter sets by selected category
+  const categoryTypes = useMemo(
+    () => new Set(DEVICE_CATEGORY_TYPES[selectedCategory] ?? []),
+    [selectedCategory],
+  );
+
+  const filteredSets = useMemo(
+    () => screenshotSets.filter((s) => categoryTypes.has(s.attributes.screenshotDisplayType)),
+    [screenshotSets, categoryTypes],
+  );
+
+  const existingTypes = useMemo(
+    () => new Set(screenshotSets.map((s) => s.attributes.screenshotDisplayType)),
+    [screenshotSets],
+  );
+
+  const hasAddableVariants = useMemo(
+    () => DEVICE_CATEGORY_TYPES[selectedCategory]?.some((dt) => !existingTypes.has(dt)) ?? false,
+    [selectedCategory, existingTypes],
+  );
+
+  // ---- Upload state ----
+  const [uploadingSetIds, setUploadingSetIds] = useState<Set<string>>(new Set());
+  const [creatingVariant, setCreatingVariant] = useState(false);
+
 
   // ---- Drag sensors ----
   const sensors = useSensors(
@@ -393,6 +657,54 @@ export default function ScreenshotsPage() {
     [apiBase, refresh, screenshotSets],
   );
 
+  const handleAddVariant = useCallback(
+    async (displayType: string) => {
+      if (!localizationId) return;
+      setCreatingVariant(true);
+      try {
+        const res = await fetch(`${apiBase}/sets`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ displayType }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          toast.error(data.error ?? "Failed to create screenshot set");
+          return;
+        }
+        toast.success(`Added ${displayTypeLabel(displayType)}`);
+        await refresh();
+      } catch {
+        toast.error("Failed to create screenshot set");
+      } finally {
+        setCreatingVariant(false);
+      }
+    },
+    [apiBase, localizationId, refresh],
+  );
+
+  const handleDeleteSet = useCallback(
+    async (setId: string) => {
+      try {
+        const res = await fetch(`${apiBase}/sets`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ setId }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          toast.error(data.error ?? "Failed to remove variant");
+          return;
+        }
+        toast.success("Variant removed");
+        await refresh();
+      } catch {
+        toast.error("Failed to remove variant");
+      }
+    },
+    [apiBase, refresh],
+  );
+
   function handleAddLocale(locale: string) {
     setLocales((prev) => sortLocales([...prev, locale], primaryLocale));
     changeLocale(locale);
@@ -468,129 +780,78 @@ export default function ScreenshotsPage() {
     );
   }
 
+  if (locales.length === 0) {
+    return (
+      <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+        No localizations for this version.
+      </div>
+    );
+  }
+
+  if (ssLoading || creatingVariant) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <SpinnerGap size={24} className="animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  const showTabs = visibleCategories.length > 1 || (!readOnly && allCategories.length > 1);
+
+  const isEmpty = filteredSets.length === 0;
+
   return (
-    <div className="space-y-6">
-      {locales.length === 0 ? (
-        <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-          No localizations for this version.
+    <div className="flex flex-1 flex-col gap-6">
+      {showTabs && (
+        <DeviceCategoryTabs
+          categories={readOnly ? visibleCategories : allCategories}
+          selected={selectedCategory}
+          onSelect={setSelectedCategory}
+        />
+      )}
+
+      {isEmpty && readOnly ? (
+        <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+          No screenshots for {selectedCategory} on this version.
         </div>
-      ) : ssLoading ? (
-        <div className="flex items-center justify-center py-20">
-          <SpinnerGap
-            size={24}
-            className="animate-spin text-muted-foreground"
+      ) : isEmpty && !readOnly ? (
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">Add variant</p>
+          <AddVariantButton
+            category={selectedCategory}
+            existingTypes={existingTypes}
+            onAdd={handleAddVariant}
           />
         </div>
-      ) : screenshotSets.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-20 text-center">
-          <Images size={48} className="text-muted-foreground/50" />
-          <h2 className="mt-4 text-lg font-medium">No screenshots</h2>
-          <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-            No screenshot sets have been created for this locale yet.
-          </p>
-        </div>
       ) : (
-        <div className="space-y-6">
-          {screenshotSets.map((set) => (
-            <Card key={set.id}>
-              <CardHeader>
-                <CardTitle className="text-sm font-medium">
-                  {displayTypeLabel(set.attributes.screenshotDisplayType)}
-                  <span className="ml-2 text-xs font-normal text-muted-foreground">
-                    {set.screenshots.length} screenshot
-                    {set.screenshots.length !== 1 ? "s" : ""}
-                  </span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {set.screenshots.length === 0 && !uploadingSetIds.has(set.id) ? (
-                  /* Empty set – upload drop zone */
-                  <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center">
-                    <CloudArrowUp
-                      size={32}
-                      className="text-muted-foreground/40"
-                    />
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      No screenshots uploaded
-                    </p>
-                    {!readOnly && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="mt-3"
-                        onClick={() =>
-                          fileInputRefs.current.get(set.id)?.click()
-                        }
-                      >
-                        <Plus size={14} className="mr-1.5" />
-                        Add screenshot
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={(event) => handleDragEnd(set.id, event)}
-                  >
-                    <SortableContext
-                      items={set.screenshots.map((s) => s.id)}
-                      strategy={horizontalListSortingStrategy}
-                    >
-                      <div className="flex gap-3 overflow-x-auto pb-2">
-                        {set.screenshots.map((ss) => (
-                          <SortableScreenshot
-                            key={ss.id}
-                            screenshot={ss}
-                            readOnly={readOnly}
-                            onDelete={handleDeleteScreenshot}
-                          />
-                        ))}
+        <>
+          <div className="space-y-6">
+            {filteredSets.map((set) => (
+              <ScreenshotSetCard
+                key={set.id}
+                set={set}
+                readOnly={readOnly}
+                uploading={uploadingSetIds.has(set.id)}
+                sensors={sensors}
+                onUpload={handleUpload}
+                onDelete={handleDeleteScreenshot}
+                onDeleteSet={handleDeleteSet}
+                onDragEnd={handleDragEnd}
+              />
+            ))}
+          </div>
 
-                        {uploadingSetIds.has(set.id) && (
-                          <UploadingPlaceholder />
-                        )}
-
-                        {/* Add button as last slot */}
-                        {!readOnly && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              fileInputRefs.current.get(set.id)?.click()
-                            }
-                            className="flex h-[232px] w-[80px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed text-muted-foreground hover:border-foreground/30 hover:text-foreground/70"
-                          >
-                            <Plus size={20} />
-                            <span className="text-xs">Add</span>
-                          </button>
-                        )}
-                      </div>
-                    </SortableContext>
-                  </DndContext>
-                )}
-
-                {/* Hidden file input for this set */}
-                {!readOnly && (
-                  <input
-                    ref={(el) => {
-                      if (el) fileInputRefs.current.set(set.id, el);
-                    }}
-                    type="file"
-                    accept="image/png,image/jpeg"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        handleUpload(set.id, file);
-                        e.target.value = "";
-                      }
-                    }}
-                  />
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+          {!readOnly && hasAddableVariants && (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">Add variant</p>
+              <AddVariantButton
+                category={selectedCategory}
+                existingTypes={existingTypes}
+                onAdd={handleAddVariant}
+              />
+            </div>
+          )}
+        </>
       )}
     </div>
   );
