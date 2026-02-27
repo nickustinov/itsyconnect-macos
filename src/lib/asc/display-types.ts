@@ -143,6 +143,7 @@ const SCREENSHOT_ERROR_MESSAGES: Record<string, string> = {
   IMAGE_BAD_DIMENSION_SM_LESS_MIN: "Image is too small for this display type",
   IMAGE_BAD_DIMENSION_SM_OVER_MAX: "Image is too large for this display type",
   IMG_BAD_DIMENSIONS: "Image dimensions don't match this display type",
+  IMAGE_INCORRECT_DIMENSIONS: "Image dimensions don't match this display type",
   IMG_BAD_COLOR_SPACE: "Image must use RGB colour space",
   IMG_APPEARS_CORRUPT: "Image file appears to be corrupt – try re-saving it",
   IMAGE_TOOL_FAILURE: "Apple could not process this image – try again later",
