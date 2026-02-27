@@ -26,7 +26,7 @@ import { AppWindow, Lock, PencilSimple, Plus, SpinnerGap } from "@phosphor-icons
 import { toast } from "sonner";
 import { useApps } from "@/lib/apps-context";
 import { useVersions } from "@/lib/versions-context";
-import { resolveVersion } from "@/lib/asc/version-types";
+import { resolveVersion, EDITABLE_STATES } from "@/lib/asc/version-types";
 import { useLocalizations } from "@/lib/hooks/use-localizations";
 import { useAppInfo, useAppInfoLocalizations } from "@/lib/hooks/use-app-info";
 import { pickAppInfo } from "@/lib/asc/app-info-utils";
@@ -37,13 +37,6 @@ import {
   LOCALE_NAMES,
   FIELD_LIMITS,
 } from "@/lib/asc/locale-names";
-
-const EDITABLE_STATES = new Set([
-  "PREPARE_FOR_SUBMISSION",
-  "REJECTED",
-  "METADATA_REJECTED",
-  "DEVELOPER_REJECTED",
-]);
 
 
 interface LocaleFields {

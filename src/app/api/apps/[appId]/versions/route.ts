@@ -21,7 +21,6 @@ export async function GET(
     return NextResponse.json({ versions, meta });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("[versions] fetch failed:", message);
     return NextResponse.json({ error: message }, { status: 502 });
   }
 }

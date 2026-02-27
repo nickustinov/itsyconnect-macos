@@ -3,6 +3,10 @@ import {
   getVersionPlatforms,
   getVersionsByPlatform,
   resolveVersion,
+  EDITABLE_STATES,
+  PLATFORM_LABELS,
+  STATE_DOT_COLORS,
+  stateLabel,
 } from "@/lib/asc/version-types";
 import type { AscVersion } from "@/lib/asc/version-types";
 
@@ -116,5 +120,57 @@ describe("resolveVersion", () => {
 
   it("returns undefined for empty array", () => {
     expect(resolveVersion([], null)).toBeUndefined();
+  });
+});
+
+describe("EDITABLE_STATES", () => {
+  it("contains all four editable states", () => {
+    expect(EDITABLE_STATES.has("PREPARE_FOR_SUBMISSION")).toBe(true);
+    expect(EDITABLE_STATES.has("REJECTED")).toBe(true);
+    expect(EDITABLE_STATES.has("METADATA_REJECTED")).toBe(true);
+    expect(EDITABLE_STATES.has("DEVELOPER_REJECTED")).toBe(true);
+  });
+
+  it("does not contain non-editable states", () => {
+    expect(EDITABLE_STATES.has("READY_FOR_SALE")).toBe(false);
+    expect(EDITABLE_STATES.has("IN_REVIEW")).toBe(false);
+  });
+});
+
+describe("PLATFORM_LABELS", () => {
+  it("maps platform keys to display labels", () => {
+    expect(PLATFORM_LABELS.IOS).toBe("iOS");
+    expect(PLATFORM_LABELS.MAC_OS).toBe("macOS");
+    expect(PLATFORM_LABELS.TV_OS).toBe("tvOS");
+    expect(PLATFORM_LABELS.VISION_OS).toBe("visionOS");
+  });
+
+  it("has exactly 4 entries", () => {
+    expect(Object.keys(PLATFORM_LABELS)).toHaveLength(4);
+  });
+});
+
+describe("STATE_DOT_COLORS", () => {
+  it("maps states to Tailwind bg classes", () => {
+    expect(STATE_DOT_COLORS.READY_FOR_SALE).toBe("bg-green-500");
+    expect(STATE_DOT_COLORS.IN_REVIEW).toBe("bg-blue-500");
+    expect(STATE_DOT_COLORS.WAITING_FOR_REVIEW).toBe("bg-amber-500");
+    expect(STATE_DOT_COLORS.PREPARE_FOR_SUBMISSION).toBe("bg-yellow-500");
+    expect(STATE_DOT_COLORS.REJECTED).toBe("bg-red-500");
+  });
+
+  it("has 9 entries", () => {
+    expect(Object.keys(STATE_DOT_COLORS)).toHaveLength(9);
+  });
+});
+
+describe("stateLabel", () => {
+  it("converts UPPER_SNAKE_CASE to Title Case", () => {
+    expect(stateLabel("READY_FOR_SALE")).toBe("Ready For Sale");
+    expect(stateLabel("PREPARE_FOR_SUBMISSION")).toBe("Prepare For Submission");
+  });
+
+  it("handles single-word states", () => {
+    expect(stateLabel("REJECTED")).toBe("Rejected");
   });
 });

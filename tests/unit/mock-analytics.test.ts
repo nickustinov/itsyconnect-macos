@@ -15,6 +15,8 @@ import {
   TOP_REFERRERS,
   CRASHES,
   formatDate,
+  n,
+  series,
 } from "@/lib/mock-analytics";
 
 describe("mock-analytics", () => {
@@ -102,6 +104,45 @@ describe("mock-analytics", () => {
         expect(c).toHaveProperty("crashes");
         expect(c).toHaveProperty("uniqueDevices");
       }
+    });
+  });
+
+  describe("n (deterministic noise)", () => {
+    it("returns a number in [-1, 1]", () => {
+      for (let i = 0; i < 50; i++) {
+        const val = n(i, 42);
+        expect(val).toBeGreaterThanOrEqual(-1);
+        expect(val).toBeLessThanOrEqual(1);
+      }
+    });
+
+    it("is deterministic – same inputs produce same output", () => {
+      expect(n(5, 10)).toBe(n(5, 10));
+    });
+
+    it("produces different values for different seeds", () => {
+      expect(n(0, 1)).not.toBe(n(0, 2));
+    });
+  });
+
+  describe("series", () => {
+    it("returns an array of length ANALYTICS_DAYS (30)", () => {
+      const result = series(100, 10, 1);
+      expect(result).toHaveLength(30);
+    });
+
+    it("values are non-negative integers", () => {
+      const result = series(50, 20, 7);
+      for (const v of result) {
+        expect(v).toBeGreaterThanOrEqual(0);
+        expect(Number.isInteger(v)).toBe(true);
+      }
+    });
+
+    it("applies upward trend", () => {
+      const result = series(100, 0, 99, 10);
+      // With zero variance, values should increase linearly
+      expect(result[29]).toBeGreaterThan(result[0]);
     });
   });
 

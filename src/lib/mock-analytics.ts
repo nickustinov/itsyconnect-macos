@@ -13,12 +13,12 @@ export const ANALYTICS_DAYS = Array.from({ length: DAY_COUNT }, (_, i) => {
 });
 
 /** Deterministic noise in [-1, 1] */
-function n(i: number, seed: number): number {
+export function n(i: number, seed: number): number {
   const x = Math.sin(i * 9.1 + seed * 7.3) * 10000;
   return (x - Math.floor(x)) * 2 - 1;
 }
 
-function series(
+export function series(
   base: number,
   variance: number,
   seed: number,

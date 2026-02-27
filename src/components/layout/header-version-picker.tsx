@@ -23,44 +23,15 @@ import {
   getVersionPlatforms,
   getVersionsByPlatform,
   resolveVersion,
+  EDITABLE_STATES,
+  PLATFORM_LABELS,
+  STATE_DOT_COLORS,
+  stateLabel,
 } from "@/lib/asc/version-types";
 
 const VERSION_PAGES = new Set(["store-listing", "screenshots", "review"]);
 const NEW_VERSION_PAGES = new Set(["", "store-listing", "screenshots", "review"]);
 const SAVE_ONLY_PAGES = new Set(["details"]);
-
-const EDITABLE_STATES = new Set([
-  "PREPARE_FOR_SUBMISSION",
-  "REJECTED",
-  "METADATA_REJECTED",
-  "DEVELOPER_REJECTED",
-]);
-
-const PLATFORM_LABELS: Record<string, string> = {
-  IOS: "iOS",
-  MAC_OS: "macOS",
-  TV_OS: "tvOS",
-  VISION_OS: "visionOS",
-};
-
-const STATE_DOT_COLORS: Record<string, string> = {
-  READY_FOR_SALE: "bg-green-500",
-  READY_FOR_DISTRIBUTION: "bg-green-500",
-  ACCEPTED: "bg-green-500",
-  IN_REVIEW: "bg-blue-500",
-  WAITING_FOR_REVIEW: "bg-amber-500",
-  PREPARE_FOR_SUBMISSION: "bg-yellow-500",
-  REJECTED: "bg-red-500",
-  METADATA_REJECTED: "bg-red-500",
-  DEVELOPER_REJECTED: "bg-red-500",
-};
-
-function stateLabel(state: string): string {
-  return state
-    .replace(/_/g, " ")
-    .toLowerCase()
-    .replace(/\b\w/g, (c) => c.toUpperCase());
-}
 
 export function HeaderVersionPicker() {
   const { appId } = useParams<{ appId?: string }>();

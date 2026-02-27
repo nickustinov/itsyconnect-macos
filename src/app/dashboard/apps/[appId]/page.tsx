@@ -5,8 +5,14 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useApps } from "@/lib/apps-context";
 import { useVersions } from "@/lib/versions-context";
-import type { AscVersion } from "@/lib/asc/version-types";
+import {
+  PLATFORM_LABELS,
+  STATE_DOT_COLORS,
+  stateLabel,
+  type AscVersion,
+} from "@/lib/asc/version-types";
 import { AppIcon } from "@/components/app-icon";
+import { KpiCard } from "@/components/kpi-card";
 import {
   DownloadSimple,
   CurrencyDollar,
@@ -60,32 +66,6 @@ const STATE_BADGE_CLASSES: Record<string, string> = {
   DEVELOPER_REJECTED: "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/25",
 };
 
-const STATE_DOT_COLORS: Record<string, string> = {
-  READY_FOR_SALE: "bg-green-500",
-  READY_FOR_DISTRIBUTION: "bg-green-500",
-  ACCEPTED: "bg-green-500",
-  IN_REVIEW: "bg-blue-500",
-  WAITING_FOR_REVIEW: "bg-amber-500",
-  PREPARE_FOR_SUBMISSION: "bg-yellow-500",
-  REJECTED: "bg-red-500",
-  METADATA_REJECTED: "bg-red-500",
-  DEVELOPER_REJECTED: "bg-red-500",
-};
-
-const PLATFORM_LABELS: Record<string, string> = {
-  IOS: "iOS",
-  MAC_OS: "macOS",
-  TV_OS: "tvOS",
-  VISION_OS: "visionOS",
-};
-
-function stateLabel(state: string): string {
-  return state
-    .replace(/_/g, " ")
-    .toLowerCase()
-    .replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
 /**
  * Pick at most 2 versions per platform for the overview:
  * the newest live version + the newest non-live version (if any).
@@ -130,33 +110,6 @@ const revenueConfig = {
 const territoryConfig = {
   downloads: { label: "Downloads", color: "var(--color-chart-1)" },
 } satisfies ChartConfig;
-
-// ---------- KPI helper ----------
-
-function KpiCard({
-  title,
-  value,
-  subtitle,
-  icon: Icon,
-}: {
-  title: string;
-  value: string;
-  subtitle: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-}) {
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon size={16} className="text-muted-foreground" />
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold tabular-nums">{value}</div>
-        <p className="text-xs text-muted-foreground">{subtitle}</p>
-      </CardContent>
-    </Card>
-  );
-}
 
 // ---------- Page ----------
 

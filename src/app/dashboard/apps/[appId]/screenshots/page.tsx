@@ -22,7 +22,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { useApps } from "@/lib/apps-context";
 import { useVersions } from "@/lib/versions-context";
-import { resolveVersion } from "@/lib/asc/version-types";
+import { resolveVersion, EDITABLE_STATES } from "@/lib/asc/version-types";
 import { useLocalizations } from "@/lib/hooks/use-localizations";
 import { useScreenshotSets } from "@/lib/hooks/use-screenshot-sets";
 import { localeName, LOCALE_NAMES } from "@/lib/asc/locale-names";
@@ -35,13 +35,6 @@ function sortLocales(codes: string[], primaryLocale: string): string[] {
     return localeName(a).localeCompare(localeName(b));
   });
 }
-
-const EDITABLE_STATES = new Set([
-  "PREPARE_FOR_SUBMISSION",
-  "REJECTED",
-  "METADATA_REJECTED",
-  "DEVELOPER_REJECTED",
-]);
 
 const DISPLAY_TYPE_LABELS: Record<string, string> = {
   APP_IPHONE_67: "iPhone 6.7\"",

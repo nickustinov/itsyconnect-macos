@@ -37,6 +37,7 @@ import {
   CRASHES,
   formatDate,
 } from "@/lib/mock-analytics";
+import { KpiCard } from "@/components/kpi-card";
 
 // ---------- Chart configs ----------
 
@@ -68,33 +69,6 @@ function pctChange(current: number, previous: number): string {
   const pct = ((current - previous) / previous) * 100;
   const sign = pct >= 0 ? "+" : "";
   return `${sign}${pct.toFixed(1)}%`;
-}
-
-function KpiCard({
-  title,
-  value,
-  change,
-  icon: Icon,
-}: {
-  title: string;
-  value: string;
-  change: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-}) {
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon size={16} className="text-muted-foreground" />
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold tabular-nums">{value}</div>
-        <p className="text-xs text-muted-foreground">
-          {change} from previous period
-        </p>
-      </CardContent>
-    </Card>
-  );
 }
 
 // ---------- Page ----------
@@ -148,31 +122,31 @@ export default function AnalyticsOverviewPage() {
         <KpiCard
           title="Downloads"
           value={totalDownloads.toLocaleString()}
-          change={pctChange(totalDownloads, prevDownloads)}
+          subtitle={`${pctChange(totalDownloads, prevDownloads)} from previous period`}
           icon={DownloadSimple}
         />
         <KpiCard
           title="Revenue"
           value={`$${totalRevenue.toLocaleString()}`}
-          change={pctChange(totalRevenue, prevRevenue)}
+          subtitle={`${pctChange(totalRevenue, prevRevenue)} from previous period`}
           icon={CurrencyDollar}
         />
         <KpiCard
           title="First-time downloads"
           value={totalFirstTime.toLocaleString()}
-          change={pctChange(
+          subtitle={`${pctChange(
             totalFirstTime,
             DAILY_DOWNLOADS.slice(-(days * 2), -days).reduce(
               (s, d) => s + d.firstTime,
               0,
             ),
-          )}
+          )} from previous period`}
           icon={Timer}
         />
         <KpiCard
           title="Crash-free rate"
           value={`${crashFreeRate}%`}
-          change={`${crashDevices} affected devices`}
+          subtitle={`${crashDevices} affected devices from previous period`}
           icon={ShieldCheck}
         />
       </div>

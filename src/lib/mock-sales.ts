@@ -4,27 +4,10 @@
  * 30 days: Jan 27 – Feb 25, 2026.
  */
 
-import { ANALYTICS_DAYS, formatDate } from "./mock-analytics";
+import { ANALYTICS_DAYS, formatDate, n, series } from "./mock-analytics";
 
 // Re-export for convenience
 export { ANALYTICS_DAYS, formatDate };
-
-/** Deterministic noise in [-1, 1] */
-function n(i: number, seed: number): number {
-  const x = Math.sin(i * 9.1 + seed * 7.3) * 10000;
-  return (x - Math.floor(x)) * 2 - 1;
-}
-
-function series(
-  base: number,
-  variance: number,
-  seed: number,
-  trend = 0,
-): number[] {
-  return ANALYTICS_DAYS.map((_, i) =>
-    Math.max(0, Math.round(base + trend * i + n(i, seed) * variance)),
-  );
-}
 
 // ---------- Daily revenue ----------
 

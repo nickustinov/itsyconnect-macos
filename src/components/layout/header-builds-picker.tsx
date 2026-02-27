@@ -15,11 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getAppTFBuilds } from "@/lib/mock-testflight";
-
-const PLATFORM_LABELS: Record<string, string> = {
-  IOS: "iOS",
-  MAC_OS: "macOS",
-};
+import { PLATFORM_LABELS } from "@/lib/asc/version-types";
 
 export function HeaderBuildsPicker() {
   const { appId } = useParams<{ appId?: string }>();

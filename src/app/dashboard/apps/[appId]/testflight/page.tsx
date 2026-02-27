@@ -16,11 +16,7 @@ import {
   MOCK_BETA_GROUPS,
   type MockTFBuild,
 } from "@/lib/mock-testflight";
-
-const PLATFORM_LABELS: Record<string, string> = {
-  IOS: "iOS",
-  MAC_OS: "macOS",
-};
+import { PLATFORM_LABELS } from "@/lib/asc/version-types";
 
 const STATUS_DOTS: Record<MockTFBuild["status"], string> = {
   Testing: "bg-green-500",
