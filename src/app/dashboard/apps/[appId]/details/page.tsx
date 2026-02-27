@@ -274,7 +274,7 @@ export default function AppDetailsPage() {
       <section className="space-y-2">
         <h3 className="section-title">Base language</h3>
         <Select defaultValue={app.primaryLocale}>
-          <SelectTrigger className="w-[200px] text-sm">
+          <SelectTrigger className="w-[280px] text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -283,12 +283,18 @@ export default function AppDetailsPage() {
                 key={loc.attributes.locale}
                 value={loc.attributes.locale}
               >
-                {loc.attributes.locale}
+                {localeName(loc.attributes.locale)}
+                <span className="ml-1.5 text-muted-foreground">
+                  {loc.attributes.locale}
+                </span>
               </SelectItem>
             ))}
             {localizations.length === 0 && (
               <SelectItem value={app.primaryLocale}>
-                {app.primaryLocale}
+                {localeName(app.primaryLocale)}
+                <span className="ml-1.5 text-muted-foreground">
+                  {app.primaryLocale}
+                </span>
               </SelectItem>
             )}
           </SelectContent>
@@ -331,6 +337,7 @@ export default function AppDetailsPage() {
                   Privacy policy URL
                 </label>
                 <Input
+                  dir="ltr"
                   value={current.privacyPolicyUrl}
                   onChange={(e) =>
                     updateField("privacyPolicyUrl", e.target.value)
@@ -344,6 +351,7 @@ export default function AppDetailsPage() {
                   Privacy choices URL
                 </label>
                 <Input
+                  dir="ltr"
                   value={current.privacyChoicesUrl}
                   onChange={(e) =>
                     updateField("privacyChoicesUrl", e.target.value)

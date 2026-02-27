@@ -157,6 +157,7 @@ export default function AppReviewPage() {
             <div className="space-y-2">
               <label className="text-sm text-muted-foreground">Username</label>
               <Input
+                dir="ltr"
                 placeholder="demo@example.com"
                 className="text-sm"
                 value={demoName}
@@ -166,6 +167,7 @@ export default function AppReviewPage() {
             <div className="space-y-2">
               <label className="text-sm text-muted-foreground">Password</label>
               <Input
+                dir="ltr"
                 type="password"
                 placeholder="Password"
                 className="text-sm"
@@ -203,6 +205,7 @@ export default function AppReviewPage() {
           <div className="space-y-2">
             <label className="text-sm text-muted-foreground">Phone</label>
             <Input
+              dir="ltr"
               className="text-sm"
               value={phone}
               onChange={(e) => { setPhone(e.target.value); setDirty(true); }}
@@ -211,6 +214,7 @@ export default function AppReviewPage() {
           <div className="space-y-2">
             <label className="text-sm text-muted-foreground">Email</label>
             <Input
+              dir="ltr"
               type="email"
               className="text-sm"
               value={email}

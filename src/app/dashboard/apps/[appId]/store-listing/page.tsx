@@ -423,6 +423,7 @@ export default function StoreListingPage() {
                     Support URL
                   </label>
                   <Input
+                    dir="ltr"
                     value={current.supportUrl}
                     onChange={(e) => updateField("supportUrl", e.target.value)}
                     readOnly={readOnly}
@@ -435,6 +436,7 @@ export default function StoreListingPage() {
                     Marketing URL
                   </label>
                   <Input
+                    dir="ltr"
                     value={current.marketingUrl}
                     onChange={(e) => updateField("marketingUrl", e.target.value)}
                     readOnly={readOnly}

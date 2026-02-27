@@ -58,12 +58,12 @@ export function LocalePicker({
 
   const activeSet = useMemo(() => new Set(locales), [locales]);
 
-  // Locales available to add
+  // Locales available to add – sorted by display name
   const addableCodes = useMemo(() => {
-    if (availableLocalesProp) {
-      return availableLocalesProp.filter((code) => !activeSet.has(code));
-    }
-    return Object.keys(LOCALE_NAMES).filter((code) => !activeSet.has(code));
+    const codes = availableLocalesProp
+      ? availableLocalesProp.filter((code) => !activeSet.has(code))
+      : Object.keys(LOCALE_NAMES).filter((code) => !activeSet.has(code));
+    return codes.sort((a, b) => localeName(a).localeCompare(localeName(b)));
   }, [availableLocalesProp, activeSet]);
 
   // Cross-section suggestions: locales used in other sections but not here
