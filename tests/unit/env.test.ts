@@ -1,99 +1,74 @@
-import { describe, it, expect } from "vitest";
-import { z } from "zod";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const envSchema = z.object({
-  ENCRYPTION_MASTER_KEY: z
-    .string()
-    .length(64, "ENCRYPTION_MASTER_KEY must be exactly 64 hex characters (32 bytes)")
-    .regex(/^[0-9a-f]+$/i, "ENCRYPTION_MASTER_KEY must be a hex string"),
+const VALID_KEY =
+  "9fce91a7ca8c37d1f9e0280d897274519bfc81d9ef8876707bc2ff0727680462";
 
-  DATABASE_PATH: z.string().optional(),
+async function loadEnv(vars: Record<string, string>) {
+  vi.resetModules();
+  const original = { ...process.env };
+  // Strip relevant vars
+  delete process.env.ENCRYPTION_MASTER_KEY;
+  delete process.env.DATABASE_PATH;
+  delete process.env.PORT;
+  // Apply test vars
+  Object.assign(process.env, vars);
+  try {
+    return await import("@/lib/env");
+  } finally {
+    // Restore
+    process.env = original;
+  }
+}
 
-  PORT: z.coerce
-    .number({ message: "PORT must be a number" })
-    .int()
-    .min(1)
-    .max(65535)
-    .default(3000),
-});
-
-const validEnv = {
-  ENCRYPTION_MASTER_KEY: "9fce91a7ca8c37d1f9e0280d897274519bfc81d9ef8876707bc2ff0727680462",
-};
-
-describe("env validation", () => {
-  it("parses valid env with required vars only", () => {
-    const result = envSchema.safeParse(validEnv);
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.ENCRYPTION_MASTER_KEY).toBe(validEnv.ENCRYPTION_MASTER_KEY);
-      expect(result.data.PORT).toBe(3000);
-    }
+describe("env", () => {
+  beforeEach(() => {
+    vi.resetModules();
   });
 
-  it("parses valid env with all optional vars", () => {
-    const result = envSchema.safeParse({
-      ...validEnv,
+  it("parses valid env with required vars only", async () => {
+    const mod = await loadEnv({ ENCRYPTION_MASTER_KEY: VALID_KEY });
+    expect(mod.env.ENCRYPTION_MASTER_KEY).toBe(VALID_KEY);
+    expect(mod.env.PORT).toBe(3000); // default
+  });
+
+  it("parses valid env with all optional vars", async () => {
+    const mod = await loadEnv({
+      ENCRYPTION_MASTER_KEY: VALID_KEY,
       DATABASE_PATH: "/data/itsyship.db",
       PORT: "8080",
     });
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.DATABASE_PATH).toBe("/data/itsyship.db");
-      expect(result.data.PORT).toBe(8080);
-    }
+    expect(mod.env.DATABASE_PATH).toBe("/data/itsyship.db");
+    expect(mod.env.PORT).toBe(8080);
   });
 
-  it("rejects missing ENCRYPTION_MASTER_KEY", () => {
-    const result = envSchema.safeParse({});
-    expect(result.success).toBe(false);
+  it("throws when ENCRYPTION_MASTER_KEY is missing", async () => {
+    await expect(loadEnv({})).rejects.toThrow("Invalid environment variables");
   });
 
-  it("rejects ENCRYPTION_MASTER_KEY shorter than 64 chars", () => {
-    const result = envSchema.safeParse({
-      ...validEnv,
-      ENCRYPTION_MASTER_KEY: "abcdef1234",
-    });
-    expect(result.success).toBe(false);
+  it("throws for non-hex ENCRYPTION_MASTER_KEY", async () => {
+    await expect(
+      loadEnv({
+        ENCRYPTION_MASTER_KEY:
+          "zzzz91a7ca8c37d1f9e0280d897274519bfc81d9ef8876707bc2ff0727680462",
+      }),
+    ).rejects.toThrow("Invalid environment variables");
   });
 
-  it("rejects ENCRYPTION_MASTER_KEY with non-hex characters", () => {
-    const result = envSchema.safeParse({
-      ...validEnv,
-      ENCRYPTION_MASTER_KEY: "zzzz91a7ca8c37d1f9e0280d897274519bfc81d9ef8876707bc2ff0727680462",
-    });
-    expect(result.success).toBe(false);
+  it("throws for short ENCRYPTION_MASTER_KEY", async () => {
+    await expect(
+      loadEnv({ ENCRYPTION_MASTER_KEY: "abcdef1234" }),
+    ).rejects.toThrow("Invalid environment variables");
   });
 
-  it("rejects non-numeric PORT", () => {
-    const result = envSchema.safeParse({
-      ...validEnv,
-      PORT: "abc",
-    });
-    expect(result.success).toBe(false);
+  it("throws for non-numeric PORT", async () => {
+    await expect(
+      loadEnv({ ENCRYPTION_MASTER_KEY: VALID_KEY, PORT: "abc" }),
+    ).rejects.toThrow("Invalid environment variables");
   });
 
-  it("rejects PORT out of range", () => {
-    const result = envSchema.safeParse({
-      ...validEnv,
-      PORT: "99999",
-    });
-    expect(result.success).toBe(false);
-  });
-
-  it("uses default PORT when not provided", () => {
-    const result = envSchema.safeParse(validEnv);
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.PORT).toBe(3000);
-    }
-  });
-
-  it("allows optional vars to be undefined", () => {
-    const result = envSchema.safeParse(validEnv);
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.DATABASE_PATH).toBeUndefined();
-    }
+  it("throws for PORT out of range", async () => {
+    await expect(
+      loadEnv({ ENCRYPTION_MASTER_KEY: VALID_KEY, PORT: "99999" }),
+    ).rejects.toThrow("Invalid environment variables");
   });
 });

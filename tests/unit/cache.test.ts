@@ -1,135 +1,103 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import Database from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import { eq, like } from "drizzle-orm";
-import * as schema from "@/db/schema";
-import { ulid } from "@/lib/ulid";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createTestDb } from "../helpers/test-db";
+import { cacheEntries } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
-// Test cache logic directly against DB (same logic as src/lib/cache.ts)
-function createTestDb() {
-  const sqlite = new Database(":memory:");
-  sqlite.exec(`
-    CREATE TABLE cache_entries (
-      resource TEXT PRIMARY KEY NOT NULL,
-      data TEXT NOT NULL,
-      fetched_at INTEGER NOT NULL,
-      ttl_ms INTEGER NOT NULL
-    );
-  `);
-  return drizzle(sqlite, { schema });
-}
+let testDb: ReturnType<typeof createTestDb>;
+
+vi.mock("@/db", () => ({
+  get db() {
+    return testDb;
+  },
+}));
+
+import {
+  cacheGet,
+  cacheSet,
+  cacheInvalidate,
+  cacheInvalidatePrefix,
+  cacheGetMeta,
+} from "@/lib/cache";
 
 describe("cache", () => {
-  let db: ReturnType<typeof createTestDb>;
-
   beforeEach(() => {
-    db = createTestDb();
+    testDb = createTestDb();
   });
 
-  it("stores and retrieves fresh data", () => {
-    const now = Date.now();
-    db.insert(schema.cacheEntries)
-      .values({
-        resource: "apps",
-        data: JSON.stringify([{ id: "1", name: "App" }]),
-        fetchedAt: now,
-        ttlMs: 3600000,
-      })
-      .run();
+  describe("cacheGet", () => {
+    it("returns null for missing resource", () => {
+      expect(cacheGet("nonexistent")).toBeNull();
+    });
 
-    const entry = db
-      .select()
-      .from(schema.cacheEntries)
-      .where(eq(schema.cacheEntries.resource, "apps"))
-      .get();
+    it("returns fresh data", () => {
+      cacheSet("apps", [{ id: "1" }], 3_600_000);
+      expect(cacheGet("apps")).toEqual([{ id: "1" }]);
+    });
 
-    expect(entry).toBeDefined();
-    expect(now < entry!.fetchedAt + entry!.ttlMs).toBe(true); // not stale
-    expect(JSON.parse(entry!.data)).toEqual([{ id: "1", name: "App" }]);
+    it("returns null for stale data", () => {
+      // Insert with fetchedAt in the past
+      cacheSet("apps", [{ id: "1" }], 1000);
+      // Manually backdate the entry
+      testDb
+        .update(cacheEntries)
+        .set({ fetchedAt: Date.now() - 5000 })
+        .where(eq(cacheEntries.resource, "apps"))
+        .run();
+      expect(cacheGet("apps")).toBeNull();
+    });
   });
 
-  it("returns null for stale data", () => {
-    const staleTime = Date.now() - 7200000; // 2 hours ago
-    db.insert(schema.cacheEntries)
-      .values({
-        resource: "apps",
-        data: "[]",
-        fetchedAt: staleTime,
-        ttlMs: 3600000, // 1 hour
-      })
-      .run();
+  describe("cacheSet", () => {
+    it("stores data that can be retrieved", () => {
+      cacheSet("key", { hello: "world" }, 60_000);
+      expect(cacheGet("key")).toEqual({ hello: "world" });
+    });
 
-    const entry = db
-      .select()
-      .from(schema.cacheEntries)
-      .where(eq(schema.cacheEntries.resource, "apps"))
-      .get();
-
-    expect(entry).toBeDefined();
-    expect(Date.now() > entry!.fetchedAt + entry!.ttlMs).toBe(true); // stale
+    it("upserts on conflict", () => {
+      cacheSet("key", "first", 60_000);
+      cacheSet("key", "second", 60_000);
+      expect(cacheGet("key")).toBe("second");
+    });
   });
 
-  it("upserts on conflict", () => {
-    const now = Date.now();
+  describe("cacheInvalidate", () => {
+    it("removes a specific resource", () => {
+      cacheSet("apps", [], 60_000);
+      cacheSet("versions", [], 60_000);
+      cacheInvalidate("apps");
+      expect(cacheGet("apps")).toBeNull();
+      expect(cacheGet("versions")).toEqual([]);
+    });
 
-    db.insert(schema.cacheEntries)
-      .values({ resource: "apps", data: "[]", fetchedAt: now, ttlMs: 3600000 })
-      .run();
-
-    db.insert(schema.cacheEntries)
-      .values({
-        resource: "apps",
-        data: '[{"id":"1"}]',
-        fetchedAt: now + 1000,
-        ttlMs: 3600000,
-      })
-      .onConflictDoUpdate({
-        target: schema.cacheEntries.resource,
-        set: { data: '[{"id":"1"}]', fetchedAt: now + 1000 },
-      })
-      .run();
-
-    const all = db.select().from(schema.cacheEntries).all();
-    expect(all).toHaveLength(1);
-    expect(JSON.parse(all[0].data)).toEqual([{ id: "1" }]);
+    it("is a no-op for missing resource", () => {
+      expect(() => cacheInvalidate("nonexistent")).not.toThrow();
+    });
   });
 
-  it("invalidates a specific resource", () => {
-    const now = Date.now();
-    db.insert(schema.cacheEntries)
-      .values({ resource: "apps", data: "[]", fetchedAt: now, ttlMs: 3600000 })
-      .run();
-    db.insert(schema.cacheEntries)
-      .values({ resource: "versions:app-1", data: "[]", fetchedAt: now, ttlMs: 900000 })
-      .run();
-
-    db.delete(schema.cacheEntries)
-      .where(eq(schema.cacheEntries.resource, "apps"))
-      .run();
-
-    const all = db.select().from(schema.cacheEntries).all();
-    expect(all).toHaveLength(1);
-    expect(all[0].resource).toBe("versions:app-1");
+  describe("cacheInvalidatePrefix", () => {
+    it("removes all resources matching the prefix", () => {
+      cacheSet("versions:app-1", [], 60_000);
+      cacheSet("versions:app-2", [], 60_000);
+      cacheSet("apps", [], 60_000);
+      cacheInvalidatePrefix("versions:");
+      expect(cacheGet("versions:app-1")).toBeNull();
+      expect(cacheGet("versions:app-2")).toBeNull();
+      expect(cacheGet("apps")).toEqual([]);
+    });
   });
 
-  it("invalidates by prefix", () => {
-    const now = Date.now();
-    db.insert(schema.cacheEntries)
-      .values({ resource: "versions:app-1", data: "[]", fetchedAt: now, ttlMs: 900000 })
-      .run();
-    db.insert(schema.cacheEntries)
-      .values({ resource: "versions:app-2", data: "[]", fetchedAt: now, ttlMs: 900000 })
-      .run();
-    db.insert(schema.cacheEntries)
-      .values({ resource: "apps", data: "[]", fetchedAt: now, ttlMs: 3600000 })
-      .run();
+  describe("cacheGetMeta", () => {
+    it("returns null for missing resource", () => {
+      expect(cacheGetMeta("nonexistent")).toBeNull();
+    });
 
-    db.delete(schema.cacheEntries)
-      .where(like(schema.cacheEntries.resource, "versions:%"))
-      .run();
-
-    const all = db.select().from(schema.cacheEntries).all();
-    expect(all).toHaveLength(1);
-    expect(all[0].resource).toBe("apps");
+    it("returns fetchedAt and ttlMs for existing resource", () => {
+      const before = Date.now();
+      cacheSet("apps", [], 3_600_000);
+      const meta = cacheGetMeta("apps");
+      expect(meta).not.toBeNull();
+      expect(meta!.fetchedAt).toBeGreaterThanOrEqual(before);
+      expect(meta!.ttlMs).toBe(3_600_000);
+    });
   });
 });
