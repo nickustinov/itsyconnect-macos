@@ -255,19 +255,21 @@ async function fetchReportData(
 
   // Download all instances concurrently (semaphore limits S3 requests).
   // Per-instance cache: past days are immutable, today's data may update.
-  const results = await Promise.allSettled(
+  // We pair each result with its instance so we can inject processingDate
+  // as "Date" for reports whose TSV rows lack a Date column (e.g. crashes).
+  const instanceResults = await Promise.allSettled(
     uniqueInstances.map(async (instance) => {
       const instanceKey = `analytics-inst:${instance.id}`;
       const isToday = instance.attributes.processingDate === today;
 
       if (!isToday) {
         const cached = cacheGet<Array<Record<string, string>>>(instanceKey);
-        if (cached) return cached;
+        if (cached) return { rows: cached, processingDate: instance.attributes.processingDate };
       }
 
       const rows = await downloadInstanceRows(instance.id);
       cacheSet(instanceKey, rows, isToday ? TODAY_TTL : INSTANCE_TTL);
-      return rows;
+      return { rows, processingDate: instance.attributes.processingDate };
     }),
   );
 
@@ -280,15 +282,26 @@ async function fetchReportData(
   const seenDataDates = new Set<string>();
   const deduped: Array<Record<string, string>> = [];
 
-  for (const result of results) {
+  for (const result of instanceResults) {
     if (result.status !== "fulfilled") {
       console.warn(`[analytics] Instance download failed:`, result.reason);
       continue;
     }
 
+    const { rows: instanceRows, processingDate } = result.value;
+
+    // Some reports (e.g. App Crashes) don't include a Date column in the TSV.
+    // The date is implicit from the instance's processingDate – inject it.
+    const hasDateColumn = instanceRows.length > 0 && ("Date" in instanceRows[0] || "date" in instanceRows[0]);
+    if (!hasDateColumn && instanceRows.length > 0) {
+      for (const row of instanceRows) {
+        row["Date"] = processingDate;
+      }
+    }
+
     // Group this instance's rows by their Date field
     const rowsByDate = new Map<string, Array<Record<string, string>>>();
-    for (const row of result.value) {
+    for (const row of instanceRows) {
       const date = row["Date"] ?? row["date"] ?? "";
       if (!date) { deduped.push(row); continue; }
       if (!rowsByDate.has(date)) rowsByDate.set(date, []);
@@ -492,10 +505,15 @@ function aggregateRevenue(
 function aggregateEngagement(
   rows: Array<Record<string, string>>,
 ): AnalyticsData["dailyEngagement"] {
-  return groupByDate(rows, "Date", (dateRows) => ({
-    impressions: countByFieldValue(dateRows, "Event", "Impression"),
-    pageViews: countByFieldValue(dateRows, "Event", "Page view"),
-  }));
+  return groupByDate(rows, "Date", (dateRows) => {
+    const listingImpressions = countByFieldValue(dateRows, "Event", "Impression");
+    const pageViews = countByFieldValue(dateRows, "Event", "Page view");
+    return {
+      // ASC defines "Impressions" as listing views + product page views
+      impressions: listingImpressions + pageViews,
+      pageViews,
+    };
+  });
 }
 
 function aggregateSessions(
@@ -567,21 +585,14 @@ function aggregateWebPreview(
   }));
 }
 
-function aggregateDailyCrashes(
-  rows: Array<Record<string, string>>,
-): AnalyticsData["dailyCrashes"] {
-  return groupByDate(rows, "Date", (dateRows) => ({
-    crashes: Math.round(sumField(dateRows, "Crashes")),
-    uniqueDevices: Math.round(sumField(dateRows, "Unique Devices")),
-  }));
-}
-
 function aggregateCrashesByVersion(
   rows: Array<Record<string, string>>,
 ): AnalyticsData["crashesByVersion"] {
   const groups = new Map<string, { crashes: number; uniqueDevices: number }>();
   for (const row of rows) {
-    const key = `${row["App Version"]}|${row["Platform Version"]}`;
+    const version = row["App Version"] || "Unknown";
+    const platform = row["Platform Version"] || "";
+    const key = `${version}|${platform}`;
     const existing = groups.get(key) || { crashes: 0, uniqueDevices: 0 };
     existing.crashes += Math.round(parseFloat(row["Crashes"] || "0")) || 0;
     existing.uniqueDevices += Math.round(parseFloat(row["Unique Devices"] || "0")) || 0;
@@ -620,7 +631,6 @@ function emptyAnalyticsData(): AnalyticsData {
     dailyInstallsDeletes: [],
     dailyDownloadsBySource: [],
     dailyTerritoryDownloads: [],
-    dailyCrashes: [],
     dailyVersionSessions: [],
     dailyOptIn: [],
     dailyWebPreview: [],
@@ -680,7 +690,7 @@ async function buildAnalyticsDataInner(
     fetchReportData(requestIds, "APP_USAGE", "App Sessions Standard", "DAILY", 200, 365),
     fetchReportData(requestIds, "APP_USAGE", "App Store Installation and Deletion Standard", "DAILY", 200, 365),
     fetchReportData(requestIds, "APP_USAGE", "App Opt In", "DAILY", 200, 365),
-    fetchReportData(requestIds, "APP_USAGE", "App Crashes", "DAILY", 200, 365),
+    fetchReportData(requestIds, "APP_USAGE", "App Crashes", "MONTHLY", 24, 24),
   ]);
 
   // Filter rows by app's Apple ID (numeric) if present
@@ -710,7 +720,6 @@ async function buildAnalyticsDataInner(
     dailyInstallsDeletes: aggregateInstallsDeletes(filteredInstallDeletes),
     dailyDownloadsBySource: aggregateDownloadsBySource(filteredDownloads),
     dailyTerritoryDownloads: aggregateDailyTerritoryDownloads(filteredDownloads),
-    dailyCrashes: aggregateDailyCrashes(filteredCrashes),
     dailyVersionSessions: aggregateVersionSessions(filteredSessions),
     dailyOptIn: aggregateOptIn(filteredOptIn),
     dailyWebPreview: aggregateWebPreview(filteredWebPreview),

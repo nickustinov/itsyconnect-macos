@@ -10,7 +10,6 @@ import {
   DAILY_VERSION_SESSIONS,
   DAILY_OPT_IN,
   DAILY_WEB_PREVIEW,
-  DAILY_CRASHES,
   TERRITORIES,
   DISCOVERY_SOURCES,
   CRASHES_BY_VERSION,
@@ -53,7 +52,6 @@ describe("mock-analytics", () => {
       { name: "DAILY_VERSION_SESSIONS", data: DAILY_VERSION_SESSIONS, fields: ["v11", "v12", "v13", "v20"] },
       { name: "DAILY_OPT_IN", data: DAILY_OPT_IN, fields: ["downloading", "optingIn"] },
       { name: "DAILY_WEB_PREVIEW", data: DAILY_WEB_PREVIEW, fields: ["pageViews", "appStoreTaps"] },
-      { name: "DAILY_CRASHES", data: DAILY_CRASHES, fields: ["crashes", "uniqueDevices"] },
     ];
 
     for (const { name, data, fields } of series) {
@@ -170,7 +168,7 @@ describe("mock-analytics", () => {
     it("has all expected keys", () => {
       const data = getMockAnalyticsData("app-001");
       const keys = Object.keys(data);
-      expect(keys).toHaveLength(15);
+      expect(keys).toHaveLength(14);
     });
   });
 

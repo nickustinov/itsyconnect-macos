@@ -23,10 +23,10 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import {
+  Eye,
   DownloadSimple,
   CurrencyDollar,
   Timer,
-  ShieldCheck,
 } from "@phosphor-icons/react";
 import { formatDate } from "@/lib/mock-analytics";
 import { useAnalytics } from "@/lib/analytics-context";
@@ -117,26 +117,19 @@ export default function AnalyticsOverviewPage() {
     [data, prevRange],
   );
 
-  const sessionSlice = useMemo(
-    () => filterByDateRange(data?.dailySessions ?? [], range),
-    [data, range],
-  );
-  const totalDevices = sessionSlice.reduce((s, d) => s + d.uniqueDevices, 0);
-  const crashSlice = useMemo(
-    () => filterByDateRange(data?.dailyCrashes ?? [], range),
-    [data, range],
-  );
-  const crashDevices = crashSlice.reduce((s, c) => s + c.uniqueDevices, 0);
-  const crashFreeRate =
-    totalDevices > 0
-      ? ((1 - crashDevices / totalDevices) * 100).toFixed(1)
-      : "100";
-
   const engagement = useMemo(
     () => filterByDateRange(data?.dailyEngagement ?? [], range),
     [data, range],
   );
   const totalImpressions = engagement.reduce((s, d) => s + d.impressions, 0);
+  const prevImpressions = useMemo(
+    () =>
+      filterByDateRange(data?.dailyEngagement ?? [], prevRange).reduce(
+        (s, d) => s + d.impressions,
+        0,
+      ),
+    [data, prevRange],
+  );
   const totalPageViews = engagement.reduce((s, d) => s + d.pageViews, 0);
 
   const territories = useMemo(() => {
@@ -215,6 +208,12 @@ export default function AnalyticsOverviewPage() {
       {/* KPI cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard
+          title="Impressions"
+          value={totalImpressions.toLocaleString()}
+          subtitle={`${pctChange(totalImpressions, prevImpressions)} from previous period`}
+          icon={Eye}
+        />
+        <KpiCard
           title="Total downloads"
           value={totalDownloads.toLocaleString()}
           subtitle={`${pctChange(totalDownloads, prevDownloads)} from previous period`}
@@ -231,12 +230,6 @@ export default function AnalyticsOverviewPage() {
           value={totalFirstTime.toLocaleString()}
           subtitle={`${pctChange(totalFirstTime, prevFirstTime)} from previous period`}
           icon={Timer}
-        />
-        <KpiCard
-          title="Crash-free rate"
-          value={`${crashFreeRate}%`}
-          subtitle={`${crashDevices} affected of ${totalDevices.toLocaleString()} devices`}
-          icon={ShieldCheck}
         />
       </div>
 

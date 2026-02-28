@@ -48,7 +48,7 @@ For each report type (downloads, sessions, crashes, etc.), the worker resolves t
 
 ### Step 3: Fetch instances (with pagination)
 
-Each report type fetches up to 365 daily instances (or 24 monthly for crashes). The API paginates at 200 per page, so deeper history follows `links.next` automatically. Instances from both ONGOING and SNAPSHOT requests are merged, deduplicated by `processingDate`.
+Each report type fetches up to 365 daily instances (or 24 monthly for crashes – the ASC API only provides crash data at monthly granularity). The API paginates at 200 per page, so deeper history follows `links.next` automatically. Instances from both ONGOING and SNAPSHOT requests are merged, deduplicated by `processingDate`.
 
 ### Step 4: Download instance data from S3
 

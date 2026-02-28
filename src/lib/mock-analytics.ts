@@ -190,17 +190,6 @@ export const CRASHES_BY_VERSION = [
   { version: "2.0.0", platform: "macOS 26.3", crashes: 11, uniqueDevices: 2 },
 ];
 
-// ---------- Daily crashes ----------
-
-const crashSeries = series(2, 2, 30);
-const crashDeviceSeries = series(1, 1, 31);
-
-export const DAILY_CRASHES = ANALYTICS_DAYS.map((date, i) => ({
-  date,
-  crashes: crashSeries[i],
-  uniqueDevices: Math.min(crashDeviceSeries[i], crashSeries[i]),
-}));
-
 // ---------- Crashes by device ----------
 
 export const CRASHES_BY_DEVICE = [
@@ -225,7 +214,6 @@ export interface AnalyticsData {
   dailyOptIn: Array<{ date: string; downloading: number; optingIn: number }>;
   dailyWebPreview: Array<{ date: string; pageViews: number; appStoreTaps: number }>;
   dailyTerritoryDownloads: Array<{ date: string; code: string; downloads: number }>;
-  dailyCrashes: Array<{ date: string; crashes: number; uniqueDevices: number }>;
   territories: Array<{ territory: string; code: string; downloads: number; revenue: number }>;
   discoverySources: Array<{ source: string; count: number; fill: string }>;
   crashesByVersion: Array<{ version: string; platform: string; crashes: number; uniqueDevices: number }>;
@@ -244,7 +232,6 @@ export function getMockAnalyticsData(_appId: string): AnalyticsData {
     dailyOptIn: DAILY_OPT_IN,
     dailyWebPreview: DAILY_WEB_PREVIEW,
     dailyTerritoryDownloads: DAILY_TERRITORY_DOWNLOADS,
-    dailyCrashes: DAILY_CRASHES,
     territories: TERRITORIES,
     discoverySources: DISCOVERY_SOURCES,
     crashesByVersion: CRASHES_BY_VERSION,
