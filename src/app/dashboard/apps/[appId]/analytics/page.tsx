@@ -3,11 +3,10 @@
 import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  Area,
-  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
+  LabelList,
   Line,
   LineChart,
   XAxis,
@@ -60,11 +59,11 @@ const funnelConfig = {
 
 // ---------- Helpers ----------
 
-function pctChange(current: number, previous: number): string {
-  if (previous === 0) return "+0%";
+function pctChange(current: number, previous: number): string | null {
+  if (previous === 0) return null;
   const pct = ((current - previous) / previous) * 100;
   const sign = pct >= 0 ? "+" : "";
-  return `${sign}${pct.toFixed(1)}%`;
+  return `${sign}${pct.toFixed(1)}% from previous period`;
 }
 
 // ---------- Page ----------
@@ -152,9 +151,9 @@ export default function AnalyticsOverviewPage() {
   }, [data, range]);
 
   const funnelData = [
-    { stage: "impressions", value: totalImpressions },
-    { stage: "pageViews", value: totalPageViews },
-    { stage: "downloads", value: totalFirstTime },
+    { stage: "impressions", value: totalImpressions, fill: "var(--color-impressions)" },
+    { stage: "pageViews", value: totalPageViews, fill: "var(--color-pageViews)" },
+    { stage: "downloads", value: totalFirstTime, fill: "var(--color-downloads)" },
   ];
 
   if (loading && !data) {
@@ -210,25 +209,25 @@ export default function AnalyticsOverviewPage() {
         <KpiCard
           title="Impressions"
           value={totalImpressions.toLocaleString()}
-          subtitle={`${pctChange(totalImpressions, prevImpressions)} from previous period`}
+          subtitle={pctChange(totalImpressions, prevImpressions)}
           icon={Eye}
         />
         <KpiCard
           title="Total downloads"
           value={totalDownloads.toLocaleString()}
-          subtitle={`${pctChange(totalDownloads, prevDownloads)} from previous period`}
+          subtitle={pctChange(totalDownloads, prevDownloads)}
           icon={DownloadSimple}
         />
         <KpiCard
           title="Proceeds"
           value={`$${totalRevenue.toLocaleString()}`}
-          subtitle={`${pctChange(totalRevenue, prevRevenue)} from previous period`}
+          subtitle={pctChange(totalRevenue, prevRevenue)}
           icon={CurrencyDollar}
         />
         <KpiCard
           title="First-time downloads"
           value={totalFirstTime.toLocaleString()}
-          subtitle={`${pctChange(totalFirstTime, prevFirstTime)} from previous period`}
+          subtitle={pctChange(totalFirstTime, prevFirstTime)}
           icon={Timer}
         />
       </div>
@@ -246,7 +245,7 @@ export default function AnalyticsOverviewPage() {
               config={downloadsConfig}
               className="h-[280px] w-full"
             >
-              <AreaChart data={downloads} accessibilityLayer>
+              <BarChart data={downloads} accessibilityLayer>
                 <CartesianGrid vertical={false} />
                 <XAxis
                   dataKey="date"
@@ -265,31 +264,23 @@ export default function AnalyticsOverviewPage() {
                   }
                 />
                 <ChartLegend content={<ChartLegendContent />} />
-                <Area
-                  type="monotone"
-                  dataKey="update"
-                  stackId="1"
-                  fill="var(--color-update)"
-                  stroke="var(--color-update)"
-                  fillOpacity={0.4}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="redownload"
-                  stackId="1"
-                  fill="var(--color-redownload)"
-                  stroke="var(--color-redownload)"
-                  fillOpacity={0.4}
-                />
-                <Area
-                  type="monotone"
+                <Bar
                   dataKey="firstTime"
-                  stackId="1"
+                  stackId="downloads"
                   fill="var(--color-firstTime)"
-                  stroke="var(--color-firstTime)"
-                  fillOpacity={0.4}
                 />
-              </AreaChart>
+                <Bar
+                  dataKey="redownload"
+                  stackId="downloads"
+                  fill="var(--color-redownload)"
+                />
+                <Bar
+                  dataKey="update"
+                  stackId="downloads"
+                  fill="var(--color-update)"
+                  radius={[2, 2, 0, 0]}
+                />
+              </BarChart>
             </ChartContainer>
           </CardContent>
         </Card>
@@ -410,8 +401,7 @@ export default function AnalyticsOverviewPage() {
               config={funnelConfig}
               className="h-[320px] w-full"
             >
-              <BarChart data={funnelData} accessibilityLayer>
-                <CartesianGrid vertical={false} />
+              <BarChart data={funnelData} accessibilityLayer margin={{ top: 24 }}>
                 <XAxis
                   dataKey="stage"
                   tickLine={false}
@@ -420,7 +410,6 @@ export default function AnalyticsOverviewPage() {
                     funnelConfig[v as keyof typeof funnelConfig]?.label ?? v
                   }
                 />
-                <YAxis tickLine={false} axisLine={false} width={60} />
                 <ChartTooltip
                   content={
                     <ChartTooltipContent
@@ -431,11 +420,16 @@ export default function AnalyticsOverviewPage() {
                     />
                   }
                 />
-                <Bar
-                  dataKey="value"
-                  radius={[4, 4, 0, 0]}
-                  fill="var(--color-chart-1)"
-                />
+                <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                  <LabelList
+                    dataKey="value"
+                    position="top"
+                    className="fill-foreground"
+                    fontSize={13}
+                    fontWeight={600}
+                    formatter={(v: number) => v.toLocaleString()}
+                  />
+                </Bar>
               </BarChart>
             </ChartContainer>
             <div className="mt-3 flex items-center justify-center gap-6 text-xs text-muted-foreground">

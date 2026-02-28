@@ -8,7 +8,7 @@ export function KpiCard({
 }: {
   title: string;
   value: string;
-  subtitle: string;
+  subtitle?: string | null;
   icon: React.ComponentType<{ size?: number; className?: string }>;
 }) {
   return (
@@ -19,7 +19,7 @@ export function KpiCard({
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold tabular-nums">{value}</div>
-        <p className="text-xs text-muted-foreground">{subtitle}</p>
+        {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
       </CardContent>
     </Card>
   );
