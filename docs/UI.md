@@ -108,6 +108,40 @@ Standard content pages use a simple container:
 </div>
 ```
 
+### Loading and error states
+
+Pages that fetch data asynchronously must handle loading and error states with centred feedback. The dashboard layout uses `flex flex-1 flex-col` all the way down, so `flex-1` on a loading container stretches it to fill the remaining vertical space.
+
+**Critical rule:** The page's parent must be a flex column with `flex-1` for the spinner to centre vertically. If a sub-layout wraps children (e.g. the analytics tab layout), that wrapper must use `flex flex-1 flex-col` – not `space-y-*` – so the flex chain is unbroken.
+
+```tsx
+// Loading state – spinner centred in available space
+if (loading) {
+  return (
+    <div className="flex flex-1 items-center justify-center">
+      <Spinner className="size-6 text-muted-foreground" />
+    </div>
+  );
+}
+
+// Error state – message + retry button, also centred
+if (error) {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-3">
+      <p className="text-sm text-muted-foreground">{error}</p>
+      <Button variant="outline" size="sm" onClick={refresh}>
+        Retry
+      </Button>
+    </div>
+  );
+}
+```
+
+Key rules:
+- Always use `flex flex-1 items-center justify-center` – never use `py-20` or fixed padding as a centering hack.
+- The `flex-1` only works when every ancestor up to the dashboard layout is also a flex column with `flex-1`. Check the chain if the spinner isn't centring.
+- Sub-layouts that wrap `{children}` must use `flex flex-1 flex-col gap-*` instead of `space-y-*` so child loading states can stretch.
+
 ### Sidebar
 
 - Follows the shadcn sidebar-07 pattern (app switcher, grouped nav, footer)

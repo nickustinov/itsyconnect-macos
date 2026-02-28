@@ -176,12 +176,61 @@ export const TOP_REFERRERS = [
   { referrer: "macstories.net", pageViews: 38, downloads: 11 },
 ];
 
-export const CRASHES = [
+export const CRASHES_BY_VERSION = [
   { version: "1.1.0", platform: "macOS 26.2", crashes: 25, uniqueDevices: 5 },
   { version: "1.2.0", platform: "macOS 26.2", crashes: 3, uniqueDevices: 3 },
   { version: "1.3.1", platform: "macOS 26.3", crashes: 8, uniqueDevices: 4 },
   { version: "2.0.0", platform: "macOS 26.3", crashes: 11, uniqueDevices: 2 },
 ];
+
+// ---------- Crashes by device ----------
+
+export const CRASHES_BY_DEVICE = [
+  { device: "MacBookPro18,1", crashes: 18, uniqueDevices: 4 },
+  { device: "MacBookAir10,1", crashes: 9, uniqueDevices: 3 },
+  { device: "Mac14,2", crashes: 7, uniqueDevices: 2 },
+  { device: "iMac21,1", crashes: 6, uniqueDevices: 2 },
+  { device: "Mac14,7", crashes: 4, uniqueDevices: 1 },
+  { device: "Macmini9,1", crashes: 3, uniqueDevices: 2 },
+];
+
+// ---------- Types ----------
+
+export interface AnalyticsData {
+  dailyDownloads: Array<{ date: string; firstTime: number; redownload: number; update: number }>;
+  dailyRevenue: Array<{ date: string; proceeds: number; sales: number }>;
+  dailyEngagement: Array<{ date: string; impressions: number; pageViews: number }>;
+  dailySessions: Array<{ date: string; sessions: number; uniqueDevices: number; avgDuration: number }>;
+  dailyInstallsDeletes: Array<{ date: string; installs: number; deletes: number }>;
+  dailyDownloadsBySource: Array<{ date: string; search: number; browse: number; webReferrer: number; unavailable: number }>;
+  dailyVersionSessions: Array<{ date: string; [version: string]: number | string }>;
+  dailyOptIn: Array<{ date: string; downloading: number; optingIn: number }>;
+  dailyWebPreview: Array<{ date: string; pageViews: number; appStoreTaps: number }>;
+  territories: Array<{ territory: string; code: string; downloads: number; revenue: number }>;
+  discoverySources: Array<{ source: string; count: number; fill: string }>;
+  topReferrers: Array<{ referrer: string; pageViews: number; downloads: number }>;
+  crashesByVersion: Array<{ version: string; platform: string; crashes: number; uniqueDevices: number }>;
+  crashesByDevice: Array<{ device: string; crashes: number; uniqueDevices: number }>;
+}
+
+export function getMockAnalyticsData(_appId: string): AnalyticsData {
+  return {
+    dailyDownloads: DAILY_DOWNLOADS,
+    dailyRevenue: DAILY_REVENUE,
+    dailyEngagement: DAILY_ENGAGEMENT,
+    dailySessions: DAILY_SESSIONS,
+    dailyInstallsDeletes: DAILY_INSTALLS_DELETES,
+    dailyDownloadsBySource: DAILY_DOWNLOADS_BY_SOURCE,
+    dailyVersionSessions: DAILY_VERSION_SESSIONS,
+    dailyOptIn: DAILY_OPT_IN,
+    dailyWebPreview: DAILY_WEB_PREVIEW,
+    territories: TERRITORIES,
+    discoverySources: DISCOVERY_SOURCES,
+    topReferrers: TOP_REFERRERS,
+    crashesByVersion: CRASHES_BY_VERSION,
+    crashesByDevice: CRASHES_BY_DEVICE,
+  };
+}
 
 // ---------- Utility ----------
 

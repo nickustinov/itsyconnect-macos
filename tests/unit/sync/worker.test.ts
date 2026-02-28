@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const mockHasCredentials = vi.fn();
 const mockSyncApps = vi.fn();
+const mockSyncAnalytics = vi.fn();
 
 vi.mock("@/lib/asc/client", () => ({
   hasCredentials: (...args: unknown[]) => mockHasCredentials(...args),
@@ -9,6 +10,7 @@ vi.mock("@/lib/asc/client", () => ({
 
 vi.mock("@/lib/sync/jobs", () => ({
   syncApps: (...args: unknown[]) => mockSyncApps(...args),
+  syncAnalytics: (...args: unknown[]) => mockSyncAnalytics(...args),
 }));
 
 describe("sync worker", () => {
@@ -17,6 +19,7 @@ describe("sync worker", () => {
     vi.resetModules();
     mockHasCredentials.mockReset();
     mockSyncApps.mockReset();
+    mockSyncAnalytics.mockReset();
   });
 
   afterEach(() => {
@@ -30,12 +33,14 @@ describe("sync worker", () => {
   it("starts sync when credentials exist", async () => {
     mockHasCredentials.mockReturnValue(true);
     mockSyncApps.mockResolvedValue(undefined);
+    mockSyncAnalytics.mockResolvedValue(undefined);
 
     const { startSyncWorker, stopSyncWorker } = await getWorker();
     startSyncWorker();
 
     // syncApps is called immediately on start
     expect(mockSyncApps).toHaveBeenCalled();
+    expect(mockSyncAnalytics).toHaveBeenCalled();
 
     stopSyncWorker();
   });
@@ -54,13 +59,15 @@ describe("sync worker", () => {
   it("start is idempotent", async () => {
     mockHasCredentials.mockReturnValue(true);
     mockSyncApps.mockResolvedValue(undefined);
+    mockSyncAnalytics.mockResolvedValue(undefined);
 
     const { startSyncWorker, stopSyncWorker } = await getWorker();
     startSyncWorker();
     startSyncWorker(); // second call should be no-op
 
-    // Still only one immediate call
+    // Still only one immediate call per job
     expect(mockSyncApps).toHaveBeenCalledTimes(1);
+    expect(mockSyncAnalytics).toHaveBeenCalledTimes(1);
 
     stopSyncWorker();
   });
@@ -68,6 +75,7 @@ describe("sync worker", () => {
   it("stop clears timers and allows restart", async () => {
     mockHasCredentials.mockReturnValue(true);
     mockSyncApps.mockResolvedValue(undefined);
+    mockSyncAnalytics.mockResolvedValue(undefined);
 
     const { startSyncWorker, stopSyncWorker } = await getWorker();
     startSyncWorker();
@@ -111,6 +119,7 @@ describe("sync worker", () => {
 
     mockHasCredentials.mockReturnValue(true);
     mockSyncApps.mockResolvedValue(undefined);
+    mockSyncAnalytics.mockResolvedValue(undefined);
 
     const { startSyncWorker, stopSyncWorker } = await getWorker();
     startSyncWorker();
@@ -124,6 +133,7 @@ describe("sync worker", () => {
     mockHasCredentials.mockReturnValue(true);
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     mockSyncApps.mockRejectedValue(new Error("sync failed"));
+    mockSyncAnalytics.mockResolvedValue(undefined);
 
     const { startSyncWorker, stopSyncWorker } = await getWorker();
     startSyncWorker();
@@ -143,6 +153,7 @@ describe("sync worker", () => {
   it("getSyncStatus shows nextRun after a successful run", async () => {
     mockHasCredentials.mockReturnValue(true);
     mockSyncApps.mockResolvedValue(undefined);
+    mockSyncAnalytics.mockResolvedValue(undefined);
 
     const { startSyncWorker, stopSyncWorker, getSyncStatus } = await getWorker();
     startSyncWorker();
@@ -160,6 +171,7 @@ describe("sync worker", () => {
 
   it("deduplicates in-flight jobs", async () => {
     mockHasCredentials.mockReturnValue(true);
+    mockSyncAnalytics.mockResolvedValue(undefined);
     let resolveJob!: () => void;
     mockSyncApps.mockImplementation(
       () => new Promise<void>((resolve) => { resolveJob = resolve; }),

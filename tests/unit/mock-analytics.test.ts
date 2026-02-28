@@ -13,10 +13,12 @@ import {
   TERRITORIES,
   DISCOVERY_SOURCES,
   TOP_REFERRERS,
-  CRASHES,
+  CRASHES_BY_VERSION,
+  CRASHES_BY_DEVICE,
   formatDate,
   n,
   series,
+  getMockAnalyticsData,
 } from "@/lib/mock-analytics";
 
 describe("mock-analytics", () => {
@@ -96,11 +98,20 @@ describe("mock-analytics", () => {
       }
     });
 
-    it("CRASHES has entries with required fields", () => {
-      expect(CRASHES.length).toBeGreaterThan(0);
-      for (const c of CRASHES) {
+    it("CRASHES_BY_VERSION has entries with required fields", () => {
+      expect(CRASHES_BY_VERSION.length).toBeGreaterThan(0);
+      for (const c of CRASHES_BY_VERSION) {
         expect(c).toHaveProperty("version");
         expect(c).toHaveProperty("platform");
+        expect(c).toHaveProperty("crashes");
+        expect(c).toHaveProperty("uniqueDevices");
+      }
+    });
+
+    it("CRASHES_BY_DEVICE has entries with required fields", () => {
+      expect(CRASHES_BY_DEVICE.length).toBeGreaterThan(0);
+      for (const c of CRASHES_BY_DEVICE) {
+        expect(c).toHaveProperty("device");
         expect(c).toHaveProperty("crashes");
         expect(c).toHaveProperty("uniqueDevices");
       }
@@ -143,6 +154,32 @@ describe("mock-analytics", () => {
       const result = series(100, 0, 99, 10);
       // With zero variance, values should increase linearly
       expect(result[29]).toBeGreaterThan(result[0]);
+    });
+  });
+
+  describe("getMockAnalyticsData", () => {
+    it("returns all expected fields as non-null", () => {
+      const data = getMockAnalyticsData("app-001");
+      expect(data.dailyDownloads).toBe(DAILY_DOWNLOADS);
+      expect(data.dailyRevenue).toBe(DAILY_REVENUE);
+      expect(data.dailyEngagement).toBe(DAILY_ENGAGEMENT);
+      expect(data.dailySessions).toBe(DAILY_SESSIONS);
+      expect(data.dailyInstallsDeletes).toBe(DAILY_INSTALLS_DELETES);
+      expect(data.dailyDownloadsBySource).toBe(DAILY_DOWNLOADS_BY_SOURCE);
+      expect(data.dailyVersionSessions).toBe(DAILY_VERSION_SESSIONS);
+      expect(data.dailyOptIn).toBe(DAILY_OPT_IN);
+      expect(data.dailyWebPreview).toBe(DAILY_WEB_PREVIEW);
+      expect(data.territories).toBe(TERRITORIES);
+      expect(data.discoverySources).toBe(DISCOVERY_SOURCES);
+      expect(data.topReferrers).toBe(TOP_REFERRERS);
+      expect(data.crashesByVersion).toBe(CRASHES_BY_VERSION);
+      expect(data.crashesByDevice).toBe(CRASHES_BY_DEVICE);
+    });
+
+    it("has all 14 expected keys", () => {
+      const data = getMockAnalyticsData("app-001");
+      const keys = Object.keys(data);
+      expect(keys).toHaveLength(14);
     });
   });
 

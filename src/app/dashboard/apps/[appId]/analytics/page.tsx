@@ -28,16 +28,11 @@ import {
   Timer,
   ShieldCheck,
 } from "@phosphor-icons/react";
-import {
-  DAILY_DOWNLOADS,
-  DAILY_REVENUE,
-  DAILY_ENGAGEMENT,
-  DAILY_SESSIONS,
-  TERRITORIES,
-  CRASHES,
-  formatDate,
-} from "@/lib/mock-analytics";
+import { formatDate } from "@/lib/mock-analytics";
+import { useAnalytics } from "@/lib/analytics-context";
 import { KpiCard } from "@/components/kpi-card";
+import { Spinner } from "@/components/ui/spinner";
+import { Button } from "@/components/ui/button";
 
 // ---------- Chart configs ----------
 
@@ -76,36 +71,60 @@ function pctChange(current: number, previous: number): string {
 export default function AnalyticsOverviewPage() {
   const searchParams = useSearchParams();
   const days = searchParams.get("range") === "7d" ? 7 : 30;
+  const { data, loading, error, refresh } = useAnalytics();
 
-  const downloads = useMemo(() => DAILY_DOWNLOADS.slice(-days), [days]);
-  const revenue = useMemo(() => DAILY_REVENUE.slice(-days), [days]);
+  const downloads = useMemo(
+    () => data?.dailyDownloads.slice(-days) ?? [],
+    [data, days],
+  );
+  const revenue = useMemo(
+    () => data?.dailyRevenue.slice(-days) ?? [],
+    [data, days],
+  );
 
   const totalDownloads = downloads.reduce(
     (s, d) => s + d.firstTime + d.redownload + d.update,
     0,
   );
-  const prevDownloads = DAILY_DOWNLOADS.slice(-(days * 2), -days).reduce(
-    (s, d) => s + d.firstTime + d.redownload + d.update,
-    0,
+  const prevDownloads = useMemo(
+    () =>
+      (data?.dailyDownloads.slice(-(days * 2), -days) ?? []).reduce(
+        (s, d) => s + d.firstTime + d.redownload + d.update,
+        0,
+      ),
+    [data, days],
   );
 
   const totalRevenue = revenue.reduce((s, d) => s + d.proceeds, 0);
-  const prevRevenue = DAILY_REVENUE.slice(-(days * 2), -days).reduce(
-    (s, d) => s + d.proceeds,
-    0,
+  const prevRevenue = useMemo(
+    () =>
+      (data?.dailyRevenue.slice(-(days * 2), -days) ?? []).reduce(
+        (s, d) => s + d.proceeds,
+        0,
+      ),
+    [data, days],
   );
 
   const totalFirstTime = downloads.reduce((s, d) => s + d.firstTime, 0);
 
-  const sessionSlice = DAILY_SESSIONS.slice(-days);
+  const sessionSlice = useMemo(
+    () => data?.dailySessions.slice(-days) ?? [],
+    [data, days],
+  );
   const totalDevices = sessionSlice.reduce((s, d) => s + d.uniqueDevices, 0);
-  const crashDevices = CRASHES.reduce((s, c) => s + c.uniqueDevices, 0);
+  const crashDevices = (data?.crashesByVersion ?? []).reduce(
+    (s, c) => s + c.uniqueDevices,
+    0,
+  );
   const crashFreeRate =
     totalDevices > 0
       ? ((1 - crashDevices / totalDevices) * 100).toFixed(1)
       : "100";
 
-  const engagement = DAILY_ENGAGEMENT.slice(-days);
+  const engagement = useMemo(
+    () => data?.dailyEngagement.slice(-days) ?? [],
+    [data, days],
+  );
   const totalImpressions = engagement.reduce((s, d) => s + d.impressions, 0);
   const totalPageViews = engagement.reduce((s, d) => s + d.pageViews, 0);
 
@@ -114,6 +133,27 @@ export default function AnalyticsOverviewPage() {
     { stage: "pageViews", value: totalPageViews },
     { stage: "downloads", value: totalFirstTime },
   ];
+
+  if (loading) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <Spinner className="size-6 text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-3">
+        <p className="text-sm text-muted-foreground">{error}</p>
+        <Button variant="outline" size="sm" onClick={refresh}>
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
+  if (!data) return null;
 
   return (
     <div className="space-y-6">
@@ -136,7 +176,7 @@ export default function AnalyticsOverviewPage() {
           value={totalFirstTime.toLocaleString()}
           subtitle={`${pctChange(
             totalFirstTime,
-            DAILY_DOWNLOADS.slice(-(days * 2), -days).reduce(
+            (data.dailyDownloads.slice(-(days * 2), -days) ?? []).reduce(
               (s, d) => s + d.firstTime,
               0,
             ),
@@ -292,7 +332,7 @@ export default function AnalyticsOverviewPage() {
               className="h-[320px] w-full"
             >
               <BarChart
-                data={TERRITORIES}
+                data={data.territories}
                 layout="vertical"
                 accessibilityLayer
               >
@@ -360,13 +400,19 @@ export default function AnalyticsOverviewPage() {
               <span>
                 Page view rate:{" "}
                 <strong className="text-foreground">
-                  {((totalPageViews / totalImpressions) * 100).toFixed(1)}%
+                  {totalImpressions > 0
+                    ? ((totalPageViews / totalImpressions) * 100).toFixed(1)
+                    : "0"}
+                  %
                 </strong>
               </span>
               <span>
                 Download rate:{" "}
                 <strong className="text-foreground">
-                  {((totalFirstTime / totalPageViews) * 100).toFixed(1)}%
+                  {totalPageViews > 0
+                    ? ((totalFirstTime / totalPageViews) * 100).toFixed(1)
+                    : "0"}
+                  %
                 </strong>
               </span>
             </div>

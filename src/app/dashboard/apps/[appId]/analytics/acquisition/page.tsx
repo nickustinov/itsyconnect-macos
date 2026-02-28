@@ -31,14 +31,10 @@ import {
   ChartLegendContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import {
-  DAILY_ENGAGEMENT,
-  DAILY_DOWNLOADS_BY_SOURCE,
-  DAILY_WEB_PREVIEW,
-  DISCOVERY_SOURCES,
-  TOP_REFERRERS,
-  formatDate,
-} from "@/lib/mock-analytics";
+import { formatDate } from "@/lib/mock-analytics";
+import { useAnalytics } from "@/lib/analytics-context";
+import { Spinner } from "@/components/ui/spinner";
+import { Button } from "@/components/ui/button";
 
 // ---------- Chart configs ----------
 
@@ -67,20 +63,67 @@ const webPreviewConfig = {
   appStoreTaps: { label: "App Store taps", color: "var(--color-chart-2)" },
 } satisfies ChartConfig;
 
+// ---------- Fill colours for discovery sources ----------
+
+const SOURCE_FILLS: Record<string, string> = {
+  search: "var(--color-search)",
+  browse: "var(--color-browse)",
+  webReferrer: "var(--color-webReferrer)",
+  unavailable: "var(--color-unavailable)",
+};
+
 // ---------- Page ----------
 
 export default function AcquisitionPage() {
   const searchParams = useSearchParams();
   const days = searchParams.get("range") === "7d" ? 7 : 30;
+  const { data, loading, error, refresh } = useAnalytics();
 
-  const engagement = useMemo(() => DAILY_ENGAGEMENT.slice(-days), [days]);
-  const downloadsBySource = useMemo(
-    () => DAILY_DOWNLOADS_BY_SOURCE.slice(-days),
-    [days],
+  const engagement = useMemo(
+    () => data?.dailyEngagement.slice(-days) ?? [],
+    [data, days],
   );
-  const webPreview = useMemo(() => DAILY_WEB_PREVIEW.slice(-days), [days]);
+  const downloadsBySource = useMemo(
+    () => data?.dailyDownloadsBySource.slice(-days) ?? [],
+    [data, days],
+  );
+  const webPreview = useMemo(
+    () => data?.dailyWebPreview.slice(-days) ?? [],
+    [data, days],
+  );
 
-  const totalSources = DISCOVERY_SOURCES.reduce((s, d) => s + d.count, 0);
+  // Add fill property client-side if not present
+  const discoverySources = useMemo(
+    () =>
+      (data?.discoverySources ?? []).map((s) => ({
+        ...s,
+        fill: s.fill || SOURCE_FILLS[s.source] || "var(--color-chart-1)",
+      })),
+    [data],
+  );
+
+  const totalSources = discoverySources.reduce((s, d) => s + d.count, 0);
+
+  if (loading) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <Spinner className="size-6 text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-3">
+        <p className="text-sm text-muted-foreground">{error}</p>
+        <Button variant="outline" size="sm" onClick={refresh}>
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
+  if (!data) return null;
 
   return (
     <div className="space-y-6">
@@ -106,7 +149,9 @@ export default function AcquisitionPage() {
                       formatter={(value) => (
                         <span className="font-mono font-medium tabular-nums">
                           {(value as number).toLocaleString()} (
-                          {(((value as number) / totalSources) * 100).toFixed(1)}
+                          {totalSources > 0
+                            ? (((value as number) / totalSources) * 100).toFixed(1)
+                            : "0"}
                           %)
                         </span>
                       )}
@@ -114,14 +159,14 @@ export default function AcquisitionPage() {
                   }
                 />
                 <Pie
-                  data={DISCOVERY_SOURCES}
+                  data={discoverySources}
                   dataKey="count"
                   nameKey="source"
                   innerRadius={60}
                   outerRadius={100}
                   strokeWidth={2}
                 >
-                  {DISCOVERY_SOURCES.map((entry) => (
+                  {discoverySources.map((entry) => (
                     <Cell key={entry.source} fill={entry.fill} />
                   ))}
                 </Pie>
@@ -290,44 +335,49 @@ export default function AcquisitionPage() {
           </CardContent>
         </Card>
 
-        {/* Top referrers table */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">
-              Top referrers
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Referrer</TableHead>
-                  <TableHead className="text-right">Page views</TableHead>
-                  <TableHead className="text-right">Downloads</TableHead>
-                  <TableHead className="text-right">Conv. rate</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {TOP_REFERRERS.map((row) => (
-                  <TableRow key={row.referrer}>
-                    <TableCell className="font-medium">
-                      {row.referrer}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {row.pageViews.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {row.downloads.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {((row.downloads / row.pageViews) * 100).toFixed(1)}%
-                    </TableCell>
+        {/* Top referrers table – hidden when empty */}
+        {data.topReferrers.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-medium">
+                Top referrers
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Referrer</TableHead>
+                    <TableHead className="text-right">Page views</TableHead>
+                    <TableHead className="text-right">Downloads</TableHead>
+                    <TableHead className="text-right">Conv. rate</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                </TableHeader>
+                <TableBody>
+                  {data.topReferrers.map((row) => (
+                    <TableRow key={row.referrer}>
+                      <TableCell className="font-medium">
+                        {row.referrer}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {row.pageViews.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {row.downloads.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {row.pageViews > 0
+                          ? ((row.downloads / row.pageViews) * 100).toFixed(1)
+                          : "0"}
+                        %
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

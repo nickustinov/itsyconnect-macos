@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockHasCredentials = vi.fn();
 const mockListApps = vi.fn();
+const mockBuildAnalyticsData = vi.fn();
 
 vi.mock("@/lib/asc/client", () => ({
   hasCredentials: (...args: unknown[]) => mockHasCredentials(...args),
@@ -11,12 +12,17 @@ vi.mock("@/lib/asc/apps", () => ({
   listApps: (...args: unknown[]) => mockListApps(...args),
 }));
 
-import { syncApps } from "@/lib/sync/jobs";
+vi.mock("@/lib/asc/analytics", () => ({
+  buildAnalyticsData: (...args: unknown[]) => mockBuildAnalyticsData(...args),
+}));
+
+import { syncApps, syncAnalytics } from "@/lib/sync/jobs";
 
 describe("syncApps", () => {
   beforeEach(() => {
     mockHasCredentials.mockReset();
     mockListApps.mockReset();
+    mockBuildAnalyticsData.mockReset();
   });
 
   it("calls listApps with forceRefresh when credentials exist", async () => {
@@ -39,5 +45,32 @@ describe("syncApps", () => {
     mockListApps.mockRejectedValue(new Error("API error"));
 
     await expect(syncApps()).rejects.toThrow("API error");
+  });
+});
+
+describe("syncAnalytics", () => {
+  beforeEach(() => {
+    mockHasCredentials.mockReset();
+    mockListApps.mockReset();
+    mockBuildAnalyticsData.mockReset();
+  });
+
+  it("fetches analytics for each app with forceRefresh", async () => {
+    mockHasCredentials.mockReturnValue(true);
+    mockListApps.mockResolvedValue([{ id: "123" }, { id: "456" }]);
+    mockBuildAnalyticsData.mockResolvedValue({});
+
+    await syncAnalytics();
+    expect(mockListApps).toHaveBeenCalled();
+    expect(mockBuildAnalyticsData).toHaveBeenCalledWith("123", true);
+    expect(mockBuildAnalyticsData).toHaveBeenCalledWith("456", true);
+  });
+
+  it("skips when no credentials exist", async () => {
+    mockHasCredentials.mockReturnValue(false);
+
+    await syncAnalytics();
+    expect(mockListApps).not.toHaveBeenCalled();
+    expect(mockBuildAnalyticsData).not.toHaveBeenCalled();
   });
 });

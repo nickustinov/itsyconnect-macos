@@ -14,15 +14,6 @@ import {
   YAxis,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   ChartContainer,
   ChartTooltip,
@@ -31,14 +22,10 @@ import {
   ChartLegendContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import {
-  DAILY_SESSIONS,
-  DAILY_VERSION_SESSIONS,
-  DAILY_INSTALLS_DELETES,
-  DAILY_OPT_IN,
-  CRASHES,
-  formatDate,
-} from "@/lib/mock-analytics";
+import { formatDate } from "@/lib/mock-analytics";
+import { useAnalytics } from "@/lib/analytics-context";
+import { Spinner } from "@/components/ui/spinner";
+import { Button } from "@/components/ui/button";
 
 // ---------- Chart configs ----------
 
@@ -51,13 +38,6 @@ const durationConfig = {
   avgDuration: { label: "Avg duration (s)", color: "var(--color-chart-3)" },
 } satisfies ChartConfig;
 
-const versionConfig = {
-  v11: { label: "v1.1", color: "var(--color-chart-4)" },
-  v12: { label: "v1.2", color: "var(--color-chart-3)" },
-  v13: { label: "v1.3", color: "var(--color-chart-2)" },
-  v20: { label: "v2.0", color: "var(--color-chart-1)" },
-} satisfies ChartConfig;
-
 const installDeleteConfig = {
   installs: { label: "Installs", color: "var(--color-chart-1)" },
   deletes: { label: "Deletes", color: "var(--color-chart-5)" },
@@ -68,24 +48,62 @@ const optInConfig = {
   optingIn: { label: "Opting in", color: "var(--color-chart-1)" },
 } satisfies ChartConfig;
 
+// Chart colour palette for dynamic version keys
+const VERSION_COLORS = [
+  "var(--color-chart-1)",
+  "var(--color-chart-2)",
+  "var(--color-chart-3)",
+  "var(--color-chart-4)",
+  "var(--color-chart-5)",
+];
+
 // ---------- Page ----------
 
 export default function UsagePage() {
   const searchParams = useSearchParams();
   const days = searchParams.get("range") === "7d" ? 7 : 30;
+  const { data, loading, error, refresh } = useAnalytics();
 
-  const sessions = useMemo(() => DAILY_SESSIONS.slice(-days), [days]);
+  const sessions = useMemo(
+    () => data?.dailySessions.slice(-days) ?? [],
+    [data, days],
+  );
   const versionSessions = useMemo(
-    () => DAILY_VERSION_SESSIONS.slice(-days),
-    [days],
+    () => data?.dailyVersionSessions.slice(-days) ?? [],
+    [data, days],
   );
   const installsDeletes = useMemo(
-    () => DAILY_INSTALLS_DELETES.slice(-days),
-    [days],
+    () => data?.dailyInstallsDeletes.slice(-days) ?? [],
+    [data, days],
   );
-  const optIn = useMemo(() => DAILY_OPT_IN.slice(-days), [days]);
+  const optIn = useMemo(
+    () => data?.dailyOptIn.slice(-days) ?? [],
+    [data, days],
+  );
 
-  const totalCrashes = CRASHES.reduce((s, c) => s + c.crashes, 0);
+  // Build dynamic version config from actual data keys
+  const versionKeys = useMemo(() => {
+    if (versionSessions.length === 0) return [];
+    const keys = new Set<string>();
+    for (const entry of versionSessions) {
+      for (const key of Object.keys(entry)) {
+        if (key !== "date") keys.add(key);
+      }
+    }
+    return Array.from(keys).sort();
+  }, [versionSessions]);
+
+  const versionConfig = useMemo(() => {
+    const config: ChartConfig = {};
+    for (let i = 0; i < versionKeys.length; i++) {
+      const key = versionKeys[i];
+      config[key] = {
+        label: key.startsWith("v") ? `v${key.slice(1).replace(/(\d)(?=\d)/g, "$1.")}` : key,
+        color: VERSION_COLORS[i % VERSION_COLORS.length],
+      };
+    }
+    return config;
+  }, [versionKeys]);
 
   // Opt-in rate
   const totalDownloading = optIn.reduce((s, d) => s + d.downloading, 0);
@@ -94,6 +112,27 @@ export default function UsagePage() {
     totalDownloading > 0
       ? ((totalOptingIn / totalDownloading) * 100).toFixed(1)
       : "0";
+
+  if (loading) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <Spinner className="size-6 text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-3">
+        <p className="text-sm text-muted-foreground">{error}</p>
+        <Button variant="outline" size="sm" onClick={refresh}>
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
+  if (!data) return null;
 
   return (
     <div className="space-y-6">
@@ -203,72 +242,53 @@ export default function UsagePage() {
       </div>
 
       {/* Row 2: Version adoption */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">
-            Sessions by app version
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer
-            config={versionConfig}
-            className="h-[280px] w-full"
-          >
-            <AreaChart data={versionSessions} accessibilityLayer>
-              <CartesianGrid vertical={false} />
-              <XAxis
-                dataKey="date"
-                tickLine={false}
-                axisLine={false}
-                tickMargin={8}
-                tickFormatter={formatDate}
-                interval="preserveStartEnd"
-              />
-              <YAxis tickLine={false} axisLine={false} width={40} />
-              <ChartTooltip
-                content={
-                  <ChartTooltipContent
-                    labelFormatter={(v) => formatDate(v as string)}
+      {versionKeys.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">
+              Sessions by app version
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer
+              config={versionConfig}
+              className="h-[280px] w-full"
+            >
+              <AreaChart data={versionSessions} accessibilityLayer>
+                <CartesianGrid vertical={false} />
+                <XAxis
+                  dataKey="date"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  tickFormatter={formatDate}
+                  interval="preserveStartEnd"
+                />
+                <YAxis tickLine={false} axisLine={false} width={40} />
+                <ChartTooltip
+                  content={
+                    <ChartTooltipContent
+                      labelFormatter={(v) => formatDate(v as string)}
+                    />
+                  }
+                />
+                <ChartLegend content={<ChartLegendContent />} />
+                {versionKeys.map((key) => (
+                  <Area
+                    key={key}
+                    type="monotone"
+                    dataKey={key}
+                    stackId="1"
+                    fill={`var(--color-${key})`}
+                    stroke={`var(--color-${key})`}
+                    fillOpacity={0.4}
                   />
-                }
-              />
-              <ChartLegend content={<ChartLegendContent />} />
-              <Area
-                type="monotone"
-                dataKey="v11"
-                stackId="1"
-                fill="var(--color-v11)"
-                stroke="var(--color-v11)"
-                fillOpacity={0.4}
-              />
-              <Area
-                type="monotone"
-                dataKey="v12"
-                stackId="1"
-                fill="var(--color-v12)"
-                stroke="var(--color-v12)"
-                fillOpacity={0.4}
-              />
-              <Area
-                type="monotone"
-                dataKey="v13"
-                stackId="1"
-                fill="var(--color-v13)"
-                stroke="var(--color-v13)"
-                fillOpacity={0.4}
-              />
-              <Area
-                type="monotone"
-                dataKey="v20"
-                stackId="1"
-                fill="var(--color-v20)"
-                stroke="var(--color-v20)"
-                fillOpacity={0.4}
-              />
-            </AreaChart>
-          </ChartContainer>
-        </CardContent>
-      </Card>
+                ))}
+              </AreaChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Row 3: Installs vs deletes + opt-in */}
       <div className="grid gap-4 lg:grid-cols-2">
@@ -371,47 +391,6 @@ export default function UsagePage() {
         </Card>
       </div>
 
-      {/* Row 4: Crashes table */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-sm font-medium">
-            Crashes by version
-          </CardTitle>
-          <Badge variant="outline" className="text-xs tabular-nums">
-            {totalCrashes} total
-          </Badge>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Version</TableHead>
-                <TableHead>Platform</TableHead>
-                <TableHead className="text-right">Crashes</TableHead>
-                <TableHead className="text-right">Affected devices</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {CRASHES.map((row) => (
-                <TableRow key={`${row.version}-${row.platform}`}>
-                  <TableCell className="font-medium font-mono">
-                    {row.version}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {row.platform}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {row.crashes}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {row.uniqueDevices}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
     </div>
   );
 }

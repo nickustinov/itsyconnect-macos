@@ -40,7 +40,7 @@ import {
 import {
   DAILY_DOWNLOADS,
   DAILY_SESSIONS,
-  CRASHES,
+  CRASHES_BY_VERSION,
   TERRITORIES,
   formatDate,
 } from "@/lib/mock-analytics";
@@ -151,7 +151,7 @@ export default function AppOverviewPage() {
     (s, d) => s + d.uniqueDevices,
     0,
   );
-  const crashDevices = CRASHES.reduce((s, c) => s + c.uniqueDevices, 0);
+  const crashDevices = CRASHES_BY_VERSION.reduce((s, c) => s + c.uniqueDevices, 0);
   const crashFreeRate =
     totalDevices > 0
       ? ((1 - crashDevices / totalDevices) * 100).toFixed(1)

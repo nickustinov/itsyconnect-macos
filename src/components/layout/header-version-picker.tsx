@@ -259,7 +259,7 @@ export function HeaderVersionPicker() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>New app store version</DialogTitle>
+            <DialogTitle>New App Store version</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="grid gap-2">
@@ -431,7 +431,7 @@ export function HeaderVersionActions() {
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent className="sm:max-w-sm">
             <DialogHeader>
-              <DialogTitle>New app store version</DialogTitle>
+              <DialogTitle>New App Store version</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-2">
               <div className="grid gap-2">
