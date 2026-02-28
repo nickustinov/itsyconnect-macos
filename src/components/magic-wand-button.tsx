@@ -15,9 +15,6 @@ import { localeName } from "@/lib/asc/locale-names";
 import { AIRequiredDialog } from "./ai-required-dialog";
 import { AICompareDialog } from "./ai-compare-dialog";
 
-/** Minimum characters to consider a field as having "substantial" content. */
-const SHORT_THRESHOLD = 10;
-
 interface MagicWandButtonProps {
   value: string;
   onChange: (newValue: string) => void;
@@ -104,8 +101,6 @@ export function MagicWandButton({
   const isSingleLine = field === "keywords" || field === "name" || field === "subtitle";
   const hasValue = value.trim().length > 0;
   const hasBaseValue = baseValue.trim().length > 0;
-  const isShort = value.trim().length < SHORT_THRESHOLD;
-
   function requireAI(): boolean {
     if (!configured) {
       setShowRequired(true);
@@ -153,7 +148,7 @@ export function MagicWandButton({
   function handleImprove() {
     if (!requireAI()) return;
     openCompare({
-      title: isShort ? "Help write" : "Improve text",
+      title: "Improve text",
       apiBody: {
         action: "improve",
         text: value,
@@ -218,7 +213,7 @@ export function MagicWandButton({
   // Determine which menu items to show
   const hasKeywordActions = isKeywords;
   const hasTranslateActions = !isBaseLocale && !isKeywords;
-  const hasImproveAction = !isKeywords && hasValue;
+  const hasImproveAction = isBaseLocale && !isKeywords;
   const hasAnyAction = hasKeywordActions || hasTranslateActions || hasImproveAction;
 
   // Memoize apiBody to avoid re-triggering the dialog's useEffect
@@ -270,8 +265,8 @@ export function MagicWandButton({
             </>
           )}
           {hasImproveAction && (
-            <DropdownMenuItem onSelect={handleImprove}>
-              {isShort ? "Help write…" : "Improve…"}
+            <DropdownMenuItem onSelect={handleImprove} disabled={!hasValue}>
+              Improve…
             </DropdownMenuItem>
           )}
         </DropdownMenuContent>

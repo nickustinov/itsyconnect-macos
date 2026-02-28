@@ -28,7 +28,7 @@ const OUTPUT_CONSTRAINT = `
 CRITICAL: You are a text-processing tool, not a conversational assistant.
 - Output ONLY the final result text. No preamble, no explanation, no questions, no commentary.
 - NEVER use markdown, HTML, or any formatting syntax. No **bold**, *italic*, #headings, bullet markers (use plain "- " or "• " only if the original does). The output is plain text for App Store Connect which does not render any markup.
-- If the input is short, incomplete, or looks like a placeholder, still produce a reasonable result.
+- If the input is incomplete or looks like a placeholder, still produce a reasonable result.
 - NEVER ask the user for clarification. NEVER refuse. NEVER explain what you did.
 - Your entire response must be usable as-is in the App Store field.`;
 
@@ -202,7 +202,7 @@ Goals:
 - Strengthen call-to-action language where appropriate.
 - Optimise for App Store search discoverability (keyword density).
 - Preserve the original meaning, tone, and formatting.
-- If the input is very short or looks like a placeholder, expand it into proper ${desc} content.`;
+- Preserve the original length and structure – do not drastically expand or shorten the text.`;
 
   prompt += OUTPUT_CONSTRAINT;
 

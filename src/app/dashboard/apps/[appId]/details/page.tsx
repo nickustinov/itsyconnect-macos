@@ -134,6 +134,7 @@ export default function AppDetailsPage() {
   ];
 
   const [bulkMode, setBulkMode] = useState<"translate" | "copy" | null>(null);
+  const [bulkAllMode, setBulkAllMode] = useState<"translate" | "copy" | null>(null);
 
   function handleBulkApply(updates: Record<string, Record<string, string>>) {
     setLocaleData((prev) => {
@@ -412,6 +413,8 @@ export default function AppDetailsPage() {
     onLocaleDelete: handleDeleteLocale,
     onBulkTranslate: () => setBulkMode("translate"),
     onBulkCopy: () => setBulkMode("copy"),
+    onBulkTranslateAll: () => setBulkAllMode("translate"),
+    onBulkCopyAll: () => setBulkAllMode("copy"),
     section: "details",
     otherSectionLocales,
   });

@@ -24,6 +24,8 @@ export interface HeaderLocaleConfig {
   onLocaleDelete?: (code: string) => void;
   onBulkTranslate?: () => void;
   onBulkCopy?: () => void;
+  onBulkTranslateAll?: () => void;
+  onBulkCopyAll?: () => void;
 }
 
 interface HeaderLocaleContextValue {

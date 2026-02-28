@@ -7,6 +7,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
@@ -44,10 +45,21 @@ export function HeaderLocalePicker() {
 
   if (!config || config.locales.length === 0) return null;
 
-  const hasBulkActions = !!(config.onBulkTranslate || config.onBulkCopy);
-  const isNonBaseLocale = config.selectedLocale !== config.primaryLocale;
-  const showWand = hasBulkActions && isNonBaseLocale;
+  const hasSingleActions = !!(config.onBulkTranslate || config.onBulkCopy);
+  const hasAllActions = !!(config.onBulkTranslateAll || config.onBulkCopyAll);
+  const showWand = hasSingleActions || hasAllActions;
+  const isBaseLocale = config.selectedLocale === config.primaryLocale;
   const baseLabel = localeName(config.primaryLocale);
+  const targetLabel = localeName(config.selectedLocale);
+  const multipleLocales = config.locales.length > 1;
+
+  function requireAI(action: () => void) {
+    if (!configured) {
+      setShowRequired(true);
+      return;
+    }
+    action();
+  }
 
   return (
     <>
@@ -65,7 +77,7 @@ export function HeaderLocalePicker() {
         availableLocales={config.availableLocales}
         readOnly={config.readOnly}
       />
-      {showWand && (
+      {showWand && multipleLocales && (
         <>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -77,25 +89,39 @@ export function HeaderLocalePicker() {
                 <MagicWand size={14} />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {config.onBulkTranslate && (
+            <DropdownMenuContent align="end" className="shadow-none">
+              {/* Single-locale items (only when non-base locale selected) */}
+              {!isBaseLocale && config.onBulkTranslate && (
                 <DropdownMenuItem
-                  onSelect={() => {
-                    if (!configured) {
-                      setShowRequired(true);
-                      return;
-                    }
-                    configRef.current?.onBulkTranslate?.();
-                  }}
+                  onSelect={() => requireAI(() => configRef.current?.onBulkTranslate?.())}
                 >
-                  Translate all fields from {baseLabel}
+                  Translate from {baseLabel} to {targetLabel}…
                 </DropdownMenuItem>
               )}
-              {config.onBulkCopy && (
+              {!isBaseLocale && config.onBulkCopy && (
                 <DropdownMenuItem
                   onSelect={() => configRef.current?.onBulkCopy?.()}
                 >
-                  Copy all fields from {baseLabel}
+                  Copy from {baseLabel} to {targetLabel}…
+                </DropdownMenuItem>
+              )}
+              {/* Separator between single and all-locale items */}
+              {!isBaseLocale && hasSingleActions && hasAllActions && (
+                <DropdownMenuSeparator />
+              )}
+              {/* All-locale items */}
+              {config.onBulkTranslateAll && (
+                <DropdownMenuItem
+                  onSelect={() => requireAI(() => configRef.current?.onBulkTranslateAll?.())}
+                >
+                  Translate from {baseLabel} to all languages…
+                </DropdownMenuItem>
+              )}
+              {config.onBulkCopyAll && (
+                <DropdownMenuItem
+                  onSelect={() => configRef.current?.onBulkCopyAll?.()}
+                >
+                  Copy from {baseLabel} to all languages…
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
