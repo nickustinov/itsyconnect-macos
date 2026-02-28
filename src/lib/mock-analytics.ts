@@ -165,17 +165,6 @@ export const DISCOVERY_SOURCES = [
   { source: "unavailable", count: 268, fill: "var(--color-unavailable)" },
 ];
 
-export const TOP_REFERRERS = [
-  { referrer: "github.com", pageViews: 342, downloads: 87 },
-  { referrer: "twitter.com", pageViews: 198, downloads: 45 },
-  { referrer: "producthunt.com", pageViews: 156, downloads: 38 },
-  { referrer: "reddit.com", pageViews: 134, downloads: 31 },
-  { referrer: "macrumors.com", pageViews: 89, downloads: 22 },
-  { referrer: "9to5mac.com", pageViews: 67, downloads: 18 },
-  { referrer: "news.ycombinator.com", pageViews: 52, downloads: 14 },
-  { referrer: "macstories.net", pageViews: 38, downloads: 11 },
-];
-
 export const CRASHES_BY_VERSION = [
   { version: "1.1.0", platform: "macOS 26.2", crashes: 25, uniqueDevices: 5 },
   { version: "1.2.0", platform: "macOS 26.2", crashes: 3, uniqueDevices: 3 },
@@ -208,7 +197,6 @@ export interface AnalyticsData {
   dailyWebPreview: Array<{ date: string; pageViews: number; appStoreTaps: number }>;
   territories: Array<{ territory: string; code: string; downloads: number; revenue: number }>;
   discoverySources: Array<{ source: string; count: number; fill: string }>;
-  topReferrers: Array<{ referrer: string; pageViews: number; downloads: number }>;
   crashesByVersion: Array<{ version: string; platform: string; crashes: number; uniqueDevices: number }>;
   crashesByDevice: Array<{ device: string; crashes: number; uniqueDevices: number }>;
 }
@@ -226,7 +214,6 @@ export function getMockAnalyticsData(_appId: string): AnalyticsData {
     dailyWebPreview: DAILY_WEB_PREVIEW,
     territories: TERRITORIES,
     discoverySources: DISCOVERY_SOURCES,
-    topReferrers: TOP_REFERRERS,
     crashesByVersion: CRASHES_BY_VERSION,
     crashesByDevice: CRASHES_BY_DEVICE,
   };

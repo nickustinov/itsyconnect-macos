@@ -44,6 +44,7 @@ import { apiFetch } from "@/lib/api-fetch";
 import { useApps } from "@/lib/apps-context";
 import { useVersions } from "@/lib/versions-context";
 import { useFormDirty } from "@/lib/form-dirty-context";
+import { useRefresh } from "@/lib/refresh-context";
 import {
   getVersionPlatforms,
   getVersionsByPlatform,
@@ -491,11 +492,12 @@ export function HeaderRefreshButton() {
   const { refresh: refreshApps } = useApps();
   const { loading, refresh: refreshVersions } = useVersions();
   const { guardNavigation } = useFormDirty();
+  const { busy: sectionBusy, hasHandler, doRefresh: sectionRefresh } = useRefresh();
   const [refreshing, setRefreshing] = useState(false);
 
   if (!appId) return null;
 
-  async function doRefresh() {
+  async function doDefaultRefresh() {
     setRefreshing(true);
     try {
       await fetch("/api/refresh", {
@@ -509,14 +511,14 @@ export function HeaderRefreshButton() {
     }
   }
 
-  const busy = loading || refreshing;
+  const busy = sectionBusy || loading || refreshing;
 
   return (
     <Button
       variant="ghost"
       size="icon"
       className="ml-2 size-8"
-      onClick={() => guardNavigation(doRefresh)}
+      onClick={() => guardNavigation(hasHandler ? sectionRefresh : doDefaultRefresh)}
       disabled={busy}
     >
       <ArrowsClockwise size={14} className={busy ? "animate-spin" : ""} />

@@ -16,14 +16,6 @@ import {
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
@@ -44,12 +36,12 @@ const sourceConfig = {
   browse: { label: "App Store browse", color: "var(--color-chart-2)" },
   webReferrer: { label: "Web referrer", color: "var(--color-chart-3)" },
   unavailable: { label: "Unavailable", color: "var(--color-chart-4)" },
-  count: { label: "Downloads" },
+  count: { label: "Total downloads" },
 } satisfies ChartConfig;
 
 const engagementConfig = {
   impressions: { label: "Impressions", color: "var(--color-chart-1)" },
-  pageViews: { label: "Page views", color: "var(--color-chart-2)" },
+  pageViews: { label: "Product page views", color: "var(--color-chart-2)" },
 } satisfies ChartConfig;
 
 const downloadSourceConfig = {
@@ -60,7 +52,7 @@ const downloadSourceConfig = {
 } satisfies ChartConfig;
 
 const webPreviewConfig = {
-  pageViews: { label: "Page views", color: "var(--color-chart-1)" },
+  pageViews: { label: "Product page views", color: "var(--color-chart-1)" },
   appStoreTaps: { label: "App Store taps", color: "var(--color-chart-2)" },
 } satisfies ChartConfig;
 
@@ -78,7 +70,7 @@ const SOURCE_FILLS: Record<string, string> = {
 export default function AcquisitionPage() {
   const searchParams = useSearchParams();
   const range = useMemo(() => parseRange(searchParams.get("range")), [searchParams]);
-  const { data, loading, error, pending, refresh } = useAnalytics();
+  const { data, loading, error, pending } = useAnalytics();
 
   const engagement = useMemo(
     () => filterByDateRange(data?.dailyEngagement ?? [], range),
@@ -128,7 +120,7 @@ export default function AcquisitionPage() {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3">
         <p className="text-sm text-muted-foreground">{error}</p>
-        <Button variant="outline" size="sm" onClick={refresh}>
+        <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
           Retry
         </Button>
       </div>
@@ -192,7 +184,7 @@ export default function AcquisitionPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium">
-              Impressions vs page views
+              Impressions and product page views
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -243,7 +235,7 @@ export default function AcquisitionPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-sm font-medium">
-            Downloads by source
+            Total downloads by source
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -299,10 +291,8 @@ export default function AcquisitionPage() {
         </CardContent>
       </Card>
 
-      {/* Row 3: Web preview + top referrers */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        {/* Web preview engagement */}
-        <Card>
+      {/* Row 3: Web preview engagement */}
+      <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium">
               Web preview engagement
@@ -311,7 +301,7 @@ export default function AcquisitionPage() {
           <CardContent>
             <ChartContainer
               config={webPreviewConfig}
-              className="h-[240px] w-full"
+              className="h-[280px] w-full"
             >
               <BarChart data={webPreview} accessibilityLayer>
                 <CartesianGrid vertical={false} />
@@ -345,52 +335,8 @@ export default function AcquisitionPage() {
               </BarChart>
             </ChartContainer>
           </CardContent>
-        </Card>
+      </Card>
 
-        {/* Top referrers table – hidden when empty */}
-        {data.topReferrers.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium">
-                Top referrers
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Referrer</TableHead>
-                    <TableHead className="text-right">Page views</TableHead>
-                    <TableHead className="text-right">Downloads</TableHead>
-                    <TableHead className="text-right">Conv. rate</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.topReferrers.map((row) => (
-                    <TableRow key={row.referrer}>
-                      <TableCell className="font-medium">
-                        {row.referrer}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {row.pageViews.toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {row.downloads.toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {row.pageViews > 0
-                          ? ((row.downloads / row.pageViews) * 100).toFixed(1)
-                          : "0"}
-                        %
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        )}
-      </div>
     </div>
   );
 }

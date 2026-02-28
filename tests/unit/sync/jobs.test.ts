@@ -55,15 +55,15 @@ describe("syncAnalytics", () => {
     mockBuildAnalyticsData.mockReset();
   });
 
-  it("fetches analytics for each app with forceRefresh", async () => {
+  it("fetches analytics for each app sequentially", async () => {
     mockHasCredentials.mockReturnValue(true);
     mockListApps.mockResolvedValue([{ id: "123" }, { id: "456" }]);
     mockBuildAnalyticsData.mockResolvedValue({});
 
     await syncAnalytics();
     expect(mockListApps).toHaveBeenCalled();
-    expect(mockBuildAnalyticsData).toHaveBeenCalledWith("123", true);
-    expect(mockBuildAnalyticsData).toHaveBeenCalledWith("456", true);
+    expect(mockBuildAnalyticsData).toHaveBeenCalledWith("123");
+    expect(mockBuildAnalyticsData).toHaveBeenCalledWith("456");
   });
 
   it("skips when no credentials exist", async () => {

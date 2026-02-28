@@ -32,7 +32,7 @@ import { Button } from "@/components/ui/button";
 
 const sessionsConfig = {
   sessions: { label: "Sessions", color: "var(--color-chart-1)" },
-  uniqueDevices: { label: "Unique devices", color: "var(--color-chart-2)" },
+  uniqueDevices: { label: "Active devices", color: "var(--color-chart-2)" },
 } satisfies ChartConfig;
 
 const durationConfig = {
@@ -40,13 +40,13 @@ const durationConfig = {
 } satisfies ChartConfig;
 
 const installDeleteConfig = {
-  installs: { label: "Installs", color: "var(--color-chart-1)" },
-  deletes: { label: "Deletes", color: "var(--color-chart-5)" },
+  installs: { label: "Installations", color: "var(--color-chart-1)" },
+  deletes: { label: "Deletions", color: "var(--color-chart-5)" },
 } satisfies ChartConfig;
 
 const optInConfig = {
-  downloading: { label: "Downloading", color: "var(--color-chart-2)" },
-  optingIn: { label: "Opting in", color: "var(--color-chart-1)" },
+  downloading: { label: "Downloading users", color: "var(--color-chart-2)" },
+  optingIn: { label: "Users opting in", color: "var(--color-chart-1)" },
 } satisfies ChartConfig;
 
 // Chart colour palette for dynamic version keys
@@ -63,7 +63,7 @@ const VERSION_COLORS = [
 export default function UsagePage() {
   const searchParams = useSearchParams();
   const range = useMemo(() => parseRange(searchParams.get("range")), [searchParams]);
-  const { data, loading, error, pending, refresh } = useAnalytics();
+  const { data, loading, error, pending } = useAnalytics();
 
   const sessions = useMemo(
     () => filterByDateRange(data?.dailySessions ?? [], range),
@@ -137,7 +137,7 @@ export default function UsagePage() {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3">
         <p className="text-sm text-muted-foreground">{error}</p>
-        <Button variant="outline" size="sm" onClick={refresh}>
+        <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
           Retry
         </Button>
       </div>
@@ -154,7 +154,7 @@ export default function UsagePage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium">
-              Sessions and devices
+              Sessions and active devices
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -308,7 +308,7 @@ export default function UsagePage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium">
-              Installs vs deletes
+              Installations and deletions
             </CardTitle>
           </CardHeader>
           <CardContent>

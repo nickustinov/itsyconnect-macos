@@ -11,6 +11,6 @@ export async function syncAnalytics(): Promise<void> {
   if (!hasCredentials()) return;
   const apps = await listApps();
   for (const app of apps) {
-    await buildAnalyticsData(app.id, true);
+    await buildAnalyticsData(app.id);
   }
 }

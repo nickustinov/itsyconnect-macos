@@ -40,6 +40,7 @@ export function AnalyticsRangePicker() {
   const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [calendarRange, setCalendarRange] = useState<RdpDateRange | undefined>();
 
   const currentRange = searchParams.get("range");
   const parsed = parseRange(currentRange);
@@ -60,7 +61,10 @@ export function AnalyticsRangePicker() {
   }
 
   function handleCalendarSelect(range: RdpDateRange | undefined) {
+    setCalendarRange(range);
     if (!range?.from || !range?.to) return;
+    // Ignore single-click where from === to (first click in range selection)
+    if (range.from.getTime() === range.to.getTime()) return;
     const from = range.from.toISOString().slice(0, 10);
     const to = range.to.toISOString().slice(0, 10);
     navigate(`${from}..${to}`);
@@ -82,7 +86,11 @@ export function AnalyticsRangePicker() {
           {parsed.label}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-auto p-0">
+      <PopoverContent
+        align="end"
+        className="w-auto p-0"
+        onFocusOutside={(e) => { if (showCalendar) e.preventDefault(); }}
+      >
         {showCalendar ? (
           <div className="p-2">
             <Button
@@ -95,6 +103,7 @@ export function AnalyticsRangePicker() {
             </Button>
             <Calendar
               mode="range"
+              selected={calendarRange}
               defaultMonth={calendarDefault}
               numberOfMonths={2}
               disabled={{ after: new Date() }}
@@ -146,7 +155,7 @@ export function AnalyticsRangePicker() {
               variant="outline"
               size="sm"
               className="w-full"
-              onClick={() => setShowCalendar(true)}
+              onClick={() => { setCalendarRange(undefined); setShowCalendar(true); }}
             >
               Custom range&hellip;
             </Button>

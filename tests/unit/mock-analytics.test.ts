@@ -12,7 +12,6 @@ import {
   DAILY_WEB_PREVIEW,
   TERRITORIES,
   DISCOVERY_SOURCES,
-  TOP_REFERRERS,
   CRASHES_BY_VERSION,
   CRASHES_BY_DEVICE,
   formatDate,
@@ -89,15 +88,6 @@ describe("mock-analytics", () => {
       }
     });
 
-    it("TOP_REFERRERS has entries with required fields", () => {
-      expect(TOP_REFERRERS.length).toBeGreaterThan(0);
-      for (const r of TOP_REFERRERS) {
-        expect(r).toHaveProperty("referrer");
-        expect(r).toHaveProperty("pageViews");
-        expect(r).toHaveProperty("downloads");
-      }
-    });
-
     it("CRASHES_BY_VERSION has entries with required fields", () => {
       expect(CRASHES_BY_VERSION.length).toBeGreaterThan(0);
       for (const c of CRASHES_BY_VERSION) {
@@ -171,7 +161,6 @@ describe("mock-analytics", () => {
       expect(data.dailyWebPreview).toBe(DAILY_WEB_PREVIEW);
       expect(data.territories).toBe(TERRITORIES);
       expect(data.discoverySources).toBe(DISCOVERY_SOURCES);
-      expect(data.topReferrers).toBe(TOP_REFERRERS);
       expect(data.crashesByVersion).toBe(CRASHES_BY_VERSION);
       expect(data.crashesByDevice).toBe(CRASHES_BY_DEVICE);
     });
@@ -179,7 +168,7 @@ describe("mock-analytics", () => {
     it("has all 14 expected keys", () => {
       const data = getMockAnalyticsData("app-001");
       const keys = Object.keys(data);
-      expect(keys).toHaveLength(14);
+      expect(keys).toHaveLength(13);
     });
   });
 

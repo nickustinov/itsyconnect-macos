@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { cacheInvalidateAll } from "@/lib/cache";
+import { cacheInvalidate, cacheInvalidatePrefix } from "@/lib/cache";
 
 import { listApps } from "@/lib/asc/apps";
 import { listVersions } from "@/lib/asc/versions";
@@ -29,8 +29,9 @@ export async function POST(request: Request) {
   }
 
   try {
-    // Invalidate all cached data and re-fetch the essentials
-    cacheInvalidateAll();
+    // Invalidate apps and versions cache only (not analytics, reviews, etc.)
+    cacheInvalidate("apps");
+    cacheInvalidatePrefix("versions:");
     await listApps(true);
     await listVersions(parsed.data.appId, true);
 

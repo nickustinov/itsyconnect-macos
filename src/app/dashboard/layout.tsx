@@ -13,6 +13,7 @@ import { VersionsProvider } from "@/lib/versions-context";
 import { FormDirtyProvider } from "@/lib/form-dirty-context";
 import { HeaderLocaleProvider } from "@/lib/header-locale-context";
 import { SubmissionChecklistProvider } from "@/lib/submission-checklist-context";
+import { RefreshProvider } from "@/lib/refresh-context";
 
 declare global {
   interface Window {
@@ -45,6 +46,7 @@ export default function DashboardLayout({
       <FormDirtyProvider>
       <HeaderLocaleProvider>
       <SubmissionChecklistProvider>
+      <RefreshProvider>
       <ReadySignal />
       <SidebarProvider>
         <AppSidebar />
@@ -83,6 +85,7 @@ export default function DashboardLayout({
           </Suspense>
         </SidebarInset>
       </SidebarProvider>
+      </RefreshProvider>
       </SubmissionChecklistProvider>
       </HeaderLocaleProvider>
       </FormDirtyProvider>

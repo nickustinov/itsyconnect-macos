@@ -42,6 +42,7 @@ import {
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { useApps } from "@/lib/apps-context";
+import { useRegisterRefresh } from "@/lib/refresh-context";
 import { useAIStatus } from "@/lib/hooks/use-ai-status";
 import { AIRequiredDialog } from "@/components/ai-required-dialog";
 import type { AscCustomerReview } from "@/lib/asc/reviews";
@@ -276,6 +277,9 @@ export default function ReviewsPage() {
   useEffect(() => {
     fetchReviews();
   }, [fetchReviews]);
+
+  // Register with header refresh button
+  useRegisterRefresh({ onRefresh: fetchReviews, busy: loading });
 
   // Client-side filtering (sort is server-side via API)
   const territories = useMemo(

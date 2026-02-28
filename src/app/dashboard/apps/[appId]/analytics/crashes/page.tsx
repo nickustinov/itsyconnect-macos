@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 // ---------- Page ----------
 
 export default function CrashesPage() {
-  const { data, loading, error, pending, refresh } = useAnalytics();
+  const { data, loading, error, pending } = useAnalytics();
 
   const crashesByVersion = data?.crashesByVersion ?? [];
   const crashesByDevice = data?.crashesByDevice ?? [];
@@ -65,7 +65,7 @@ export default function CrashesPage() {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3">
         <p className="text-sm text-muted-foreground">{error}</p>
-        <Button variant="outline" size="sm" onClick={refresh}>
+        <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
           Retry
         </Button>
       </div>
@@ -120,7 +120,7 @@ export default function CrashesPage() {
                   <TableHead>Version</TableHead>
                   <TableHead>Platform</TableHead>
                   <TableHead className="text-right">Crashes</TableHead>
-                  <TableHead className="text-right">Affected devices</TableHead>
+                  <TableHead className="text-right">Unique devices</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -158,7 +158,7 @@ export default function CrashesPage() {
                 <TableRow>
                   <TableHead>Device</TableHead>
                   <TableHead className="text-right">Crashes</TableHead>
-                  <TableHead className="text-right">Affected devices</TableHead>
+                  <TableHead className="text-right">Unique devices</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

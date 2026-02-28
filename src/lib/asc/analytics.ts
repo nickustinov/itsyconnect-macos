@@ -1,9 +1,9 @@
 import { gunzipSync } from "node:zlib";
 import { ascFetch } from "./client";
-import { cacheGet, cacheGetMeta, cacheSet } from "@/lib/cache";
+import { cacheGet, cacheSet } from "@/lib/cache";
 import type { AnalyticsData } from "@/lib/mock-analytics";
 
-const ANALYTICS_TTL = 24 * 60 * 60 * 1000; // 24 hours (sync worker refreshes hourly)
+const ANALYTICS_TTL = 60 * 60 * 1000; // 1 hour (sync worker refreshes hourly)
 const REPORT_ID_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days (report request/report IDs never change)
 const INSTANCE_TTL = 30 * 24 * 60 * 60 * 1000; // 30 days (immutable past data)
 const TODAY_TTL = 10 * 60 * 1000; // 10 min (today's data may update)
@@ -559,7 +559,6 @@ function emptyAnalyticsData(): AnalyticsData {
     dailyWebPreview: [],
     territories: [],
     discoverySources: [],
-    topReferrers: [],
     crashesByVersion: [],
     crashesByDevice: [],
   };
@@ -567,83 +566,16 @@ function emptyAnalyticsData(): AnalyticsData {
 
 // ---------- Main entry point ----------
 
-// Per-app dedup: if the same appId is already being fetched, join it.
-// User-initiated requests (API route) run immediately; the sync worker
-// serializes its own fetches via syncAnalytics' sequential loop.
-const inFlightBuilds = new Map<string, Promise<AnalyticsData>>();
-
-export async function buildAnalyticsData(
-  appId: string,
-  forceRefresh = false,
-): Promise<AnalyticsData> {
+export async function buildAnalyticsData(appId: string): Promise<AnalyticsData> {
   const cacheKey = `analytics:${appId}`;
+  const cached = cacheGet<AnalyticsData>(cacheKey);
+  if (cached) return cached;
 
-  if (!forceRefresh) {
-    const cached = cacheGet<AnalyticsData>(cacheKey);
-    if (cached) return cached;
-  }
-
-  // If a fetch is already in-flight for this app, join it
-  const existing = inFlightBuilds.get(appId);
-  if (existing) {
-    console.log(`[analytics] Joining in-flight fetch for ${appId}`);
-    return existing;
-  }
-
-  console.log(`[analytics] Starting fetch for ${appId}...`);
-  const startTime = Date.now();
-
-  const promise = buildAnalyticsDataInner(appId, cacheKey)
-    .then((data) => {
-      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-      console.log(
-        `[analytics] Fetch complete for ${appId} in ${elapsed}s:`,
-        `downloads=${data.dailyDownloads.length}d`,
-        `sessions=${data.dailySessions.length}d`,
-        `crashes=${data.crashesByVersion.length} versions`,
-      );
-      return data;
-    })
-    .catch((err) => {
-      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-      console.error(`[analytics] Fetch failed for ${appId} after ${elapsed}s:`, err);
-      throw err;
-    });
-
-  inFlightBuilds.set(appId, promise);
-  promise.finally(() => inFlightBuilds.delete(appId));
-  return promise;
-}
-
-// ---------- Read-only accessor for API routes ----------
-// Returns cached data, joins an in-flight fetch, or signals "pending"
-// (background worker hasn't reached this app yet). Never starts a fetch.
-
-type AnalyticsResult =
-  | { status: "ready"; data: AnalyticsData; meta: { fetchedAt: number; ttlMs: number } | null }
-  | { status: "pending" };
-
-export async function getAnalyticsData(appId: string): Promise<AnalyticsResult> {
-  const cacheKey = `analytics:${appId}`;
-
-  // Serve from cache (even if stale – the bg worker will refresh it)
-  const meta = cacheGetMeta(cacheKey);
-  if (meta) {
-    const data = cacheGet<AnalyticsData>(cacheKey, true);
-    if (data) return { status: "ready", data, meta };
-  }
-
-  // If the bg worker is currently fetching this app, wait for it
-  const inFlight = inFlightBuilds.get(appId);
-  if (inFlight) {
-    console.log(`[analytics] API joining in-flight fetch for ${appId}`);
-    const data = await inFlight;
-    const freshMeta = cacheGetMeta(cacheKey);
-    return { status: "ready", data, meta: freshMeta };
-  }
-
-  // Not cached and not in-flight – bg worker hasn't gotten here yet
-  return { status: "pending" };
+  console.log(`[analytics] Fetching ${appId}...`);
+  const start = Date.now();
+  const data = await buildAnalyticsDataInner(appId, cacheKey);
+  console.log(`[analytics] Done ${appId} in ${((Date.now() - start) / 1000).toFixed(1)}s`);
+  return data;
 }
 
 async function buildAnalyticsDataInner(
@@ -715,7 +647,6 @@ async function buildAnalyticsDataInner(
     dailyWebPreview: aggregateWebPreview(filteredWebPreview),
     territories: aggregateTerritories(filteredDownloads, filteredPurchases),
     discoverySources: aggregateDiscoverySources(filteredDownloads),
-    topReferrers: [], // Detailed referrer report not available in API
     crashesByVersion: aggregateCrashesByVersion(filteredCrashes),
     crashesByDevice: aggregateCrashesByDevice(filteredCrashes),
   };

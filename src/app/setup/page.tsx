@@ -250,7 +250,7 @@ export default function SetupPage() {
             {step === 3 && "AI assistant"}
           </h1>
           <p className="text-sm text-muted-foreground text-center">
-            {step === 0 && "Better App Store Connect."}
+            {step === 0 && "Better App Store Connect"}
             {step === 1 &&
               "Set up to manage apps, versions, and metadata."}
             {step === 2 &&

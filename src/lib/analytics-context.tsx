@@ -10,13 +10,13 @@ import {
   type ReactNode,
 } from "react";
 import type { AnalyticsData } from "@/lib/mock-analytics";
+import { useRegisterRefresh } from "@/lib/refresh-context";
 
 interface AnalyticsState {
   data: AnalyticsData | null;
   loading: boolean;
   error: string | null;
   pending: boolean; // bg worker hasn't fetched this app yet
-  refresh: () => void;
   meta: { fetchedAt: number; ttlMs: number } | null;
 }
 
@@ -36,15 +36,15 @@ export function AnalyticsProvider({
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [meta, setMeta] = useState<{ fetchedAt: number; ttlMs: number } | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const fetchData = useCallback(async (refresh = false) => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const qs = refresh ? "?refresh=true" : "";
-      const res = await fetch(`/api/apps/${appId}/analytics${qs}`);
+      const res = await fetch(`/api/apps/${appId}/analytics`);
       const json = await res.json();
 
       if (!res.ok) {
@@ -60,6 +60,7 @@ export function AnalyticsProvider({
       }
 
       setPending(false);
+      setRefreshing(false);
       setData(json.data);
       setMeta(json.meta ?? null);
     } catch (err) {
@@ -69,8 +70,6 @@ export function AnalyticsProvider({
       setLoading(false);
     }
   }, [appId]);
-
-  const refresh = useCallback(() => fetchData(true), [fetchData]);
 
   // Initial fetch
   useEffect(() => {
@@ -90,9 +89,27 @@ export function AnalyticsProvider({
     };
   }, [pending, fetchData]);
 
+  // Manual refresh: invalidate cache + trigger background rebuild
+  const triggerRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await fetch(`/api/apps/${appId}/analytics/refresh`, { method: "POST" });
+      setPending(true);
+      await fetchData();
+    } catch {
+      setRefreshing(false);
+    }
+  }, [appId, fetchData]);
+
+  // Register with header refresh button
+  useRegisterRefresh({
+    onRefresh: triggerRefresh,
+    busy: refreshing || pending,
+  });
+
   return (
     <AnalyticsContext.Provider
-      value={{ data, loading, error, pending, refresh, meta }}
+      value={{ data, loading, error, pending, meta }}
     >
       {children}
     </AnalyticsContext.Provider>

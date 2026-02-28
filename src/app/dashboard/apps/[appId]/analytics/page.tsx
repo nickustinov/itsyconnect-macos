@@ -38,9 +38,9 @@ import { Button } from "@/components/ui/button";
 // ---------- Chart configs ----------
 
 const downloadsConfig = {
-  firstTime: { label: "First-time", color: "var(--color-chart-1)" },
-  redownload: { label: "Redownload", color: "var(--color-chart-2)" },
-  update: { label: "Update", color: "var(--color-chart-3)" },
+  firstTime: { label: "First-time downloads", color: "var(--color-chart-1)" },
+  redownload: { label: "Redownloads", color: "var(--color-chart-2)" },
+  update: { label: "Updates", color: "var(--color-chart-3)" },
 } satisfies ChartConfig;
 
 const revenueConfig = {
@@ -49,13 +49,13 @@ const revenueConfig = {
 } satisfies ChartConfig;
 
 const territoryConfig = {
-  downloads: { label: "Downloads", color: "var(--color-chart-1)" },
+  downloads: { label: "Total downloads", color: "var(--color-chart-1)" },
 } satisfies ChartConfig;
 
 const funnelConfig = {
   impressions: { label: "Impressions", color: "var(--color-chart-3)" },
-  pageViews: { label: "Page views", color: "var(--color-chart-2)" },
-  downloads: { label: "Downloads", color: "var(--color-chart-1)" },
+  pageViews: { label: "Product page views", color: "var(--color-chart-2)" },
+  downloads: { label: "First-time downloads", color: "var(--color-chart-1)" },
 } satisfies ChartConfig;
 
 // ---------- Helpers ----------
@@ -73,7 +73,7 @@ export default function AnalyticsOverviewPage() {
   const searchParams = useSearchParams();
   const range = useMemo(() => parseRange(searchParams.get("range")), [searchParams]);
   const prevRange = useMemo(() => previousRange(range), [range]);
-  const { data, loading, error, pending, refresh } = useAnalytics();
+  const { data, loading, error, pending } = useAnalytics();
 
   const downloads = useMemo(
     () => filterByDateRange(data?.dailyDownloads ?? [], range),
@@ -85,13 +85,13 @@ export default function AnalyticsOverviewPage() {
   );
 
   const totalDownloads = downloads.reduce(
-    (s, d) => s + d.firstTime + d.redownload + d.update,
+    (s, d) => s + d.firstTime + d.redownload,
     0,
   );
   const prevDownloads = useMemo(
     () =>
       filterByDateRange(data?.dailyDownloads ?? [], prevRange).reduce(
-        (s, d) => s + d.firstTime + d.redownload + d.update,
+        (s, d) => s + d.firstTime + d.redownload,
         0,
       ),
     [data, prevRange],
@@ -167,7 +167,7 @@ export default function AnalyticsOverviewPage() {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3">
         <p className="text-sm text-muted-foreground">{error}</p>
-        <Button variant="outline" size="sm" onClick={refresh}>
+        <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
           Retry
         </Button>
       </div>
@@ -195,13 +195,13 @@ export default function AnalyticsOverviewPage() {
       {/* KPI cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard
-          title="Downloads"
+          title="Total downloads"
           value={totalDownloads.toLocaleString()}
           subtitle={`${pctChange(totalDownloads, prevDownloads)} from previous period`}
           icon={DownloadSimple}
         />
         <KpiCard
-          title="Revenue"
+          title="Proceeds"
           value={`$${totalRevenue.toLocaleString()}`}
           subtitle={`${pctChange(totalRevenue, prevRevenue)} from previous period`}
           icon={CurrencyDollar}
@@ -215,7 +215,7 @@ export default function AnalyticsOverviewPage() {
         <KpiCard
           title="Crash-free rate"
           value={`${crashFreeRate}%`}
-          subtitle={`${crashDevices} affected devices from previous period`}
+          subtitle={`${crashDevices} affected of ${totalDevices.toLocaleString()} devices`}
           icon={ShieldCheck}
         />
       </div>
@@ -225,7 +225,7 @@ export default function AnalyticsOverviewPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium">
-              Downloads over time
+              Downloads and updates
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -284,7 +284,7 @@ export default function AnalyticsOverviewPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium">
-              Revenue over time
+              Proceeds and sales
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -427,7 +427,7 @@ export default function AnalyticsOverviewPage() {
             </ChartContainer>
             <div className="mt-3 flex items-center justify-center gap-6 text-xs text-muted-foreground">
               <span>
-                Page view rate:{" "}
+                Product page view rate:{" "}
                 <strong className="text-foreground">
                   {totalImpressions > 0
                     ? ((totalPageViews / totalImpressions) * 100).toFixed(1)
@@ -436,7 +436,7 @@ export default function AnalyticsOverviewPage() {
                 </strong>
               </span>
               <span>
-                Download rate:{" "}
+                First-time download rate:{" "}
                 <strong className="text-foreground">
                   {totalPageViews > 0
                     ? ((totalFirstTime / totalPageViews) * 100).toFixed(1)
