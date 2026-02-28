@@ -150,15 +150,23 @@ export default function AcquisitionPage() {
                   content={
                     <ChartTooltipContent
                       nameKey="source"
-                      formatter={(value) => (
-                        <span className="font-mono font-medium tabular-nums">
-                          {(value as number).toLocaleString()} (
-                          {totalSources > 0
-                            ? (((value as number) / totalSources) * 100).toFixed(1)
-                            : "0"}
-                          %)
-                        </span>
-                      )}
+                      hideLabel
+                      formatter={(value, _name, item) => {
+                        const key = item.payload?.source as string;
+                        const label = sourceConfig[key as keyof typeof sourceConfig]?.label ?? key;
+                        return (
+                          <div className="flex flex-1 items-center justify-between gap-2 leading-none">
+                            <span className="text-muted-foreground">{label}</span>
+                            <span className="font-mono font-medium tabular-nums">
+                              {(value as number).toLocaleString()} (
+                              {totalSources > 0
+                                ? (((value as number) / totalSources) * 100).toFixed(1)
+                                : "0"}
+                              %)
+                            </span>
+                          </div>
+                        );
+                      }}
                     />
                   }
                 />
