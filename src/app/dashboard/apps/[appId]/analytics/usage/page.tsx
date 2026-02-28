@@ -122,7 +122,7 @@ export default function UsagePage() {
     );
   }
 
-  if (pending) {
+  if (pending && !data) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3">
         <Spinner className="size-6 text-muted-foreground" />

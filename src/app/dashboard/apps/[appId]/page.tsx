@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,16 +17,15 @@ import { KpiCard } from "@/components/kpi-card";
 import {
   DownloadSimple,
   CurrencyDollar,
-  Receipt,
   ShieldCheck,
 } from "@phosphor-icons/react";
 import { Spinner } from "@/components/ui/spinner";
 import {
-  Area,
-  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
+  Line,
+  LineChart,
   XAxis,
   YAxis,
 } from "recharts";
@@ -37,14 +37,7 @@ import {
   ChartLegendContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import {
-  DAILY_DOWNLOADS,
-  DAILY_SESSIONS,
-  CRASHES_BY_VERSION,
-  TERRITORIES,
-  formatDate,
-} from "@/lib/mock-analytics";
-import { DAILY_REVENUE } from "@/lib/mock-sales";
+import { type AnalyticsData, formatDate } from "@/lib/mock-analytics";
 
 // ---------- Constants ----------
 
@@ -97,18 +90,12 @@ function pickOverviewVersions(versions: AscVersion[]): AscVersion[] {
 // ---------- Chart configs ----------
 
 const downloadsConfig = {
-  firstTime: { label: "First-time", color: "var(--color-chart-1)" },
-  redownload: { label: "Redownload", color: "var(--color-chart-2)" },
-  update: { label: "Update", color: "var(--color-chart-3)" },
+  firstTime: { label: "First-time downloads", color: "var(--color-chart-1)" },
+  redownload: { label: "Redownloads", color: "var(--color-chart-2)" },
 } satisfies ChartConfig;
 
-const revenueConfig = {
+const proceedsConfig = {
   proceeds: { label: "Proceeds", color: "var(--color-chart-1)" },
-  sales: { label: "Customer price", color: "var(--color-chart-2)" },
-} satisfies ChartConfig;
-
-const territoryConfig = {
-  downloads: { label: "Downloads", color: "var(--color-chart-1)" },
 } satisfies ChartConfig;
 
 // ---------- Page ----------
@@ -118,6 +105,26 @@ export default function AppOverviewPage() {
   const { apps, loading: appsLoading } = useApps();
   const { versions, loading: versionsLoading } = useVersions();
   const app = apps.find((a) => a.id === appId);
+
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [pending, setPending] = useState(false);
+  const [analyticsLoading, setAnalyticsLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/apps/${appId}/analytics`)
+      .then((r) => r.json())
+      .then((res: { data: AnalyticsData | null; pending?: boolean }) => {
+        if (cancelled) return;
+        setAnalytics(res.data);
+        setPending(res.pending === true && !res.data);
+        setAnalyticsLoading(false);
+      })
+      .catch(() => {
+        if (!cancelled) setAnalyticsLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [appId]);
 
   if (appsLoading || versionsLoading) {
     return (
@@ -136,22 +143,26 @@ export default function AppOverviewPage() {
   }
 
   // Last 30 days of data
-  const downloads = DAILY_DOWNLOADS.slice(-30);
-  const revenue = DAILY_REVENUE.slice(-30);
+  const last30Downloads = (analytics?.dailyDownloads ?? []).slice(-30);
+  const last30Revenue = (analytics?.dailyRevenue ?? []).slice(-30);
+  const last30Sessions = (analytics?.dailySessions ?? []).slice(-30);
 
-  const totalDownloads = downloads.reduce(
-    (s, d) => s + d.firstTime + d.redownload + d.update,
+  const totalDownloads = last30Downloads.reduce(
+    (s, d) => s + d.firstTime + d.redownload,
     0,
   );
-  const totalFirstTime = downloads.reduce((s, d) => s + d.firstTime, 0);
-  const totalProceeds = revenue.reduce((s, d) => s + d.proceeds, 0);
-  const totalUnits = revenue.reduce((s, d) => s + d.units, 0);
-
-  const totalDevices = DAILY_SESSIONS.slice(-30).reduce(
+  const totalProceeds = last30Revenue.reduce(
+    (s, d) => s + d.proceeds,
+    0,
+  );
+  const totalDevices = last30Sessions.reduce(
     (s, d) => s + d.uniqueDevices,
     0,
   );
-  const crashDevices = CRASHES_BY_VERSION.reduce((s, c) => s + c.uniqueDevices, 0);
+  const crashDevices = (analytics?.crashesByVersion ?? []).reduce(
+    (s, c) => s + c.uniqueDevices,
+    0,
+  );
   const crashFreeRate =
     totalDevices > 0
       ? ((1 - crashDevices / totalDevices) * 100).toFixed(1)
@@ -218,200 +229,147 @@ export default function AppOverviewPage() {
         ))}
       </div>
 
-      {/* KPI cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard
-          title="Downloads"
-          value={totalDownloads.toLocaleString()}
-          subtitle={`${totalFirstTime.toLocaleString()} first-time`}
-          icon={DownloadSimple}
-        />
-        <KpiCard
-          title="Proceeds"
-          value={`$${totalProceeds.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-          subtitle="Last 30 days"
-          icon={CurrencyDollar}
-        />
-        <KpiCard
-          title="Units sold"
-          value={totalUnits.toLocaleString()}
-          subtitle="Lifetime Pro IAP"
-          icon={Receipt}
-        />
-        <KpiCard
-          title="Crash-free rate"
-          value={`${crashFreeRate}%`}
-          subtitle={`${crashDevices} affected devices`}
-          icon={ShieldCheck}
-        />
-      </div>
-
-      {/* Charts row */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        {/* Downloads over time */}
+      {/* Analytics: KPI cards + chart, or pending placeholder */}
+      {analyticsLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Spinner className="size-6 text-muted-foreground" />
+        </div>
+      ) : pending ? (
         <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">
-              Downloads over time
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer
-              config={downloadsConfig}
-              className="h-[240px] w-full"
-            >
-              <AreaChart data={downloads} accessibilityLayer>
-                <CartesianGrid vertical={false} />
-                <XAxis
-                  dataKey="date"
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={8}
-                  tickFormatter={formatDate}
-                  interval="preserveStartEnd"
-                />
-                <YAxis tickLine={false} axisLine={false} width={40} />
-                <ChartTooltip
-                  content={
-                    <ChartTooltipContent
-                      labelFormatter={(v) => formatDate(v as string)}
-                    />
-                  }
-                />
-                <ChartLegend content={<ChartLegendContent />} />
-                <Area
-                  type="monotone"
-                  dataKey="update"
-                  stackId="1"
-                  fill="var(--color-update)"
-                  stroke="var(--color-update)"
-                  fillOpacity={0.4}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="redownload"
-                  stackId="1"
-                  fill="var(--color-redownload)"
-                  stroke="var(--color-redownload)"
-                  fillOpacity={0.4}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="firstTime"
-                  stackId="1"
-                  fill="var(--color-firstTime)"
-                  stroke="var(--color-firstTime)"
-                  fillOpacity={0.4}
-                />
-              </AreaChart>
-            </ChartContainer>
+          <CardContent className="py-12 text-center text-sm text-muted-foreground">
+            Initial update in progress. Insights will be available shortly.
           </CardContent>
         </Card>
+      ) : analytics ? (
+        <>
+          {/* KPI cards */}
+          <div className="grid gap-4 sm:grid-cols-3">
+            <KpiCard
+              title="Total downloads"
+              value={totalDownloads.toLocaleString()}
+              icon={DownloadSimple}
+            />
+            <KpiCard
+              title="Proceeds"
+              value={`$${totalProceeds.toLocaleString()}`}
+              icon={CurrencyDollar}
+            />
+            <KpiCard
+              title="Crash-free rate"
+              value={`${crashFreeRate}%`}
+              subtitle={crashDevices > 0 ? `${crashDevices} affected devices` : undefined}
+              icon={ShieldCheck}
+            />
+          </div>
 
-        {/* Revenue over time */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">
-              Revenue over time
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer
-              config={revenueConfig}
-              className="h-[240px] w-full"
-            >
-              <AreaChart data={revenue} accessibilityLayer>
-                <CartesianGrid vertical={false} />
-                <XAxis
-                  dataKey="date"
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={8}
-                  tickFormatter={formatDate}
-                  interval="preserveStartEnd"
-                />
-                <YAxis
-                  tickLine={false}
-                  axisLine={false}
-                  width={50}
-                  tickFormatter={(v) => `$${v}`}
-                />
-                <ChartTooltip
-                  content={
-                    <ChartTooltipContent
-                      labelFormatter={(v) => formatDate(v as string)}
-                      formatter={(value, name) => (
-                        <div className="flex flex-1 items-center justify-between gap-2 leading-none">
-                          <span className="text-muted-foreground">
-                            {name === "proceeds" ? "Proceeds" : "Customer price"}
-                          </span>
-                          <span className="font-mono font-medium tabular-nums">
-                            ${(value as number).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                          </span>
-                        </div>
-                      )}
-                    />
-                  }
-                />
-                <ChartLegend content={<ChartLegendContent />} />
-                <Area
-                  type="monotone"
-                  dataKey="sales"
-                  fill="var(--color-sales)"
-                  stroke="var(--color-sales)"
-                  fillOpacity={0.15}
-                  strokeDasharray="4 4"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="proceeds"
-                  fill="var(--color-proceeds)"
-                  stroke="var(--color-proceeds)"
-                  fillOpacity={0.3}
-                />
-              </AreaChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-      </div>
+          {/* Charts row */}
+          <div className="grid gap-4 lg:grid-cols-2">
+            {last30Downloads.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm font-medium">
+                    Downloads over time
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ChartContainer
+                    config={downloadsConfig}
+                    className="h-[240px] w-full"
+                  >
+                    <BarChart data={last30Downloads} accessibilityLayer>
+                      <CartesianGrid vertical={false} />
+                      <XAxis
+                        dataKey="date"
+                        tickLine={false}
+                        axisLine={false}
+                        tickMargin={8}
+                        tickFormatter={formatDate}
+                        interval="preserveStartEnd"
+                      />
+                      <YAxis tickLine={false} axisLine={false} width={40} />
+                      <ChartTooltip
+                        content={
+                          <ChartTooltipContent
+                            labelFormatter={(v) => formatDate(v as string)}
+                          />
+                        }
+                      />
+                      <ChartLegend content={<ChartLegendContent />} />
+                      <Bar
+                        dataKey="firstTime"
+                        stackId="downloads"
+                        fill="var(--color-firstTime)"
+                      />
+                      <Bar
+                        dataKey="redownload"
+                        stackId="downloads"
+                        fill="var(--color-redownload)"
+                        radius={[2, 2, 0, 0]}
+                      />
+                    </BarChart>
+                  </ChartContainer>
+                </CardContent>
+              </Card>
+            )}
 
-      {/* Top territories */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">
-            Top territories by downloads
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer
-            config={territoryConfig}
-            className="h-[320px] w-full"
-          >
-            <BarChart
-              data={TERRITORIES}
-              layout="vertical"
-              accessibilityLayer
-            >
-              <CartesianGrid horizontal={false} />
-              <YAxis
-                dataKey="territory"
-                type="category"
-                tickLine={false}
-                axisLine={false}
-                width={100}
-                className="text-xs"
-              />
-              <XAxis type="number" tickLine={false} axisLine={false} />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar
-                dataKey="downloads"
-                fill="var(--color-downloads)"
-                radius={[0, 4, 4, 0]}
-              />
-            </BarChart>
-          </ChartContainer>
-        </CardContent>
-      </Card>
+            {last30Revenue.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm font-medium">
+                    Proceeds over time
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ChartContainer
+                    config={proceedsConfig}
+                    className="h-[240px] w-full"
+                  >
+                    <LineChart data={last30Revenue} accessibilityLayer>
+                      <CartesianGrid vertical={false} />
+                      <XAxis
+                        dataKey="date"
+                        tickLine={false}
+                        axisLine={false}
+                        tickMargin={8}
+                        tickFormatter={formatDate}
+                        interval="preserveStartEnd"
+                      />
+                      <YAxis
+                        tickLine={false}
+                        axisLine={false}
+                        width={50}
+                        tickFormatter={(v) => `$${v}`}
+                      />
+                      <ChartTooltip
+                        content={
+                          <ChartTooltipContent
+                            labelFormatter={(v) => formatDate(v as string)}
+                            formatter={(value) => (
+                              <div className="flex flex-1 items-center justify-between gap-2 leading-none">
+                                <span className="text-muted-foreground">Proceeds</span>
+                                <span className="font-mono font-medium tabular-nums">
+                                  ${(value as number).toLocaleString()}
+                                </span>
+                              </div>
+                            )}
+                          />
+                        }
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="proceeds"
+                        stroke="var(--color-proceeds)"
+                        strokeWidth={2}
+                        dot={false}
+                      />
+                    </LineChart>
+                  </ChartContainer>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }

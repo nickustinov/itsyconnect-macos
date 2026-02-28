@@ -58,7 +58,7 @@ export function AnalyticsProvider({
 
       if (json.pending) {
         setPending(true);
-        setData(null);
+        // Keep existing data visible while refresh happens in background
         return;
       }
 
@@ -110,8 +110,8 @@ export function AnalyticsProvider({
     busy: refreshing || pending,
   });
 
-  // Derive last available data date as the min last date across key series,
-  // so presets only show dates where all metrics have data.
+  // Derive last available data date as the max last date across key series,
+  // so presets anchor to the most recent data available.
   const lastDate = useMemo(() => {
     if (!data) return undefined;
     const lastDates: string[] = [];
@@ -119,7 +119,7 @@ export function AnalyticsProvider({
       if (series.length > 0) lastDates.push(series[series.length - 1].date);
     }
     if (lastDates.length === 0) return undefined;
-    return lastDates.reduce((min, d) => (d < min ? d : min));
+    return lastDates.reduce((max, d) => (d > max ? d : max));
   }, [data]);
 
   return (
