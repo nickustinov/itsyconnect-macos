@@ -15,6 +15,7 @@ function createTestDb() {
   sqlite.exec(`
     CREATE TABLE asc_credentials (
       id TEXT PRIMARY KEY NOT NULL,
+      name TEXT,
       issuer_id TEXT NOT NULL,
       key_id TEXT NOT NULL,
       vendor_id TEXT,
@@ -47,13 +48,14 @@ describe("settings: credentials", () => {
     db = createTestDb();
   });
 
-  it("stores and retrieves credential (never returns private key)", () => {
+  it("stores and retrieves credential with name (never returns private key)", () => {
     const encrypted = encrypt("-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----");
     const id = ulid();
 
     db.insert(schema.ascCredentials)
       .values({
         id,
+        name: "My team",
         issuerId: "issuer-123",
         keyId: "KEY123",
         encryptedPrivateKey: encrypted.ciphertext,
@@ -63,10 +65,11 @@ describe("settings: credentials", () => {
       })
       .run();
 
-    // GET returns safe fields only
+    // GET returns safe fields only (including name)
     const cred = db
       .select({
         id: schema.ascCredentials.id,
+        name: schema.ascCredentials.name,
         issuerId: schema.ascCredentials.issuerId,
         keyId: schema.ascCredentials.keyId,
         isActive: schema.ascCredentials.isActive,
@@ -77,10 +80,80 @@ describe("settings: credentials", () => {
       .get();
 
     expect(cred).toBeDefined();
+    expect(cred!.name).toBe("My team");
     expect(cred!.issuerId).toBe("issuer-123");
     expect(cred!.keyId).toBe("KEY123");
     // encryptedPrivateKey, iv, authTag, encryptedDek are NOT in the result
     expect("encryptedPrivateKey" in cred!).toBe(false);
+  });
+
+  it("name defaults to null for credentials without a name", () => {
+    const encrypted = encrypt("key");
+    db.insert(schema.ascCredentials)
+      .values({
+        id: ulid(),
+        issuerId: "issuer",
+        keyId: "KEY",
+        encryptedPrivateKey: encrypted.ciphertext,
+        iv: encrypted.iv,
+        authTag: encrypted.authTag,
+        encryptedDek: encrypted.encryptedDek,
+      })
+      .run();
+
+    const cred = db
+      .select({ name: schema.ascCredentials.name })
+      .from(schema.ascCredentials)
+      .get();
+
+    expect(cred!.name).toBeNull();
+  });
+
+  it("GET returns all credentials (not just active)", () => {
+    const enc1 = encrypt("key-1");
+    const enc2 = encrypt("key-2");
+
+    db.insert(schema.ascCredentials)
+      .values({
+        id: ulid(),
+        name: "Team A",
+        issuerId: "issuer-a",
+        keyId: "KEY_A",
+        isActive: true,
+        encryptedPrivateKey: enc1.ciphertext,
+        iv: enc1.iv,
+        authTag: enc1.authTag,
+        encryptedDek: enc1.encryptedDek,
+      })
+      .run();
+
+    db.insert(schema.ascCredentials)
+      .values({
+        id: ulid(),
+        name: "Team B",
+        issuerId: "issuer-b",
+        keyId: "KEY_B",
+        isActive: false,
+        encryptedPrivateKey: enc2.ciphertext,
+        iv: enc2.iv,
+        authTag: enc2.authTag,
+        encryptedDek: enc2.encryptedDek,
+      })
+      .run();
+
+    const all = db
+      .select({
+        id: schema.ascCredentials.id,
+        name: schema.ascCredentials.name,
+        issuerId: schema.ascCredentials.issuerId,
+        keyId: schema.ascCredentials.keyId,
+        isActive: schema.ascCredentials.isActive,
+      })
+      .from(schema.ascCredentials)
+      .all();
+
+    expect(all).toHaveLength(2);
+    expect(all.map((c) => c.name)).toEqual(["Team A", "Team B"]);
   });
 
   it("deactivates old credentials when storing new", () => {
@@ -150,6 +223,115 @@ describe("settings: credentials", () => {
 
     const all = db.select().from(schema.ascCredentials).all();
     expect(all).toHaveLength(0);
+  });
+
+  it("auto-activates the first remaining credential when active one is deleted", () => {
+    const enc1 = encrypt("key-1");
+    const enc2 = encrypt("key-2");
+    const id1 = ulid();
+    const id2 = ulid();
+
+    db.insert(schema.ascCredentials)
+      .values({
+        id: id1,
+        name: "Active",
+        issuerId: "issuer-1",
+        keyId: "KEY1",
+        isActive: true,
+        encryptedPrivateKey: enc1.ciphertext,
+        iv: enc1.iv,
+        authTag: enc1.authTag,
+        encryptedDek: enc1.encryptedDek,
+      })
+      .run();
+
+    db.insert(schema.ascCredentials)
+      .values({
+        id: id2,
+        name: "Inactive",
+        issuerId: "issuer-2",
+        keyId: "KEY2",
+        isActive: false,
+        encryptedPrivateKey: enc2.ciphertext,
+        iv: enc2.iv,
+        authTag: enc2.authTag,
+        encryptedDek: enc2.encryptedDek,
+      })
+      .run();
+
+    // Delete the active one
+    db.delete(schema.ascCredentials)
+      .where(eq(schema.ascCredentials.id, id1))
+      .run();
+
+    const remaining = db.select().from(schema.ascCredentials).all();
+    expect(remaining).toHaveLength(1);
+
+    // Auto-activate: set first remaining as active
+    db.update(schema.ascCredentials)
+      .set({ isActive: true })
+      .where(eq(schema.ascCredentials.id, remaining[0].id))
+      .run();
+
+    const active = db
+      .select()
+      .from(schema.ascCredentials)
+      .where(eq(schema.ascCredentials.isActive, true))
+      .all();
+    expect(active).toHaveLength(1);
+    expect(active[0].name).toBe("Inactive");
+  });
+
+  it("switching active credential: deactivate all then activate target", () => {
+    const enc1 = encrypt("key-1");
+    const enc2 = encrypt("key-2");
+    const id1 = ulid();
+    const id2 = ulid();
+
+    db.insert(schema.ascCredentials)
+      .values({
+        id: id1,
+        name: "Team A",
+        issuerId: "issuer-1",
+        keyId: "KEY1",
+        isActive: true,
+        encryptedPrivateKey: enc1.ciphertext,
+        iv: enc1.iv,
+        authTag: enc1.authTag,
+        encryptedDek: enc1.encryptedDek,
+      })
+      .run();
+
+    db.insert(schema.ascCredentials)
+      .values({
+        id: id2,
+        name: "Team B",
+        issuerId: "issuer-2",
+        keyId: "KEY2",
+        isActive: false,
+        encryptedPrivateKey: enc2.ciphertext,
+        iv: enc2.iv,
+        authTag: enc2.authTag,
+        encryptedDek: enc2.encryptedDek,
+      })
+      .run();
+
+    // Deactivate all
+    db.update(schema.ascCredentials).set({ isActive: false }).run();
+
+    // Activate target
+    db.update(schema.ascCredentials)
+      .set({ isActive: true })
+      .where(eq(schema.ascCredentials.id, id2))
+      .run();
+
+    const active = db
+      .select()
+      .from(schema.ascCredentials)
+      .where(eq(schema.ascCredentials.isActive, true))
+      .all();
+    expect(active).toHaveLength(1);
+    expect(active[0].name).toBe("Team B");
   });
 });
 

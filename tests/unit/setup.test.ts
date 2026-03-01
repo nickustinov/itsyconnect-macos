@@ -15,6 +15,7 @@ function createTestDb() {
   sqlite.exec(`
     CREATE TABLE asc_credentials (
       id TEXT PRIMARY KEY NOT NULL,
+      name TEXT,
       issuer_id TEXT NOT NULL,
       key_id TEXT NOT NULL,
       vendor_id TEXT,
@@ -53,7 +54,7 @@ describe("setup flow", () => {
     db = createTestDb();
   });
 
-  it("stores encrypted ASC credentials", () => {
+  it("stores encrypted ASC credentials with name", () => {
     const privateKeyPem =
       "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBg...\n-----END PRIVATE KEY-----";
     const encrypted = encrypt(privateKeyPem);
@@ -61,6 +62,7 @@ describe("setup flow", () => {
     db.insert(schema.ascCredentials)
       .values({
         id: ulid(),
+        name: "My team",
         issuerId: "69a6de7e-6b7b-47e3-e053-5b8c7c11a4d1",
         keyId: "2X9R4HXF34",
         encryptedPrivateKey: encrypted.ciphertext,
@@ -72,6 +74,7 @@ describe("setup flow", () => {
 
     const cred = db.select().from(schema.ascCredentials).get();
     expect(cred).toBeDefined();
+    expect(cred!.name).toBe("My team");
     expect(cred!.issuerId).toBe("69a6de7e-6b7b-47e3-e053-5b8c7c11a4d1");
     expect(cred!.keyId).toBe("2X9R4HXF34");
     expect(cred!.isActive).toBe(true);

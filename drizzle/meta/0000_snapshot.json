@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "dbc621ec-fe5a-4ff8-a047-8bd5b32d7bcf",
+  "id": "9cd86ab5-5f54-4b9e-bb24-799ceeda72d8",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "ai_settings": {
@@ -80,6 +80,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "issuer_id": {
           "name": "issuer_id",
           "type": "text",
@@ -92,13 +99,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
-        },
-        "vendor_id": {
-          "name": "vendor_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
           "autoincrement": false
         },
         "encrypted_private_key": {
@@ -178,6 +178,37 @@
         "ttl_ms": {
           "name": "ttl_ms",
           "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "feedback_completed": {
+      "name": "feedback_completed",
+      "columns": {
+        "feedback_id": {
+          "name": "feedback_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "app_id": {
+          "name": "app_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false

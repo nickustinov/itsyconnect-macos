@@ -36,7 +36,7 @@ export function AIRequiredDialog({ open, onOpenChange }: AIRequiredDialogProps) 
           <Button
             onClick={() => {
               onOpenChange(false);
-              router.push("/dashboard/settings/ai");
+              router.push("/settings/ai");
             }}
           >
             Open settings

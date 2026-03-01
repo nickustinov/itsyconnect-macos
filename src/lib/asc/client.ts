@@ -92,6 +92,10 @@ export async function ascFetch<T>(
   throw lastError ?? new Error("ASC API request failed");
 }
 
+export function resetToken(): void {
+  cachedToken = null;
+}
+
 export function hasCredentials(): boolean {
   return !!getActiveCredential();
 }

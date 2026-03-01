@@ -11,6 +11,7 @@ CREATE TABLE `ai_settings` (
 --> statement-breakpoint
 CREATE TABLE `asc_credentials` (
 	`id` text PRIMARY KEY NOT NULL,
+	`name` text,
 	`issuer_id` text NOT NULL,
 	`key_id` text NOT NULL,
 	`encrypted_private_key` text NOT NULL,
@@ -26,4 +27,10 @@ CREATE TABLE `cache_entries` (
 	`data` text NOT NULL,
 	`fetched_at` integer NOT NULL,
 	`ttl_ms` integer NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE `feedback_completed` (
+	`feedback_id` text PRIMARY KEY NOT NULL,
+	`app_id` text NOT NULL,
+	`completed_at` text NOT NULL
 );

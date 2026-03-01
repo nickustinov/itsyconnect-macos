@@ -10,6 +10,7 @@ import { parseBody } from "@/lib/api-helpers";
 
 const setupSchema = z.object({
   // ASC credentials – required
+  name: z.string().trim().default("My team"),
   issuerId: z.string().min(1, "Issuer ID is required").trim(),
   keyId: z.string().min(1, "Key ID is required").trim(),
   privateKey: z.string().min(1, "Private key is required"),
@@ -53,6 +54,7 @@ export async function POST(request: Request) {
   db.insert(ascCredentials)
     .values({
       id: ulid(),
+      name: data.name,
       issuerId: data.issuerId,
       keyId: data.keyId,
       encryptedPrivateKey: encrypted.ciphertext,

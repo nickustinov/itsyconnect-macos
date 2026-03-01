@@ -18,6 +18,7 @@ function migrateTestDb(sqlite: InstanceType<typeof Database>) {
   sqlite.exec(`
     CREATE TABLE asc_credentials (
       id TEXT PRIMARY KEY NOT NULL,
+      name TEXT,
       issuer_id TEXT NOT NULL,
       key_id TEXT NOT NULL,
       vendor_id TEXT,

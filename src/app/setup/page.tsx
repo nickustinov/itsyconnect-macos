@@ -54,6 +54,7 @@ export default function SetupPage() {
   }, [router]);
 
   // Step 1 – ASC credentials
+  const [teamName, setTeamName] = useState("My team");
   const [issuerId, setIssuerId] = useState("");
   const [keyId, setKeyId] = useState("");
   const [keyIdFromFile, setKeyIdFromFile] = useState(false);
@@ -175,6 +176,7 @@ export default function SetupPage() {
 
       // Include ASC credentials
       if (issuerId.trim() && keyId.trim() && privateKey.trim()) {
+        body.name = teamName.trim() || "My team";
         body.issuerId = issuerId.trim();
         body.keyId = keyId.trim();
         body.privateKey = privateKey;
@@ -314,13 +316,25 @@ export default function SetupPage() {
             </div>
 
             <div className="space-y-2">
+              <label className="text-sm text-muted-foreground">Team name</label>
+              <Input
+                value={teamName}
+                onChange={(e) => setTeamName(e.target.value)}
+                placeholder="My team"
+                className="text-sm"
+                autoFocus
+              />
+              <p className="text-xs text-muted-foreground">
+                A label to identify this developer account. You can connect multiple Apple developer accounts later.
+              </p>
+            </div>
+            <div className="space-y-2">
               <label className="text-sm text-muted-foreground">Issuer ID</label>
               <Input
                 value={issuerId}
                 onChange={(e) => setIssuerId(e.target.value)}
                 placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
                 className="font-mono text-sm"
-                autoFocus
               />
             </div>
             <div className="space-y-2">

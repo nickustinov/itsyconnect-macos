@@ -5,6 +5,7 @@ import { ulid } from "@/lib/ulid";
 
 export const ascCredentials = sqliteTable("asc_credentials", {
   id: text("id").primaryKey().$defaultFn(ulid),
+  name: text("name"),
   issuerId: text("issuer_id").notNull(),
   keyId: text("key_id").notNull(),
   encryptedPrivateKey: text("encrypted_private_key").notNull(),

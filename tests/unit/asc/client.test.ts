@@ -25,7 +25,7 @@ vi.mock("@/lib/asc/rate-limit", () => ({
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
-import { ascFetch, hasCredentials } from "@/lib/asc/client";
+import { ascFetch, hasCredentials, resetToken } from "@/lib/asc/client";
 import { generateAscJwt } from "@/lib/asc/jwt";
 
 function insertCred(active = true) {
@@ -194,5 +194,21 @@ describe("ascFetch", () => {
 
     // generateAscJwt should only be called once (cached)
     expect(generateAscJwt).toHaveBeenCalledTimes(1);
+  });
+
+  it("resetToken() forces a new JWT on the next call", async () => {
+    insertCred();
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({}),
+    });
+
+    await ascFetch("/v1/apps");
+    expect(generateAscJwt).toHaveBeenCalledTimes(1);
+
+    resetToken();
+
+    await ascFetch("/v1/apps");
+    expect(generateAscJwt).toHaveBeenCalledTimes(2);
   });
 });
