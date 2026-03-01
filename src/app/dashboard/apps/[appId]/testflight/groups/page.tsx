@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { CircleNotch, ArrowClockwise, LinkSimple, Plus, Trash } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
@@ -28,8 +28,13 @@ import type { TFGroup } from "@/lib/asc/testflight";
 
 export default function GroupsPage() {
   const { appId } = useParams<{ appId: string }>();
+  const searchParams = useSearchParams();
   const { apps } = useApps();
   const app = apps.find((a) => a.id === appId);
+
+  // Preserve sticky params (version) when navigating to group detail
+  const versionParam = searchParams.get("version");
+  const qs = versionParam ? `?version=${encodeURIComponent(versionParam)}` : "";
 
   const [groups, setGroups] = useState<TFGroup[]>([]);
   const [loading, setLoading] = useState(true);
@@ -112,7 +117,7 @@ export default function GroupsPage() {
             {internalGroups.map((group, i) => (
               <Link
                 key={group.id}
-                href={`/dashboard/apps/${appId}/testflight/groups/${group.id}`}
+                href={`/dashboard/apps/${appId}/testflight/groups/${group.id}${qs}`}
                 className={`flex items-center justify-between px-4 py-3 transition-colors hover:bg-muted/50 ${i > 0 ? "border-t" : ""}`}
               >
                 <div className="flex items-center gap-3">
@@ -150,7 +155,7 @@ export default function GroupsPage() {
             {externalGroups.map((group, i) => (
               <Link
                 key={group.id}
-                href={`/dashboard/apps/${appId}/testflight/groups/${group.id}`}
+                href={`/dashboard/apps/${appId}/testflight/groups/${group.id}${qs}`}
                 className={`flex items-center justify-between px-4 py-3 transition-colors hover:bg-muted/50 ${i > 0 ? "border-t" : ""}`}
               >
                 <div className="flex items-center gap-3">

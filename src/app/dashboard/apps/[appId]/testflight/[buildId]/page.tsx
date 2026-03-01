@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -45,6 +45,11 @@ function formatDateTime(iso: string): string {
 
 export default function BuildDetailPage() {
   const { appId, buildId } = useParams<{ appId: string; buildId: string }>();
+  const searchParams = useSearchParams();
+
+  // Preserve sticky params (version) when navigating to other TF pages
+  const versionParam = searchParams.get("version");
+  const qs = versionParam ? `?version=${encodeURIComponent(versionParam)}` : "";
 
   const [build, setBuild] = useState<TFBuild | null>(null);
   const [groups, setGroups] = useState<TFGroup[]>([]);
@@ -336,6 +341,7 @@ export default function BuildDetailPage() {
             onGroupRemoved={(groupId) => {
               setBuild((prev) => prev ? { ...prev, groupIds: prev.groupIds.filter((id) => id !== groupId) } : prev);
             }}
+            linkSuffix={qs}
           />
 
           {/* Testers */}
@@ -361,6 +367,7 @@ function GroupsSection({
   availableGroups,
   onGroupAdded,
   onGroupRemoved,
+  linkSuffix,
 }: {
   appId: string;
   buildId: string;
@@ -368,6 +375,7 @@ function GroupsSection({
   availableGroups: TFGroup[];
   onGroupAdded: (groupId: string) => void;
   onGroupRemoved: (groupId: string) => void;
+  linkSuffix: string;
 }) {
   const [removing, setRemoving] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
@@ -451,7 +459,7 @@ function GroupsSection({
               className="flex items-center gap-3 rounded-lg border px-4 py-3 transition-colors hover:bg-muted/50"
             >
               <Link
-                href={`/dashboard/apps/${appId}/testflight/groups/${g.id}`}
+                href={`/dashboard/apps/${appId}/testflight/groups/${g.id}${linkSuffix}`}
                 className="flex flex-1 items-center gap-3"
               >
                 <span className={`inline-flex size-4 items-center justify-center rounded text-[10px] font-medium ${g.isInternal ? "bg-muted text-muted-foreground" : "bg-blue-100 text-blue-700"}`}>

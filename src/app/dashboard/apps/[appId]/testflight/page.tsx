@@ -35,6 +35,7 @@ import { toast } from "sonner";
 import { apiFetch } from "@/lib/api-fetch";
 import { useApps } from "@/lib/apps-context";
 import { useVersions } from "@/lib/versions-context";
+import { FooterPortal } from "@/lib/footer-portal-context";
 import { resolveVersion, PLATFORM_LABELS } from "@/lib/asc/version-types";
 import { useRegisterRefresh } from "@/lib/refresh-context";
 import type { TFBuild, TFGroup } from "@/lib/asc/testflight";
@@ -444,68 +445,70 @@ export default function TestFlightBuildsPage() {
 
       {/* Bulk action bar */}
       {selected.size > 0 && (
-        <div className="sticky bottom-0 flex items-center justify-between border-t bg-sidebar px-6 py-3">
-          <div className="flex items-center gap-3 text-sm">
-            <span className="font-medium">
-              {selected.size} build{selected.size !== 1 ? "s" : ""} selected
-            </span>
-            <Button
-              variant="link"
-              size="sm"
-              className="h-auto p-0 text-muted-foreground"
-              onClick={() => setSelected(new Set())}
-            >
-              Clear
-            </Button>
+        <FooterPortal>
+          <div className="shrink-0 flex items-center justify-between border-t bg-sidebar px-6 py-3">
+            <div className="flex items-center gap-3 text-sm">
+              <span className="font-medium">
+                {selected.size} build{selected.size !== 1 ? "s" : ""} selected
+              </span>
+              <Button
+                variant="link"
+                size="sm"
+                className="h-auto p-0 text-muted-foreground"
+                onClick={() => setSelected(new Set())}
+              >
+                Clear
+              </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" disabled={bulkLoading}>
+                    <Plus size={14} className="mr-1.5" />
+                    Add to group
+                    <CaretDown size={12} className="ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {groups.map((g) => (
+                    <DropdownMenuItem key={g.id} onClick={() => bulkAddToGroup(g.id)}>
+                      {g.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={bulkLoading || relevantGroups.length === 0}
+                  >
+                    <Minus size={14} className="mr-1.5" />
+                    Remove from group
+                    <CaretDown size={12} className="ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {relevantGroups.map((g) => (
+                    <DropdownMenuItem key={g.id} onClick={() => bulkRemoveFromGroup(g.id)}>
+                      {g.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={bulkLoading}
+                onClick={() => setExpireOpen(true)}
+              >
+                {bulkLoading ? <Spinner className="mr-1.5" /> : <Prohibit size={14} className="mr-1.5" />}
+                Expire
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" disabled={bulkLoading}>
-                  <Plus size={14} className="mr-1.5" />
-                  Add to group
-                  <CaretDown size={12} className="ml-1" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {groups.map((g) => (
-                  <DropdownMenuItem key={g.id} onClick={() => bulkAddToGroup(g.id)}>
-                    {g.name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={bulkLoading || relevantGroups.length === 0}
-                >
-                  <Minus size={14} className="mr-1.5" />
-                  Remove from group
-                  <CaretDown size={12} className="ml-1" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {relevantGroups.map((g) => (
-                  <DropdownMenuItem key={g.id} onClick={() => bulkRemoveFromGroup(g.id)}>
-                    {g.name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={bulkLoading}
-              onClick={() => setExpireOpen(true)}
-            >
-              {bulkLoading ? <Spinner className="mr-1.5" /> : <Prohibit size={14} className="mr-1.5" />}
-              Expire
-            </Button>
-          </div>
-        </div>
+        </FooterPortal>
       )}
 
       {/* Expire confirmation dialog */}

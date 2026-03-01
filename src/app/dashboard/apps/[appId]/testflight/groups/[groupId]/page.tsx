@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,6 +33,7 @@ import { Copy, CircleNotch, ArrowClockwise, Plus, UserPlus, MagnifyingGlass, Min
 import { toast } from "sonner";
 import { useRegisterRefresh } from "@/lib/refresh-context";
 import { useSetBreadcrumbTitle } from "@/lib/breadcrumb-context";
+import { FooterPortal } from "@/lib/footer-portal-context";
 import type { TFBuild, TFGroup, TFTester } from "@/lib/asc/testflight";
 
 const TESTER_STATUS_DOTS: Record<string, string> = {
@@ -73,6 +74,11 @@ function formatDate(iso: string): string {
 export default function GroupDetailPage() {
   const { appId, groupId } = useParams<{ appId: string; groupId: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Preserve sticky params (version) when navigating to other TF pages
+  const versionParam = searchParams.get("version");
+  const qs = versionParam ? `?version=${encodeURIComponent(versionParam)}` : "";
 
   const [group, setGroup] = useState<TFGroup | null>(null);
   const [builds, setBuilds] = useState<TFBuild[]>([]);
@@ -236,6 +242,7 @@ export default function GroupDetailPage() {
   const someBuildsSelected = pageBuilds.some((b) => selectedBuilds.has(b.id));
 
   function toggleAllBuilds() {
+    setSelectedTesters(new Set());
     if (allBuildsSelected) {
       setSelectedBuilds((prev) => {
         const next = new Set(prev);
@@ -252,6 +259,7 @@ export default function GroupDetailPage() {
   }
 
   function toggleBuild(buildId: string) {
+    setSelectedTesters(new Set());
     setSelectedBuilds((prev) => {
       const next = new Set(prev);
       if (next.has(buildId)) next.delete(buildId);
@@ -270,6 +278,7 @@ export default function GroupDetailPage() {
   const someTestersSelected = pageTesters.some((t) => selectedTesters.has(t.id));
 
   function toggleAllTesters() {
+    setSelectedBuilds(new Set());
     if (allTestersSelected) {
       setSelectedTesters((prev) => {
         const next = new Set(prev);
@@ -286,6 +295,7 @@ export default function GroupDetailPage() {
   }
 
   function toggleTester(testerId: string) {
+    setSelectedBuilds(new Set());
     setSelectedTesters((prev) => {
       const next = new Set(prev);
       if (next.has(testerId)) next.delete(testerId);
@@ -462,7 +472,7 @@ export default function GroupDetailPage() {
                       data-state={selectedBuilds.has(build.id) ? "selected" : undefined}
                       onClick={() =>
                         router.push(
-                          `/dashboard/apps/${appId}/testflight/${build.id}`,
+                          `/dashboard/apps/${appId}/testflight/${build.id}${qs}`,
                         )
                       }
                     >
@@ -613,58 +623,62 @@ export default function GroupDetailPage() {
 
       {/* Bulk action bar – builds */}
       {selectedBuilds.size > 0 && (
-        <div className="sticky bottom-0 flex items-center justify-between border-t bg-sidebar px-6 py-3">
-          <div className="flex items-center gap-3 text-sm">
-            <span className="font-medium">
-              {selectedBuilds.size} build{selectedBuilds.size !== 1 ? "s" : ""} selected
-            </span>
+        <FooterPortal>
+          <div className="shrink-0 flex items-center justify-between border-t bg-sidebar px-6 py-3">
+            <div className="flex items-center gap-3 text-sm">
+              <span className="font-medium">
+                {selectedBuilds.size} build{selectedBuilds.size !== 1 ? "s" : ""} selected
+              </span>
+              <Button
+                variant="link"
+                size="sm"
+                className="h-auto p-0 text-muted-foreground"
+                onClick={() => setSelectedBuilds(new Set())}
+              >
+                Clear
+              </Button>
+            </div>
             <Button
-              variant="link"
+              variant="outline"
               size="sm"
-              className="h-auto p-0 text-muted-foreground"
-              onClick={() => setSelectedBuilds(new Set())}
+              disabled={bulkLoading}
+              onClick={bulkRemoveBuilds}
             >
-              Clear
+              {bulkLoading ? <Spinner className="mr-1.5" /> : <Minus size={14} className="mr-1.5" />}
+              Remove from group
             </Button>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={bulkLoading}
-            onClick={bulkRemoveBuilds}
-          >
-            {bulkLoading ? <Spinner className="mr-1.5" /> : <Minus size={14} className="mr-1.5" />}
-            Remove from group
-          </Button>
-        </div>
+        </FooterPortal>
       )}
 
       {/* Bulk action bar – testers */}
-      {selectedTesters.size > 0 && selectedBuilds.size === 0 && (
-        <div className="sticky bottom-0 flex items-center justify-between border-t bg-sidebar px-6 py-3">
-          <div className="flex items-center gap-3 text-sm">
-            <span className="font-medium">
-              {selectedTesters.size} tester{selectedTesters.size !== 1 ? "s" : ""} selected
-            </span>
+      {selectedTesters.size > 0 && (
+        <FooterPortal>
+          <div className="shrink-0 flex items-center justify-between border-t bg-sidebar px-6 py-3">
+            <div className="flex items-center gap-3 text-sm">
+              <span className="font-medium">
+                {selectedTesters.size} tester{selectedTesters.size !== 1 ? "s" : ""} selected
+              </span>
+              <Button
+                variant="link"
+                size="sm"
+                className="h-auto p-0 text-muted-foreground"
+                onClick={() => setSelectedTesters(new Set())}
+              >
+                Clear
+              </Button>
+            </div>
             <Button
-              variant="link"
+              variant="outline"
               size="sm"
-              className="h-auto p-0 text-muted-foreground"
-              onClick={() => setSelectedTesters(new Set())}
+              disabled={bulkLoading}
+              onClick={bulkRemoveTesters}
             >
-              Clear
+              {bulkLoading ? <Spinner className="mr-1.5" /> : <Minus size={14} className="mr-1.5" />}
+              Remove from group
             </Button>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={bulkLoading}
-            onClick={bulkRemoveTesters}
-          >
-            {bulkLoading ? <Spinner className="mr-1.5" /> : <Minus size={14} className="mr-1.5" />}
-            Remove from group
-          </Button>
-        </div>
+        </FooterPortal>
       )}
 
       {/* Add tester dialog */}
