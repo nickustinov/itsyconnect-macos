@@ -19,14 +19,7 @@ import { useApps } from "@/lib/apps-context";
 import { useRegisterRefresh } from "@/lib/refresh-context";
 import type { TFFeedbackItem } from "@/lib/asc/testflight";
 import { EmptyState } from "@/components/empty-state";
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
+import { formatDate } from "@/lib/format";
 
 function isWithinDays(iso: string, days: number): boolean {
   const now = Date.now();

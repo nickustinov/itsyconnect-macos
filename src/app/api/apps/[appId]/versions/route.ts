@@ -2,14 +2,8 @@ import { NextResponse } from "next/server";
 import { listVersions } from "@/lib/asc/versions";
 import { createVersion, updateVersionAttributes, invalidateVersionsCache } from "@/lib/asc/version-mutations";
 import { hasCredentials } from "@/lib/asc/client";
+import { EDITABLE_STATES } from "@/lib/asc/version-types";
 import { cacheGetMeta } from "@/lib/cache";
-
-const EDITABLE_STATES = new Set([
-  "PREPARE_FOR_SUBMISSION",
-  "REJECTED",
-  "METADATA_REJECTED",
-  "DEVELOPER_REJECTED",
-]);
 
 
 export async function GET(

@@ -7,6 +7,8 @@ import {
   getDeviceCategory,
   DISPLAY_TYPE_LABELS,
   DISPLAY_TYPE_ORDER,
+  BUILD_STATUS_DOTS,
+  TESTER_STATUS_DOTS,
 } from "@/lib/asc/display-types";
 
 describe("display-types", () => {
@@ -112,6 +114,32 @@ describe("display-types", () => {
         const msg = screenshotErrorMessage([{ code, description: code }]);
         expect(msg).not.toBe(code);
       }
+    });
+  });
+
+  describe("BUILD_STATUS_DOTS", () => {
+    it("maps active statuses to green", () => {
+      expect(BUILD_STATUS_DOTS["Testing"]).toBe("bg-green-500");
+      expect(BUILD_STATUS_DOTS["Ready to test"]).toBe("bg-green-500");
+    });
+
+    it("maps expired/invalid statuses to red", () => {
+      expect(BUILD_STATUS_DOTS["Expired"]).toBe("bg-red-500");
+      expect(BUILD_STATUS_DOTS["Invalid"]).toBe("bg-red-500");
+    });
+
+    it("returns undefined for unknown status", () => {
+      expect(BUILD_STATUS_DOTS["Nonexistent"]).toBeUndefined();
+    });
+  });
+
+  describe("TESTER_STATUS_DOTS", () => {
+    it("maps installed to green", () => {
+      expect(TESTER_STATUS_DOTS["INSTALLED"]).toBe("bg-green-500");
+    });
+
+    it("maps revoked to red", () => {
+      expect(TESTER_STATUS_DOTS["REVOKED"]).toBe("bg-red-500");
     });
   });
 

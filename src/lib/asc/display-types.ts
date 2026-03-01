@@ -245,3 +245,26 @@ export function screenshotErrorMessage(
 export function screenshotImageUrl(assetToken: string, width = 300): string {
   return `https://is1-ssl.mzstatic.com/image/thumb/${assetToken}/${width}x0w.png`;
 }
+
+// ── Status indicator colours ──────────────────────────────────────────
+
+export const BUILD_STATUS_DOTS: Record<string, string> = {
+  Testing: "bg-green-500",
+  "Ready to test": "bg-green-500",
+  "Ready to submit": "bg-yellow-500",
+  "In beta review": "bg-blue-500",
+  "In compliance review": "bg-blue-500",
+  Processing: "bg-blue-500",
+  Expired: "bg-red-500",
+  Invalid: "bg-red-500",
+  "Missing compliance": "bg-amber-500",
+  "Processing exception": "bg-red-500",
+};
+
+export const TESTER_STATUS_DOTS: Record<string, string> = {
+  INSTALLED: "bg-green-500",
+  ACCEPTED: "bg-yellow-500",
+  INVITED: "bg-blue-500",
+  NOT_INVITED: "bg-gray-400",
+  REVOKED: "bg-red-500",
+};

@@ -40,16 +40,7 @@ import { toast } from "sonner";
 import type { TFFeedbackItem } from "@/lib/asc/testflight";
 import { EmptyState } from "@/components/empty-state";
 import { apiFetch } from "@/lib/api-fetch";
-
-function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
+import { formatDateTimeLong } from "@/lib/format";
 
 function formatBytes(bytes: number): string {
   const gb = bytes / 1_000_000_000;
@@ -302,7 +293,7 @@ export default function FeedbackDetailPage() {
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
           Date
         </p>
-        <p className="text-lg font-semibold">{formatDateTime(item.createdDate)}</p>
+        <p className="text-lg font-semibold">{formatDateTimeLong(item.createdDate)}</p>
       </section>
 
       {/* Comment */}

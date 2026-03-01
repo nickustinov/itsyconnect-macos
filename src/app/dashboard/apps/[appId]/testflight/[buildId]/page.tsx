@@ -19,30 +19,9 @@ import { AppIcon } from "@/components/app-icon";
 import { CharCount } from "@/components/char-count";
 import { useBuildAction } from "@/lib/build-action-context";
 import type { TFBuild, TFGroup, TFTester } from "@/lib/asc/testflight";
+import { BUILD_STATUS_DOTS } from "@/lib/asc/display-types";
 import { EmptyState } from "@/components/empty-state";
-
-const STATUS_DOTS: Record<string, string> = {
-  Testing: "bg-green-500",
-  "Ready to test": "bg-green-500",
-  "Ready to submit": "bg-yellow-500",
-  "In beta review": "bg-blue-500",
-  "In compliance review": "bg-blue-500",
-  Processing: "bg-blue-500",
-  Expired: "bg-red-500",
-  Invalid: "bg-red-500",
-  "Missing compliance": "bg-amber-500",
-  "Processing exception": "bg-red-500",
-};
-
-function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
+import { formatDateTime } from "@/lib/format";
 
 export default function BuildDetailPage() {
   const { appId, buildId } = useParams<{ appId: string; buildId: string }>();
@@ -264,7 +243,7 @@ export default function BuildDetailPage() {
         </div>
         <div className="flex items-center gap-2">
           <span
-            className={`inline-block size-2 shrink-0 rounded-full ${STATUS_DOTS[build.status] ?? "bg-gray-400"}`}
+            className={`inline-block size-2 shrink-0 rounded-full ${BUILD_STATUS_DOTS[build.status] ?? "bg-gray-400"}`}
           />
           <span className="text-sm font-medium">{build.status}</span>
         </div>

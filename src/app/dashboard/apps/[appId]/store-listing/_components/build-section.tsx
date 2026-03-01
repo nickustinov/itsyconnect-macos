@@ -9,17 +9,7 @@ import {
 import { AppIcon } from "@/components/app-icon";
 import type { TFBuild } from "@/lib/asc/testflight/types";
 import type { AscBuild } from "@/lib/asc/version-types";
-
-const BUILD_STATUS_DOTS: Record<string, string> = {
-  Testing: "bg-green-500",
-  "Ready to test": "bg-green-500",
-  "Ready to submit": "bg-yellow-500",
-  "In beta review": "bg-blue-500",
-  Processing: "bg-blue-500",
-  Expired: "bg-red-500",
-  Invalid: "bg-red-500",
-  "Missing compliance": "bg-amber-500",
-};
+import { BUILD_STATUS_DOTS } from "@/lib/asc/display-types";
 
 function formatBuildDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-GB", {

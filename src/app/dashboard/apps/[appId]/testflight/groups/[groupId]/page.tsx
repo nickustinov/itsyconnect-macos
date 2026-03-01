@@ -35,15 +35,9 @@ import { useRegisterRefresh } from "@/lib/refresh-context";
 import { useSetBreadcrumbTitle } from "@/lib/breadcrumb-context";
 import { FooterPortal } from "@/lib/footer-portal-context";
 import type { TFBuild, TFGroup, TFTester } from "@/lib/asc/testflight";
+import { BUILD_STATUS_DOTS, TESTER_STATUS_DOTS } from "@/lib/asc/display-types";
 import { EmptyState } from "@/components/empty-state";
-
-const TESTER_STATUS_DOTS: Record<string, string> = {
-  INSTALLED: "bg-green-500",
-  ACCEPTED: "bg-yellow-500",
-  INVITED: "bg-blue-500",
-  NOT_INVITED: "bg-gray-400",
-  REVOKED: "bg-red-500",
-};
+import { formatDate } from "@/lib/format";
 
 const TESTER_STATUS_LABELS: Record<string, string> = {
   INSTALLED: "Installed",
@@ -52,25 +46,6 @@ const TESTER_STATUS_LABELS: Record<string, string> = {
   NOT_INVITED: "Not invited",
   REVOKED: "Revoked",
 };
-
-const BUILD_STATUS_DOTS: Record<string, string> = {
-  Testing: "bg-green-500",
-  "Ready to test": "bg-green-500",
-  "Ready to submit": "bg-yellow-500",
-  "In beta review": "bg-blue-500",
-  Processing: "bg-blue-500",
-  Expired: "bg-red-500",
-  Invalid: "bg-red-500",
-  "Missing compliance": "bg-amber-500",
-};
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
 
 export default function GroupDetailPage() {
   const { appId, groupId } = useParams<{ appId: string; groupId: string }>();

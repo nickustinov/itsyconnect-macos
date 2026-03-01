@@ -37,30 +37,11 @@ import { apiFetch } from "@/lib/api-fetch";
 import { useApps } from "@/lib/apps-context";
 import { useVersions } from "@/lib/versions-context";
 import { FooterPortal } from "@/lib/footer-portal-context";
+import { BUILD_STATUS_DOTS } from "@/lib/asc/display-types";
 import { resolveVersion, PLATFORM_LABELS } from "@/lib/asc/version-types";
 import { useRegisterRefresh } from "@/lib/refresh-context";
 import type { TFBuild, TFGroup } from "@/lib/asc/testflight";
-
-const STATUS_DOTS: Record<string, string> = {
-  Testing: "bg-green-500",
-  "Ready to test": "bg-green-500",
-  "Ready to submit": "bg-yellow-500",
-  "In beta review": "bg-blue-500",
-  "In compliance review": "bg-blue-500",
-  Processing: "bg-blue-500",
-  Expired: "bg-red-500",
-  Invalid: "bg-red-500",
-  "Missing compliance": "bg-amber-500",
-  "Processing exception": "bg-red-500",
-};
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
+import { formatDate } from "@/lib/format";
 
 export default function TestFlightBuildsPage() {
   const { appId } = useParams<{ appId: string }>();
@@ -400,7 +381,7 @@ export default function TestFlightBuildsPage() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <span
-                          className={`inline-block size-2 shrink-0 rounded-full ${STATUS_DOTS[build.status] ?? "bg-gray-400"}`}
+                          className={`inline-block size-2 shrink-0 rounded-full ${BUILD_STATUS_DOTS[build.status] ?? "bg-gray-400"}`}
                         />
                         <span className="text-sm">{build.status}</span>
                       </div>
