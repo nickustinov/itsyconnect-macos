@@ -1,11 +1,14 @@
 import type { ForgeConfig } from "@electron-forge/shared-types";
 import { MakerDMG } from "@electron-forge/maker-dmg";
 import { MakerPKG } from "@electron-forge/maker-pkg";
+import { BUILD_NUMBER } from "./src/lib/version";
 
 const config: ForgeConfig = {
   packagerConfig: {
     appBundleId: "com.itsyconnect.app",
     name: "Itsyconnect",
+    appVersion: process.env.npm_package_version,
+    buildVersion: BUILD_NUMBER,
     icon: "public/icon",
     asar: false,
     osxSign: process.env.APPLE_TEAM_ID ? {} : undefined,

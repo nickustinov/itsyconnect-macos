@@ -45,6 +45,13 @@ Key rules:
 - The proxy checks `/api/health` on root (`/`) to determine if setup is needed, then redirects to `/setup` or `/dashboard`.
 - Electron loads `/` so the proxy can handle initial routing. Never hardcode `/dashboard` as the Electron entry URL.
 
+## Versioning
+
+- **Single source of truth**: `src/lib/version.ts` – exports `APP_VERSION` and `BUILD_NUMBER`.
+- `package.json` `"version"` must match `APP_VERSION`.
+- `forge.config.ts` imports `BUILD_NUMBER` for `CFBundleVersion`.
+- When asked to bump: update `src/lib/version.ts` and `package.json` version.
+
 ## Style
 
 1. **European-style titles** – never use American Title Case.

@@ -10,6 +10,7 @@ const TABS = [
   { label: "Teams", segment: "" },
   { label: "AI", segment: "/ai" },
   { label: "Appearance", segment: "/appearance" },
+  { label: "About", segment: "/about" },
 ];
 
 export default function SettingsLayout({

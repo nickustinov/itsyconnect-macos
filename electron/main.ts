@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, safeStorage, ipcMain, screen } from "electron";
+import { app, BrowserWindow, Menu, safeStorage, ipcMain, screen, shell } from "electron";
 import { spawn, ChildProcess } from "node:child_process";
 import path from "node:path";
 import fs from "node:fs";
@@ -230,6 +230,20 @@ function createWindow(port: number): void {
       (input.key === "=" || input.key === "-" || input.key === "0")
     ) {
       _event.preventDefault();
+    }
+  });
+
+  // Open external links in system browser
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith("http://127.0.0.1")) return { action: "allow" };
+    shell.openExternal(url);
+    return { action: "deny" };
+  });
+
+  mainWindow.webContents.on("will-navigate", (event, url) => {
+    if (!url.startsWith("http://127.0.0.1")) {
+      event.preventDefault();
+      shell.openExternal(url);
     }
   });
 
