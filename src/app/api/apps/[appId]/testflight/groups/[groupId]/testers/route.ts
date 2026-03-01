@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { errorJson } from "@/lib/api-helpers";
 import { listAppBetaTesters, addTestersToGroup, removeTestersFromGroup } from "@/lib/asc/testflight";
 import { hasCredentials } from "@/lib/asc/client";
 
@@ -23,8 +24,7 @@ export async function GET(
     const testers = await listAppBetaTesters(appId);
     return NextResponse.json({ testers });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 502 });
+    return errorJson(err);
   }
 }
 
@@ -59,8 +59,7 @@ export async function POST(
     await addTestersToGroup(groupId, parsed.data.testerIds);
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 502 });
+    return errorJson(err);
   }
 }
 
@@ -91,7 +90,6 @@ export async function DELETE(
     await removeTestersFromGroup(groupId, parsed.data.testerIds);
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 502 });
+    return errorJson(err);
   }
 }

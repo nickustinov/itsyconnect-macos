@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { errorJson } from "@/lib/api-helpers";
 import { listBuilds, updateBetaBuildLocalization } from "@/lib/asc/testflight";
 import { hasCredentials } from "@/lib/asc/client";
 import { getMockTFBuilds } from "@/lib/mock-testflight";
@@ -29,8 +30,7 @@ export async function GET(
     }
     return NextResponse.json({ build, meta: null });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 502 });
+    return errorJson(err);
   }
 }
 
@@ -66,7 +66,6 @@ export async function PATCH(
     await updateBetaBuildLocalization(parsed.data.localizationId, parsed.data.whatsNew);
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 502 });
+    return errorJson(err);
   }
 }

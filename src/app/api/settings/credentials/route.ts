@@ -5,6 +5,7 @@ import { ascCredentials, aiSettings, cacheEntries } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { encrypt } from "@/lib/encryption";
 import { ulid } from "@/lib/ulid";
+import { parseBody } from "@/lib/api-helpers";
 
 export async function GET() {
   const cred = db
@@ -29,20 +30,10 @@ const createSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const body = await request.json().catch(() => null);
-  if (!body) {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
+  const parsed = await parseBody(request, createSchema);
+  if (parsed instanceof Response) return parsed;
 
-  const parsed = createSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Validation failed", details: parsed.error.issues },
-      { status: 400 },
-    );
-  }
-
-  const { issuerId, keyId, privateKey } = parsed.data;
+  const { issuerId, keyId, privateKey } = parsed;
 
   // Deactivate existing credentials
   db.update(ascCredentials)

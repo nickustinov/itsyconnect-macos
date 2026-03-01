@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { listApps } from "@/lib/asc/apps";
 import { hasCredentials } from "@/lib/asc/client";
 import { cacheGetMeta } from "@/lib/cache";
+import { errorJson } from "@/lib/api-helpers";
 
 export async function GET() {
   if (!hasCredentials()) {
@@ -14,7 +15,6 @@ export async function GET() {
 
     return NextResponse.json({ apps, meta });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 502 });
+    return errorJson(err);
   }
 }

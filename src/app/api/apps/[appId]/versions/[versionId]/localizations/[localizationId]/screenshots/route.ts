@@ -6,6 +6,7 @@ import {
   uploadScreenshot,
   invalidateScreenshotCache,
 } from "@/lib/asc/screenshot-mutations";
+import { errorJson } from "@/lib/api-helpers";
 
 type RouteParams = {
   params: Promise<{
@@ -30,8 +31,7 @@ export async function GET(request: Request, { params }: RouteParams) {
 
     return NextResponse.json({ screenshotSets, meta });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 502 });
+    return errorJson(err);
   }
 }
 
@@ -63,7 +63,6 @@ export async function POST(request: Request, { params }: RouteParams) {
 
     return NextResponse.json({ screenshot });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 502 });
+    return errorJson(err);
   }
 }

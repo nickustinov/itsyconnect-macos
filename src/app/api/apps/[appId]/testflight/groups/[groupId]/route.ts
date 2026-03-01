@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { errorJson } from "@/lib/api-helpers";
 import { getGroupDetail, deleteGroup } from "@/lib/asc/testflight";
 import { hasCredentials } from "@/lib/asc/client";
 import { cacheGetMeta } from "@/lib/cache";
@@ -30,8 +31,7 @@ export async function GET(
     const meta = cacheGetMeta(`tf-group:${groupId}`);
     return NextResponse.json({ ...detail, meta });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 502 });
+    return errorJson(err);
   }
 }
 
@@ -49,7 +49,6 @@ export async function DELETE(
     await deleteGroup(groupId);
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 502 });
+    return errorJson(err);
   }
 }

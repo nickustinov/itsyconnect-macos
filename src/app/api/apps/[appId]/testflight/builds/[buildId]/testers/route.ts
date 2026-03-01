@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { errorJson } from "@/lib/api-helpers";
 import {
   listBuildIndividualTesters,
   listAppBetaTesters,
@@ -31,8 +32,7 @@ export async function GET(
       : await listBuildIndividualTesters(buildId);
     return NextResponse.json({ testers });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 502 });
+    return errorJson(err);
   }
 }
 
@@ -70,8 +70,7 @@ export async function POST(
       await sendBetaTesterInvitations(appId, testerIds);
       return NextResponse.json({ ok: true });
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown error";
-      return NextResponse.json({ error: message }, { status: 502 });
+      return errorJson(err);
     }
   }
 
@@ -87,8 +86,7 @@ export async function POST(
       await sendBetaTesterInvitations(appId, [testerId]);
       return NextResponse.json({ ok: true, testerId });
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown error";
-      return NextResponse.json({ error: message }, { status: 502 });
+      return errorJson(err);
     }
   }
 
@@ -129,7 +127,6 @@ export async function DELETE(
     await removeIndividualTestersFromBuild(buildId, parsed.data.testerIds);
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 502 });
+    return errorJson(err);
   }
 }

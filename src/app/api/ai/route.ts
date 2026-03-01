@@ -13,6 +13,7 @@ import {
   buildOptimizeKeywordsPrompt,
   buildFillKeywordGapsPrompt,
 } from "@/lib/ai/prompts";
+import { errorJson, parseBody } from "@/lib/api-helpers";
 
 /** Provider-specific options to control reasoning effort for reasoning models. */
 function reasoningOptions(
@@ -88,23 +89,13 @@ const requestSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const body = await request.json().catch(() => null);
-  if (!body) {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
-
-  const parsed = requestSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Validation failed", details: parsed.error.issues },
-      { status: 400 },
-    );
-  }
+  const parsed = await parseBody(request, requestSchema);
+  if (parsed instanceof Response) return parsed;
 
   const {
     action, text, field, reviewTitle, rating, fromLocale, toLocale, locale,
     appName, charLimit, description, otherLocaleKeywords,
-  } = parsed.data;
+  } = parsed;
 
   // Copy needs no AI – echo the text back
   if (action === "copy") {
@@ -216,7 +207,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ result: finalResult });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "AI request failed";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return errorJson(err, 500, "AI request failed");
   }
 }

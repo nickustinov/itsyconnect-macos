@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { errorJson } from "@/lib/api-helpers";
 import { getFeedbackCrashLog } from "@/lib/asc/testflight";
 
 export async function GET(
@@ -14,7 +15,6 @@ export async function GET(
     }
     return NextResponse.json(result);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 502 });
+    return errorJson(err);
   }
 }

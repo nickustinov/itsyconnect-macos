@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { hasCredentials } from "@/lib/asc/client";
 import { updateAppAttributes } from "@/lib/asc/apps";
+import { errorJson } from "@/lib/api-helpers";
 
 export async function PATCH(
   request: Request,
@@ -27,7 +28,6 @@ export async function PATCH(
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return errorJson(err, 500);
   }
 }

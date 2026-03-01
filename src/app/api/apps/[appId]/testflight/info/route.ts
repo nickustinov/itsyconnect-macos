@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { errorJson } from "@/lib/api-helpers";
 import {
   getBetaAppInfo,
   createBetaAppLocalization,
@@ -30,8 +31,7 @@ export async function GET(
     const meta = cacheGetMeta(`tf-info:${appId}`);
     return NextResponse.json({ info, meta });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 502 });
+    return errorJson(err);
   }
 }
 
@@ -111,8 +111,7 @@ export async function PATCH(
     await updateBetaLicenseAgreement(parsed.data.agreementId, parsed.data.agreementText);
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 502 });
+    return errorJson(err);
   }
 }
 
@@ -180,7 +179,6 @@ export async function PUT(
 
     return NextResponse.json({ ok: true, errors: [], createdIds });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return errorJson(err, 500);
   }
 }

@@ -6,6 +6,7 @@ import { encrypt } from "@/lib/encryption";
 import { ulid } from "@/lib/ulid";
 import { eq } from "drizzle-orm";
 import { validateApiKey } from "@/lib/ai/provider-factory";
+import { parseBody } from "@/lib/api-helpers";
 
 export async function GET() {
   const settings = db
@@ -31,20 +32,10 @@ const updateSchema = z.object({
 });
 
 export async function PUT(request: Request) {
-  const body = await request.json().catch(() => null);
-  if (!body) {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
+  const parsed = await parseBody(request, updateSchema);
+  if (parsed instanceof Response) return parsed;
 
-  const parsed = updateSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Validation failed", details: parsed.error.issues },
-      { status: 400 },
-    );
-  }
-
-  const { provider, modelId, apiKey } = parsed.data;
+  const { provider, modelId, apiKey } = parsed;
 
   if (apiKey) {
     // Validate the key before saving

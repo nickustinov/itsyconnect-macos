@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { ascCredentials } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { generateAscJwt } from "@/lib/asc/jwt";
+import { errorJson } from "@/lib/api-helpers";
 
 const testSchema = z.object({
   issuerId: z.string().min(1, "Issuer ID is required").trim(),
@@ -78,8 +79,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 422 });
+    return errorJson(err, 422);
   }
 }

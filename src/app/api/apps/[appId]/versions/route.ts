@@ -4,6 +4,7 @@ import { createVersion, updateVersionAttributes, invalidateVersionsCache } from 
 import { hasCredentials } from "@/lib/asc/client";
 import { EDITABLE_STATES } from "@/lib/asc/version-types";
 import { cacheGetMeta } from "@/lib/cache";
+import { errorJson } from "@/lib/api-helpers";
 
 
 export async function GET(
@@ -22,8 +23,7 @@ export async function GET(
 
     return NextResponse.json({ versions, meta });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 502 });
+    return errorJson(err);
   }
 }
 
@@ -69,7 +69,6 @@ export async function POST(
     const versionId = await createVersion(appId, versionString, platform);
     return NextResponse.json({ ok: true, versionId }, { status: 201 });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 502 });
+    return errorJson(err);
   }
 }

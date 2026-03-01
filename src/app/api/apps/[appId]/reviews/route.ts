@@ -4,6 +4,7 @@ import { listCustomerReviews, createReviewResponse, deleteReviewResponse, invali
 import { hasCredentials } from "@/lib/asc/client";
 import { cacheGetMeta } from "@/lib/cache";
 import { getMockCustomerReviews } from "@/lib/mock-reviews";
+import { errorJson } from "@/lib/api-helpers";
 
 const SORT_MAP: Record<string, "-createdDate" | "createdDate" | "-rating" | "rating"> = {
   newest: "-createdDate",
@@ -36,8 +37,7 @@ export async function GET(
     const meta = cacheGetMeta(`reviews:${appId}:${sort}`);
     return NextResponse.json({ reviews, meta });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 502 });
+    return errorJson(err);
   }
 }
 
@@ -110,7 +110,6 @@ export async function POST(
     invalidateReviewsCache(appId);
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 502 });
+    return errorJson(err);
   }
 }

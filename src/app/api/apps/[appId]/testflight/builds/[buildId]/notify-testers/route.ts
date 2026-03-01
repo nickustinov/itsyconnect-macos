@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { errorJson } from "@/lib/api-helpers";
 import { notifyTesters } from "@/lib/asc/testflight";
 import { hasCredentials } from "@/lib/asc/client";
 
@@ -16,7 +17,6 @@ export async function POST(
     const result = await notifyTesters(buildId);
     return NextResponse.json({ ok: true, autoNotified: result.autoNotified });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 502 });
+    return errorJson(err);
   }
 }

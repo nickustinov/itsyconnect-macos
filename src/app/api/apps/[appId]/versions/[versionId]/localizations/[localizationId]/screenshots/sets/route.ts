@@ -5,6 +5,7 @@ import {
   deleteScreenshotSet,
   invalidateScreenshotCache,
 } from "@/lib/asc/screenshot-mutations";
+import { errorJson } from "@/lib/api-helpers";
 
 type RouteParams = {
   params: Promise<{
@@ -35,8 +36,7 @@ export async function POST(request: Request, { params }: RouteParams) {
 
     return NextResponse.json({ setId });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 502 });
+    return errorJson(err);
   }
 }
 
@@ -58,7 +58,6 @@ export async function DELETE(request: Request, { params }: RouteParams) {
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 502 });
+    return errorJson(err);
   }
 }

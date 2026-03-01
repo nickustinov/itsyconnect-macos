@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { errorJson } from "@/lib/api-helpers";
 import { listFeedback, deleteFeedbackItem } from "@/lib/asc/testflight";
 import { hasCredentials } from "@/lib/asc/client";
 import { cacheGetMeta } from "@/lib/cache";
@@ -25,8 +26,7 @@ export async function GET(
     const meta = cacheGetMeta(`tf-feedback:${appId}`);
     return NextResponse.json({ feedback, completedIds, meta });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 502 });
+    return errorJson(err);
   }
 }
 
@@ -39,7 +39,6 @@ export async function DELETE(
     await deleteFeedbackItem(body.id, body.type);
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 502 });
+    return errorJson(err);
   }
 }

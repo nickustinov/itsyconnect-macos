@@ -4,6 +4,7 @@ import {
   cancelSubmission,
   invalidateVersionsCache,
 } from "@/lib/asc/version-mutations";
+import { errorJson } from "@/lib/api-helpers";
 
 export async function POST(
   _request: Request,
@@ -20,7 +21,6 @@ export async function POST(
     invalidateVersionsCache(appId);
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return errorJson(err, 500);
   }
 }

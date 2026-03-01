@@ -5,6 +5,7 @@ import { cacheInvalidate, cacheInvalidatePrefix } from "@/lib/cache";
 import { listApps } from "@/lib/asc/apps";
 import { listVersions } from "@/lib/asc/versions";
 import { hasCredentials } from "@/lib/asc/client";
+import { errorJson } from "@/lib/api-helpers";
 
 const refreshSchema = z.object({
   appId: z.string().min(1),
@@ -37,7 +38,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 502 });
+    return errorJson(err);
   }
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { errorJson } from "@/lib/api-helpers";
 import { addBuildToGroups, removeBuildFromGroups } from "@/lib/asc/testflight";
 import { hasCredentials } from "@/lib/asc/client";
 
@@ -36,8 +37,7 @@ export async function POST(
     );
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 502 });
+    return errorJson(err);
   }
 }
 
@@ -70,7 +70,6 @@ export async function DELETE(
     );
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 502 });
+    return errorJson(err);
   }
 }

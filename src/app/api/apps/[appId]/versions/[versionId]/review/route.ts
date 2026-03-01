@@ -5,6 +5,7 @@ import {
   createReviewDetail,
   invalidateVersionsCache,
 } from "@/lib/asc/review-mutations";
+import { errorJson } from "@/lib/api-helpers";
 
 export async function PUT(
   request: Request,
@@ -34,7 +35,6 @@ export async function PUT(
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 502 });
+    return errorJson(err);
   }
 }
