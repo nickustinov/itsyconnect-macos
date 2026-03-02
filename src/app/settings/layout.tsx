@@ -8,9 +8,9 @@ import { cn } from "@/lib/utils";
 import { LicenseProvider } from "@/lib/license-context";
 
 const TABS = [
-  { label: "Teams", segment: "" },
+  { label: "General", segment: "" },
+  { label: "Teams", segment: "/teams" },
   { label: "AI", segment: "/ai" },
-  { label: "Appearance", segment: "/appearance" },
   { label: "License", segment: "/license" },
   { label: "About", segment: "/about" },
 ];

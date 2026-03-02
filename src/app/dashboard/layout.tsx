@@ -41,7 +41,16 @@ import { saveNavigation } from "@/lib/nav-state";
 
 declare global {
   interface Window {
-    electron?: { ready: () => void };
+    electron?: {
+      ready: () => void;
+      onNavigate: (cb: (path: string) => void) => () => void;
+      updates: {
+        checkNow: () => void;
+        onStatus: (cb: (status: { state: string; message?: string }) => void) => () => void;
+        getAutoCheck: () => Promise<boolean>;
+        setAutoCheck: (enabled: boolean) => void;
+      };
+    };
   }
 }
 

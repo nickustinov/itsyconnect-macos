@@ -1,272 +1,135 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
-  Plugs,
-  Plus,
-  Trash,
-  CheckCircle,
-  XCircle,
-  PencilSimple,
-} from "@phosphor-icons/react";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Monitor, Moon, Sun, CheckCircle, XCircle } from "@phosphor-icons/react";
 import { Spinner } from "@/components/ui/spinner";
-import { toast } from "sonner";
-import { AddAccountDialog } from "@/components/layout/add-account-dialog";
-import { useLicense } from "@/lib/license-context";
-import { FREE_LIMITS } from "@/lib/license-shared";
 
-interface Team {
-  id: string;
-  name: string | null;
-  issuerId: string;
-  keyId: string;
-  isActive: boolean;
-  createdAt: string;
-}
+const THEME_OPTIONS = [
+  { value: "system", label: "System", icon: Monitor },
+  { value: "light", label: "Light", icon: Sun },
+  { value: "dark", label: "Dark", icon: Moon },
+] as const;
 
-export default function SettingsPage() {
-  const router = useRouter();
-  const { isPro } = useLicense();
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [testingId, setTestingId] = useState<string | null>(null);
-  const [testResults, setTestResults] = useState<Record<string, "ok" | "error">>({});
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState("");
-  const editRef = useRef<HTMLInputElement>(null);
+type UpdateState = "idle" | "checking" | "up-to-date" | "available" | "downloaded" | "error";
 
-  const fetchTeams = useCallback(async () => {
-    const res = await fetch("/api/settings/credentials");
-    if (res.ok) {
-      const data = await res.json();
-      setTeams(data.credentials);
-    }
-    setLoading(false);
-  }, []);
+export default function GeneralPage() {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  const [autoCheck, setAutoCheck] = useState(true);
+  const [updateState, setUpdateState] = useState<UpdateState>("idle");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- mounted guard for SSR hydration
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
-    fetchTeams();
-  }, [fetchTeams]);
-
-  async function handleTest(id: string) {
-    setTestingId(id);
-    setTestResults((prev) => {
-      const next = { ...prev };
-      delete next[id];
-      return next;
+    window.electron?.updates.getAutoCheck().then((v) => setAutoCheck(v));
+    return window.electron?.updates.onStatus((status) => {
+      setUpdateState(status.state as UpdateState);
+      if (status.state === "error") setErrorMessage(status.message ?? "Unknown error");
     });
+  }, []);
 
-    try {
-      const res = await fetch("/api/settings/credentials/test", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
-      });
-
-      setTestResults((prev) => ({ ...prev, [id]: res.ok ? "ok" : "error" }));
-    } catch {
-      setTestResults((prev) => ({ ...prev, [id]: "error" }));
-    }
-
-    setTestingId(null);
+  function handleAutoCheckChange(enabled: boolean) {
+    setAutoCheck(enabled);
+    window.electron?.updates.setAutoCheck(enabled);
   }
 
-  async function handleRemove(id: string) {
-    const res = await fetch(`/api/settings/credentials?id=${id}`, {
-      method: "DELETE",
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      if (data.redirectToSetup) {
-        router.push("/setup");
-      } else {
-        toast.success("Team removed");
-        fetchTeams();
-        router.refresh();
-      }
-    }
+  function handleCheckNow() {
+    setUpdateState("checking");
+    setErrorMessage("");
+    window.electron?.updates.checkNow();
   }
 
-  function handleTeamAdded() {
-    setDialogOpen(false);
-    fetchTeams();
-    router.refresh();
-  }
+  if (!mounted) return null;
 
-  function startEditing(team: Team) {
-    setEditingId(team.id);
-    setEditValue(team.name || "My team");
-    setTimeout(() => editRef.current?.select(), 0);
-  }
-
-  async function saveEdit() {
-    const trimmed = editValue.trim();
-    if (!editingId || !trimmed) {
-      setEditingId(null);
-      return;
-    }
-    setEditingId(null);
-    setTeams((prev) =>
-      prev.map((t) => (t.id === editingId ? { ...t, name: trimmed } : t)),
-    );
-    await fetch("/api/settings/credentials", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: editingId, name: trimmed }),
-    });
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Spinner />
-        Loading…
-      </div>
-    );
-  }
+  const isElectron = !!window.electron;
 
   return (
-    <>
-      <div className="max-w-2xl space-y-6">
-        {teams.map((team) => (
-          <div
-            key={team.id}
-            className="rounded-lg border p-4 space-y-3"
-          >
-            <div className="flex items-center gap-2">
-              {editingId === team.id ? (
-                <Input
-                  ref={editRef}
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.target.value)}
-                  onBlur={saveEdit}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") saveEdit();
-                    if (e.key === "Escape") setEditingId(null);
-                  }}
-                  className="h-7 w-48 text-sm font-medium"
-                />
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => startEditing(team)}
-                  className="group flex items-center gap-1.5 font-medium text-sm hover:text-foreground/80"
-                >
-                  {team.name || "My team"}
-                  <PencilSimple
-                    size={13}
-                    className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-                  />
-                </button>
-              )}
-              {team.isActive && (
-                <Badge variant="secondary" className="text-xs">Active</Badge>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
-              <div>
-                <span className="text-muted-foreground">Issuer ID</span>
-                <p className="font-mono text-xs mt-0.5">{team.issuerId}</p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Key ID</span>
-                <p className="font-mono text-xs mt-0.5">{team.keyId}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleTest(team.id)}
-                disabled={testingId === team.id}
-              >
-                <Plugs size={14} />
-                {testingId === team.id ? "Testing…" : "Test connection"}
-              </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="ghost" size="sm">
-                    <Trash size={14} />
-                    Remove team
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Remove team?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will remove the App Store Connect credentials for{" "}
-                      <strong>{team.name || "My team"}</strong> and clear all
-                      cached app data.
-                      {teams.length === 1
-                        ? " You will need to set up the app again."
-                        : " Another team will be activated automatically."}
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => handleRemove(team.id)}>
-                      Remove
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-              {testResults[team.id] === "ok" && (
-                <span className="flex items-center gap-1.5 text-sm text-green-600">
-                  <CheckCircle size={16} weight="fill" /> Connected
-                </span>
-              )}
-              {testResults[team.id] === "error" && (
-                <span className="flex items-center gap-1.5 text-sm text-destructive">
-                  <XCircle size={16} weight="fill" /> Connection failed
-                </span>
-              )}
-            </div>
+    <div className="space-y-8">
+      {isElectron && (
+        <section className="space-y-4">
+          <h3 className="section-title">Updates</h3>
+          <div className="flex items-center gap-3">
+            <Switch
+              id="auto-check-updates"
+              checked={autoCheck}
+              onCheckedChange={handleAutoCheckChange}
+            />
+            <Label htmlFor="auto-check-updates" className="text-sm">
+              Automatically check for updates
+            </Label>
           </div>
-        ))}
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCheckNow}
+              disabled={updateState === "checking"}
+            >
+              {updateState === "checking" ? (
+                <>
+                  <Spinner className="size-3.5" />
+                  Checking…
+                </>
+              ) : (
+                "Check now"
+              )}
+            </Button>
+            {updateState === "up-to-date" && (
+              <span className="flex items-center gap-1.5 text-sm text-green-600">
+                <CheckCircle size={16} weight="fill" /> Up to date
+              </span>
+            )}
+            {updateState === "available" && (
+              <span className="text-sm text-muted-foreground">
+                Downloading update…
+              </span>
+            )}
+            {updateState === "downloaded" && (
+              <span className="text-sm text-muted-foreground">
+                Update ready – restart to install
+              </span>
+            )}
+            {updateState === "error" && (
+              <span className="flex items-center gap-1.5 text-sm text-destructive">
+                <XCircle size={16} weight="fill" /> {errorMessage}
+              </span>
+            )}
+          </div>
+        </section>
+      )}
 
-        {!isPro && teams.length >= FREE_LIMITS.teams ? (
-          <Button
-            variant="outline"
-            disabled
-          >
-            <Plus size={16} />
-            Add team (upgrade to Pro)
-          </Button>
-        ) : (
-          <Button
-            variant="outline"
-            onClick={() => setDialogOpen(true)}
-          >
-            <Plus size={16} />
-            Add team
-          </Button>
-        )}
-      </div>
-
-      <AddAccountDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        onSuccess={handleTeamAdded}
-      />
-    </>
+      <section className="space-y-2">
+        <h3 className="section-title">Theme</h3>
+        <Select value={theme} onValueChange={setTheme}>
+          <SelectTrigger className="w-[200px] text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
+              <SelectItem key={value} value={value}>
+                <Icon size={14} className="mr-2 inline-block" />
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">
+          System follows your macOS appearance setting.
+        </p>
+      </section>
+    </div>
   );
 }

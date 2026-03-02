@@ -1,4 +1,4 @@
-import { app, autoUpdater, BrowserWindow, Menu, safeStorage, ipcMain, screen, shell, protocol, net } from "electron";
+import { app, autoUpdater, BrowserWindow, dialog, Menu, safeStorage, ipcMain, screen, shell, protocol, net } from "electron";
 import { spawn, ChildProcess } from "node:child_process";
 import path from "node:path";
 import fs from "node:fs";
@@ -9,6 +9,25 @@ import http from "node:http";
 
 const isDev = !app.isPackaged;
 let nextProcess: ChildProcess | null = null;
+// --- Update settings persistence ---
+
+interface AppSettings {
+  autoCheckUpdates: boolean;
+}
+
+const settingsPath = path.join(app.getPath("userData"), "settings.json");
+
+function loadSettings(): AppSettings {
+  try {
+    return { autoCheckUpdates: true, ...JSON.parse(fs.readFileSync(settingsPath, "utf-8")) };
+  } catch {
+    return { autoCheckUpdates: true };
+  }
+}
+
+function saveSettings(settings: AppSettings): void {
+  fs.writeFileSync(settingsPath, JSON.stringify(settings));
+}
 
 // Register custom protocol before app is ready – gives stable origin for localStorage
 protocol.registerSchemesAsPrivileged([
@@ -187,6 +206,73 @@ function waitForServer(port: number, timeout = 30_000): Promise<void> {
   });
 }
 
+// --- Auto-updater ---
+
+let checkSource: "menu" | "settings" | "auto" = "auto";
+let updateInterval: ReturnType<typeof setInterval> | null = null;
+
+function setupAutoUpdater(): void {
+  const feedURL = `https://update.electronjs.org/nickustinov/itsyconnect-macos/${process.platform}-${process.arch}/${app.getVersion()}`;
+  autoUpdater.setFeedURL({ url: feedURL });
+
+  autoUpdater.on("error", (err) => {
+    mainWindow?.webContents.send("update-status", { state: "error", message: err.message });
+    if (checkSource === "menu") {
+      dialog.showMessageBox({ message: "Update check failed", detail: err.message });
+    }
+    checkSource = "auto";
+  });
+
+  autoUpdater.on("checking-for-update", () => {
+    mainWindow?.webContents.send("update-status", { state: "checking" });
+  });
+
+  autoUpdater.on("update-available", () => {
+    mainWindow?.webContents.send("update-status", { state: "available" });
+    if (checkSource === "menu") {
+      dialog.showMessageBox({ message: "A new update is being downloaded." });
+    }
+    checkSource = "auto";
+  });
+
+  autoUpdater.on("update-not-available", () => {
+    mainWindow?.webContents.send("update-status", { state: "up-to-date" });
+    if (checkSource === "menu") {
+      dialog.showMessageBox({ message: "You're up to date!" });
+    }
+    checkSource = "auto";
+  });
+
+  autoUpdater.on("update-downloaded", () => {
+    mainWindow?.webContents.send("update-status", { state: "downloaded" });
+    dialog.showMessageBox({
+      message: "Update downloaded",
+      detail: "The update will be installed when you restart.",
+      buttons: ["Restart now", "Later"],
+    }).then(({ response }) => {
+      if (response === 0) autoUpdater.quitAndInstall();
+    });
+  });
+
+  if (!isDev) {
+    const settings = loadSettings();
+    if (settings.autoCheckUpdates) startUpdateInterval();
+  }
+}
+
+function startUpdateInterval(): void {
+  if (updateInterval) return;
+  autoUpdater.checkForUpdates();
+  updateInterval = setInterval(() => autoUpdater.checkForUpdates(), 60 * 60 * 1000);
+}
+
+function stopUpdateInterval(): void {
+  if (updateInterval) {
+    clearInterval(updateInterval);
+    updateInterval = null;
+  }
+}
+
 // --- Menu ---
 
 function setupMenu(): void {
@@ -199,7 +285,15 @@ function setupMenu(): void {
         {
           label: "Check for updates\u2026",
           click: () => {
+            checkSource = "menu";
             autoUpdater.checkForUpdates();
+          },
+        },
+        {
+          label: "Settings\u2026",
+          accelerator: "CmdOrCtrl+,",
+          click: () => {
+            mainWindow?.webContents.send("navigate", "/settings");
           },
         },
         { type: "separator" },
@@ -343,23 +437,34 @@ if (!gotLock) {
     ensureMasterKey();
     setDatabasePath();
     app.name = "Itsyconnect";
-    setupMenu();
 
     const port = isDev ? await startDevServer() : await startProdServer();
     if (!isDev) registerProtocolProxy(port);
     createWindow(port);
+    setupMenu();
+    setupAutoUpdater();
 
-    if (!isDev) {
-      try {
-        const { updateElectronApp } = require("update-electron-app") as typeof import("update-electron-app");
-        updateElectronApp({
-          updateInterval: "1 hour",
-          notifyUser: true,
-        });
-      } catch {
-        console.warn("Auto-update disabled: updater dependency not bundled in this build.");
+    // --- Update IPC handlers ---
+
+    ipcMain.on("check-for-updates", () => {
+      checkSource = "settings";
+      autoUpdater.checkForUpdates();
+    });
+
+    ipcMain.handle("get-auto-check-updates", () => {
+      return loadSettings().autoCheckUpdates;
+    });
+
+    ipcMain.on("set-auto-check-updates", (_, enabled: boolean) => {
+      const settings = loadSettings();
+      settings.autoCheckUpdates = enabled;
+      saveSettings(settings);
+      if (enabled) {
+        startUpdateInterval();
+      } else {
+        stopUpdateInterval();
       }
-    }
+    });
 
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) {
