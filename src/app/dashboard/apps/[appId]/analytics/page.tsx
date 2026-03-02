@@ -27,7 +27,7 @@ import {
   CurrencyDollar,
   Timer,
 } from "@phosphor-icons/react";
-import { formatDate } from "@/lib/mock-analytics";
+import { formatDateShort } from "@/lib/format";
 import { useAnalytics } from "@/lib/analytics-context";
 import { parseRange, filterByDateRange, previousRange } from "@/lib/analytics-range";
 import { KpiCard } from "@/components/kpi-card";
@@ -247,14 +247,14 @@ export default function AnalyticsOverviewPage() {
                   tickLine={false}
                   axisLine={false}
                   tickMargin={8}
-                  tickFormatter={formatDate}
+                  tickFormatter={formatDateShort}
                   interval="preserveStartEnd"
                 />
                 <YAxis tickLine={false} axisLine={false} width={40} />
                 <ChartTooltip
                   content={
                     <ChartTooltipContent
-                      labelFormatter={(v) => formatDate(v as string)}
+                      labelFormatter={(v) => formatDateShort(v as string)}
                     />
                   }
                 />
@@ -298,7 +298,7 @@ export default function AnalyticsOverviewPage() {
                   tickLine={false}
                   axisLine={false}
                   tickMargin={8}
-                  tickFormatter={formatDate}
+                  tickFormatter={formatDateShort}
                   interval="preserveStartEnd"
                 />
                 <YAxis
@@ -310,7 +310,7 @@ export default function AnalyticsOverviewPage() {
                 <ChartTooltip
                   content={
                     <ChartTooltipContent
-                      labelFormatter={(v) => formatDate(v as string)}
+                      labelFormatter={(v) => formatDateShort(v as string)}
                       formatter={(value, name) => (
                         <div className="flex flex-1 items-center justify-between gap-2 leading-none">
                           <span className="text-muted-foreground">

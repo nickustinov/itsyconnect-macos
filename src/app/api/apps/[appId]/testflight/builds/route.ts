@@ -3,7 +3,6 @@ import { errorJson } from "@/lib/api-helpers";
 import { listBuilds } from "@/lib/asc/testflight";
 import { hasCredentials } from "@/lib/asc/client";
 import { cacheGetMeta } from "@/lib/cache";
-import { getMockTFBuilds } from "@/lib/mock-testflight";
 
 export async function GET(
   request: Request,
@@ -17,8 +16,7 @@ export async function GET(
   const filters = platform || versionString ? { platform, versionString } : undefined;
 
   if (!hasCredentials()) {
-    const builds = getMockTFBuilds(appId, filters);
-    return NextResponse.json({ builds, meta: null });
+    return NextResponse.json({ builds: [], meta: null });
   }
 
   try {

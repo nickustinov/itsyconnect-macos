@@ -4,7 +4,6 @@ import { errorJson } from "@/lib/api-helpers";
 import { listGroups, createGroup } from "@/lib/asc/testflight";
 import { hasCredentials } from "@/lib/asc/client";
 import { cacheGetMeta } from "@/lib/cache";
-import { getMockTFGroups } from "@/lib/mock-testflight";
 
 export async function GET(
   request: Request,
@@ -15,8 +14,7 @@ export async function GET(
   const forceRefresh = url.searchParams.get("refresh") === "1";
 
   if (!hasCredentials()) {
-    const groups = getMockTFGroups(appId);
-    return NextResponse.json({ groups, meta: null });
+    return NextResponse.json({ groups: [], meta: null });
   }
 
   try {
@@ -53,22 +51,7 @@ export async function POST(
   }
 
   if (!hasCredentials()) {
-    // Demo mode: return a mock group
-    const group = {
-      id: `mock-${Date.now()}`,
-      name: parsed.data.name,
-      isInternal: parsed.data.isInternal,
-      testerCount: 0,
-      buildCount: 0,
-      publicLinkEnabled: false,
-      publicLink: null,
-      publicLinkLimit: null,
-      publicLinkLimitEnabled: false,
-      feedbackEnabled: false,
-      hasAccessToAllBuilds: false,
-      createdDate: new Date().toISOString(),
-    };
-    return NextResponse.json({ group }, { status: 201 });
+    return NextResponse.json({ error: "No ASC credentials" }, { status: 400 });
   }
 
   try {

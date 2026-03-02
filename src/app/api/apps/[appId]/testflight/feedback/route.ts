@@ -4,7 +4,6 @@ import { listFeedback, deleteFeedbackItem } from "@/lib/asc/testflight";
 import { hasCredentials } from "@/lib/asc/client";
 import { cacheGetMeta } from "@/lib/cache";
 import { getCompletedFeedbackIds } from "@/lib/feedback-completed";
-import { getMockFeedback } from "@/lib/mock-testflight";
 
 export async function GET(
   request: Request,
@@ -17,8 +16,7 @@ export async function GET(
   const completedIds = getCompletedFeedbackIds(appId);
 
   if (!hasCredentials()) {
-    const feedback = getMockFeedback(appId);
-    return NextResponse.json({ feedback, completedIds, meta: null });
+    return NextResponse.json({ feedback: [], completedIds, meta: null });
   }
 
   try {

@@ -11,7 +11,6 @@ import {
 } from "@/lib/asc/testflight";
 import { hasCredentials } from "@/lib/asc/client";
 import { cacheGetMeta, cacheInvalidatePrefix } from "@/lib/cache";
-import { getMockBetaAppInfo } from "@/lib/mock-testflight";
 
 export async function GET(
   request: Request,
@@ -22,8 +21,7 @@ export async function GET(
   const forceRefresh = url.searchParams.get("refresh") === "1";
 
   if (!hasCredentials()) {
-    const info = getMockBetaAppInfo(appId);
-    return NextResponse.json({ info, meta: null });
+    return NextResponse.json({ info: null, meta: null });
   }
 
   try {

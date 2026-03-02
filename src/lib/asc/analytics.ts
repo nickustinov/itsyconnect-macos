@@ -1,7 +1,6 @@
 import { gunzipSync } from "node:zlib";
 import { ascFetch } from "./client";
 import { cacheGet, cacheSet } from "@/lib/cache";
-import type { AnalyticsData } from "@/lib/mock-analytics";
 
 const ANALYTICS_TTL = 60 * 60 * 1000; // 1 hour (sync worker refreshes hourly)
 const REPORT_ID_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days (report request/report IDs never change)
@@ -9,6 +8,23 @@ const INSTANCE_TTL = 30 * 24 * 60 * 60 * 1000; // 30 days (immutable past data)
 const TODAY_TTL = 10 * 60 * 1000; // 10 min (today's data may update)
 
 // ---------- Types ----------
+
+export interface AnalyticsData {
+  dailyDownloads: Array<{ date: string; firstTime: number; redownload: number; update: number }>;
+  dailyRevenue: Array<{ date: string; proceeds: number; sales: number }>;
+  dailyEngagement: Array<{ date: string; impressions: number; pageViews: number }>;
+  dailySessions: Array<{ date: string; sessions: number; uniqueDevices: number; avgDuration: number }>;
+  dailyInstallsDeletes: Array<{ date: string; installs: number; deletes: number }>;
+  dailyDownloadsBySource: Array<{ date: string; search: number; browse: number; webReferrer: number; unavailable: number }>;
+  dailyVersionSessions: Array<{ date: string; [version: string]: number | string }>;
+  dailyOptIn: Array<{ date: string; downloading: number; optingIn: number }>;
+  dailyWebPreview: Array<{ date: string; pageViews: number; appStoreTaps: number }>;
+  dailyTerritoryDownloads: Array<{ date: string; code: string; downloads: number }>;
+  territories: Array<{ territory: string; code: string; downloads: number; revenue: number }>;
+  discoverySources: Array<{ source: string; count: number; fill: string }>;
+  crashesByVersion: Array<{ version: string; platform: string; crashes: number; uniqueDevices: number }>;
+  crashesByDevice: Array<{ device: string; crashes: number; uniqueDevices: number }>;
+}
 
 interface AscReportRequest {
   id: string;

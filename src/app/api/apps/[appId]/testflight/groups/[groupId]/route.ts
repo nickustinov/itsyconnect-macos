@@ -3,7 +3,6 @@ import { errorJson } from "@/lib/api-helpers";
 import { getGroupDetail, deleteGroup } from "@/lib/asc/testflight";
 import { hasCredentials } from "@/lib/asc/client";
 import { cacheGetMeta } from "@/lib/cache";
-import { getMockGroupDetail } from "@/lib/mock-testflight";
 
 export async function GET(
   request: Request,
@@ -16,11 +15,7 @@ export async function GET(
   void appId; // groupId is sufficient for fetching
 
   if (!hasCredentials()) {
-    const detail = getMockGroupDetail(groupId);
-    if (!detail) {
-      return NextResponse.json({ error: "Group not found" }, { status: 404 });
-    }
-    return NextResponse.json({ ...detail, meta: null });
+    return NextResponse.json({ error: "No ASC credentials" }, { status: 400 });
   }
 
   try {

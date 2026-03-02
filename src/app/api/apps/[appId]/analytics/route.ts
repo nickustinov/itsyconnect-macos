@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { hasCredentials } from "@/lib/asc/client";
 import { cacheGet, cacheGetMeta } from "@/lib/cache";
-import { getMockAnalyticsData } from "@/lib/mock-analytics";
-import type { AnalyticsData } from "@/lib/mock-analytics";
+import type { AnalyticsData } from "@/lib/asc/analytics";
 
 export async function GET(
   request: Request,
@@ -11,7 +10,7 @@ export async function GET(
   const { appId } = await params;
 
   if (!hasCredentials()) {
-    return NextResponse.json({ data: getMockAnalyticsData(appId), meta: null });
+    return NextResponse.json({ data: null, meta: null });
   }
 
   const data = cacheGet<AnalyticsData>(`analytics:${appId}`, true);

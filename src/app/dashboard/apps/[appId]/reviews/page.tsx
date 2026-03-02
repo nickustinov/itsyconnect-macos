@@ -41,7 +41,6 @@ import { useRegisterRefresh } from "@/lib/refresh-context";
 import { useAIStatus } from "@/lib/hooks/use-ai-status";
 import { AIRequiredDialog } from "@/components/ai-required-dialog";
 import type { AscCustomerReview } from "@/lib/asc/reviews";
-import type { MockReview } from "@/lib/mock-reviews";
 import { EmptyState } from "@/components/empty-state";
 
 // ── Territory helpers ──────────────────────────────────────────────
@@ -131,26 +130,6 @@ function normaliseAscReview(r: AscCustomerReview): Review {
           responseBody: r.response.attributes.responseBody,
           lastModifiedDate: r.response.attributes.lastModifiedDate,
           state: r.response.attributes.state,
-        }
-      : undefined,
-  };
-}
-
-function normaliseMockReview(r: MockReview): Review {
-  return {
-    id: r.id,
-    rating: r.rating,
-    title: r.title,
-    body: r.body,
-    reviewerNickname: r.reviewerNickname,
-    territory: r.territory,
-    createdDate: r.createdDate,
-    response: r.response
-      ? {
-          id: r.response.id,
-          responseBody: r.response.responseBody,
-          lastModifiedDate: r.response.lastModifiedDate,
-          state: r.response.state,
         }
       : undefined,
   };
@@ -267,11 +246,9 @@ export default function ReviewsPage() {
         throw new Error(data.error ?? `Failed to fetch reviews (${res.status})`);
       }
       const data = await res.json();
-      // Normalise: API returns either ASC reviews or mock reviews
-      const normalised: Review[] = data.reviews.map((r: AscCustomerReview | MockReview) => {
-        if ("attributes" in r) return normaliseAscReview(r as AscCustomerReview);
-        return normaliseMockReview(r as MockReview);
-      });
+      const normalised: Review[] = data.reviews.map((r: AscCustomerReview) =>
+        normaliseAscReview(r),
+      );
       setReviews(normalised);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch reviews");

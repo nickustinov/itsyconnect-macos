@@ -19,10 +19,6 @@ const HeaderRefreshButton = dynamic(
   () => import("@/components/layout/header-version-picker").then(m => ({ default: m.HeaderRefreshButton })),
   { ssr: false },
 );
-const HeaderBuildsPicker = dynamic(
-  () => import("@/components/layout/header-builds-picker").then(m => ({ default: m.HeaderBuildsPicker })),
-  { ssr: false },
-);
 const HeaderLocalePicker = dynamic(
   () => import("@/components/layout/header-locale-picker").then(m => ({ default: m.HeaderLocalePicker })),
   { ssr: false },
@@ -115,9 +111,6 @@ export default function DashboardLayout({
               <div className="no-drag ml-auto flex items-center gap-2">
                 <Suspense>
                   <HeaderVersionActions />
-                </Suspense>
-                <Suspense>
-                  <HeaderBuildsPicker />
                 </Suspense>
                 <Suspense>
                   <HeaderRefreshButton />

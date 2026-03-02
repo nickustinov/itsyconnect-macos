@@ -10,7 +10,6 @@ import {
   sendBetaTesterInvitations,
 } from "@/lib/asc/testflight";
 import { hasCredentials } from "@/lib/asc/client";
-import { getMockBuildTesters } from "@/lib/mock-testflight";
 
 export async function GET(
   request: Request,
@@ -21,8 +20,7 @@ export async function GET(
   const scope = url.searchParams.get("scope");
 
   if (!hasCredentials()) {
-    const testers = getMockBuildTesters(buildId);
-    return NextResponse.json({ testers });
+    return NextResponse.json({ testers: [] });
   }
 
   try {

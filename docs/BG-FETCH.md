@@ -70,7 +70,7 @@ Raw TSV rows are aggregated into the `AnalyticsData` shape (daily downloads, rev
 
 The API route reads directly from the cache. It never calls `buildAnalyticsData()` or any analytics function:
 
-1. **No credentials** – returns mock data (demo mode).
+1. **No credentials** – returns `{ data: null }`.
 2. **Cache hit** – returns data and cache metadata. Uses `ignoreStale` so even expired cache entries are served (the bg worker will refresh them).
 3. **Cache miss** – returns `{ pending: true }`. The background worker hasn't fetched this app yet.
 

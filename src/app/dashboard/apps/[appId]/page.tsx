@@ -38,7 +38,8 @@ import {
   ChartLegendContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import { type AnalyticsData, formatDate } from "@/lib/mock-analytics";
+import type { AnalyticsData } from "@/lib/asc/analytics";
+import { formatDateShort } from "@/lib/format";
 
 // ---------- Constants ----------
 
@@ -280,14 +281,14 @@ export default function AppOverviewPage() {
                         tickLine={false}
                         axisLine={false}
                         tickMargin={8}
-                        tickFormatter={formatDate}
+                        tickFormatter={formatDateShort}
                         interval="preserveStartEnd"
                       />
                       <YAxis tickLine={false} axisLine={false} width={40} />
                       <ChartTooltip
                         content={
                           <ChartTooltipContent
-                            labelFormatter={(v) => formatDate(v as string)}
+                            labelFormatter={(v) => formatDateShort(v as string)}
                           />
                         }
                       />
@@ -328,7 +329,7 @@ export default function AppOverviewPage() {
                         tickLine={false}
                         axisLine={false}
                         tickMargin={8}
-                        tickFormatter={formatDate}
+                        tickFormatter={formatDateShort}
                         interval="preserveStartEnd"
                       />
                       <YAxis
@@ -340,7 +341,7 @@ export default function AppOverviewPage() {
                       <ChartTooltip
                         content={
                           <ChartTooltipContent
-                            labelFormatter={(v) => formatDate(v as string)}
+                            labelFormatter={(v) => formatDateShort(v as string)}
                             formatter={(value) => (
                               <div className="flex flex-1 items-center justify-between gap-2 leading-none">
                                 <span className="text-muted-foreground">Proceeds</span>

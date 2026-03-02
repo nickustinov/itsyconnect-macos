@@ -3,7 +3,6 @@ import { z } from "zod";
 import { listCustomerReviews, createReviewResponse, deleteReviewResponse, invalidateReviewsCache } from "@/lib/asc/reviews";
 import { hasCredentials } from "@/lib/asc/client";
 import { cacheGetMeta } from "@/lib/cache";
-import { getMockCustomerReviews } from "@/lib/mock-reviews";
 import { errorJson } from "@/lib/api-helpers";
 
 const SORT_MAP: Record<string, "-createdDate" | "createdDate" | "-rating" | "rating"> = {
@@ -27,9 +26,7 @@ export async function GET(
   const forceRefresh = url.searchParams.get("refresh") === "1";
 
   if (!hasCredentials()) {
-    // Demo mode: return mock data
-    const mockReviews = getMockCustomerReviews(appId);
-    return NextResponse.json({ reviews: mockReviews, meta: null });
+    return NextResponse.json({ reviews: [], meta: null });
   }
 
   try {

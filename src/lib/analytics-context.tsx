@@ -10,7 +10,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { AnalyticsData } from "@/lib/mock-analytics";
+import type { AnalyticsData } from "@/lib/asc/analytics";
 import { useRegisterRefresh } from "@/lib/refresh-context";
 
 interface AnalyticsState {

@@ -22,7 +22,7 @@ import {
   ChartLegendContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import { formatDate } from "@/lib/mock-analytics";
+import { formatDateShort } from "@/lib/format";
 import { useAnalytics } from "@/lib/analytics-context";
 import { parseRange, filterByDateRange } from "@/lib/analytics-range";
 import { Spinner } from "@/components/ui/spinner";
@@ -169,14 +169,14 @@ export default function UsagePage() {
                   tickLine={false}
                   axisLine={false}
                   tickMargin={8}
-                  tickFormatter={formatDate}
+                  tickFormatter={formatDateShort}
                   interval="preserveStartEnd"
                 />
                 <YAxis tickLine={false} axisLine={false} width={40} />
                 <ChartTooltip
                   content={
                     <ChartTooltipContent
-                      labelFormatter={(v) => formatDate(v as string)}
+                      labelFormatter={(v) => formatDateShort(v as string)}
                     />
                   }
                 />
@@ -219,7 +219,7 @@ export default function UsagePage() {
                   tickLine={false}
                   axisLine={false}
                   tickMargin={8}
-                  tickFormatter={formatDate}
+                  tickFormatter={formatDateShort}
                   interval="preserveStartEnd"
                 />
                 <YAxis
@@ -231,7 +231,7 @@ export default function UsagePage() {
                 <ChartTooltip
                   content={
                     <ChartTooltipContent
-                      labelFormatter={(v) => formatDate(v as string)}
+                      labelFormatter={(v) => formatDateShort(v as string)}
                       formatter={(value) => (
                         <span className="font-mono font-medium tabular-nums">
                           {value}s
@@ -273,14 +273,14 @@ export default function UsagePage() {
                   tickLine={false}
                   axisLine={false}
                   tickMargin={8}
-                  tickFormatter={formatDate}
+                  tickFormatter={formatDateShort}
                   interval="preserveStartEnd"
                 />
                 <YAxis tickLine={false} axisLine={false} width={40} />
                 <ChartTooltip
                   content={
                     <ChartTooltipContent
-                      labelFormatter={(v) => formatDate(v as string)}
+                      labelFormatter={(v) => formatDateShort(v as string)}
                     />
                   }
                 />
@@ -323,14 +323,14 @@ export default function UsagePage() {
                   tickLine={false}
                   axisLine={false}
                   tickMargin={8}
-                  tickFormatter={formatDate}
+                  tickFormatter={formatDateShort}
                   interval="preserveStartEnd"
                 />
                 <YAxis tickLine={false} axisLine={false} width={30} />
                 <ChartTooltip
                   content={
                     <ChartTooltipContent
-                      labelFormatter={(v) => formatDate(v as string)}
+                      labelFormatter={(v) => formatDateShort(v as string)}
                     />
                   }
                 />
@@ -375,14 +375,14 @@ export default function UsagePage() {
                   tickLine={false}
                   axisLine={false}
                   tickMargin={8}
-                  tickFormatter={formatDate}
+                  tickFormatter={formatDateShort}
                   interval="preserveStartEnd"
                 />
                 <YAxis tickLine={false} axisLine={false} width={30} />
                 <ChartTooltip
                   content={
                     <ChartTooltipContent
-                      labelFormatter={(v) => formatDate(v as string)}
+                      labelFormatter={(v) => formatDateShort(v as string)}
                     />
                   }
                 />

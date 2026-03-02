@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/breadcrumb";
 import { useApps } from "@/lib/apps-context";
 import { useBreadcrumbTitle } from "@/lib/breadcrumb-context";
-import { getTFBuild, getGroup } from "@/lib/mock-testflight";
 
 const PAGE_TITLES: Record<string, string> = {
   "store-listing": "Store listing",
@@ -60,7 +59,7 @@ export function DashboardBreadcrumb() {
 
     // /testflight/groups/[groupId]
     if (tfSub === "groups" && tfDetail) {
-      const groupName = dynamicTitle ?? getGroup(tfDetail)?.name ?? "Group";
+      const groupName = dynamicTitle ?? "Group";
       return (
         <>
           <BreadcrumbSeparator className="hidden md:block" />
@@ -105,8 +104,7 @@ export function DashboardBreadcrumb() {
 
     // /testflight/[buildId]
     if (tfSub && !(tfSub in TF_SUB_TITLES)) {
-      const build = getTFBuild(tfSub);
-      const buildLabel = dynamicTitle ?? (build ? `Build ${build.buildNumber}` : "Build");
+      const buildLabel = dynamicTitle ?? "Build";
       const qs = searchParams.toString();
       const buildsHref = qs ? `${tfBase}?${qs}` : tfBase;
       return (

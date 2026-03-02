@@ -3,7 +3,6 @@ import { z } from "zod";
 import { errorJson } from "@/lib/api-helpers";
 import { listBuilds, updateBetaBuildLocalization } from "@/lib/asc/testflight";
 import { hasCredentials } from "@/lib/asc/client";
-import { getMockTFBuilds } from "@/lib/mock-testflight";
 
 export async function GET(
   request: Request,
@@ -14,12 +13,7 @@ export async function GET(
   const forceRefresh = url.searchParams.get("refresh") === "1";
 
   if (!hasCredentials()) {
-    const builds = getMockTFBuilds(appId);
-    const build = builds.find((b) => b.id === buildId);
-    if (!build) {
-      return NextResponse.json({ error: "Build not found" }, { status: 404 });
-    }
-    return NextResponse.json({ build, meta: null });
+    return NextResponse.json({ error: "No ASC credentials" }, { status: 400 });
   }
 
   try {

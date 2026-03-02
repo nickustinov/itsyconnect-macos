@@ -126,7 +126,9 @@ describe("ascFetch", () => {
       text: async () => "Unauthorized",
     });
 
-    await expect(ascFetch("/v1/apps")).rejects.toThrow("ASC API 401");
+    await expect(ascFetch("/v1/apps")).rejects.toThrow(
+      "API key may be invalid or expired",
+    );
   });
 
   it("handles response.text() throwing on error", async () => {
@@ -137,7 +139,9 @@ describe("ascFetch", () => {
       text: () => Promise.reject(new Error("body read failed")),
     });
 
-    await expect(ascFetch("/v1/apps")).rejects.toThrow("ASC API 500");
+    await expect(ascFetch("/v1/apps")).rejects.toThrow(
+      "App Store Connect is temporarily unavailable",
+    );
   });
 
   it("returns null for 204 no-content responses", async () => {

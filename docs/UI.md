@@ -213,7 +213,7 @@ Version-scoped pages (store listing, screenshots, app review) show a `<HeaderVer
 - "New version" button (outline) – also shown on the overview page
 - "Save" button (primary, rightmost) – only on editable versions
 
-The selected version is stored in the URL via `?version=` search param. Pages read it with `resolveVersion(appId, searchParams.get("version"))` from `mock-data.ts` instead of local state. When the header picker changes the version, the URL updates and the page re-renders.
+The selected version is stored in the URL via `?version=` search param. Pages read it with `resolveVersion(versions, searchParams.get("version"))` from `src/lib/asc/version-types.ts` instead of local state. When the header picker changes the version, the URL updates and the page re-renders.
 
 ## Electron drag regions
 

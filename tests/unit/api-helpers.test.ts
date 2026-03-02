@@ -161,7 +161,9 @@ describe("api-helpers", () => {
 
       expect(res.status).toBe(207);
       expect(body.ok).toBe(false);
-      expect(body.errors).toEqual(["Update en-US: API down"]);
+      expect(body.errors).toEqual([
+        { operation: "update", locale: "en-US", message: "API down" },
+      ]);
       expect(mutations.invalidateCache).toHaveBeenCalled();
     });
 
@@ -177,7 +179,9 @@ describe("api-helpers", () => {
       const body = await res.json();
 
       expect(res.status).toBe(207);
-      expect(body.errors).toEqual(["Delete en-US: failed"]);
+      expect(body.errors).toEqual([
+        { operation: "delete", locale: "en-US", message: "failed" },
+      ]);
     });
 
     it("uses 'failed' fallback for non-Error create rejections", async () => {
@@ -192,7 +196,9 @@ describe("api-helpers", () => {
       const body = await res.json();
 
       expect(res.status).toBe(207);
-      expect(body.errors).toEqual(["Create fr-FR: failed"]);
+      expect(body.errors).toEqual([
+        { operation: "create", locale: "fr-FR", message: "failed" },
+      ]);
     });
 
     it("uses 'failed' fallback for non-Error update rejections", async () => {
@@ -207,7 +213,9 @@ describe("api-helpers", () => {
       const body = await res.json();
 
       expect(res.status).toBe(207);
-      expect(body.errors).toEqual(["Update en-US: failed"]);
+      expect(body.errors).toEqual([
+        { operation: "update", locale: "en-US", message: "failed" },
+      ]);
     });
 
     it("extracts message from Error on create failure", async () => {
@@ -222,7 +230,9 @@ describe("api-helpers", () => {
       const body = await res.json();
 
       expect(res.status).toBe(207);
-      expect(body.errors).toEqual(["Create fr-FR: quota exceeded"]);
+      expect(body.errors).toEqual([
+        { operation: "create", locale: "fr-FR", message: "quota exceeded" },
+      ]);
     });
 
     it("extracts message from Error on delete failure", async () => {
@@ -237,7 +247,9 @@ describe("api-helpers", () => {
       const body = await res.json();
 
       expect(res.status).toBe(207);
-      expect(body.errors).toEqual(["Delete de-DE: forbidden"]);
+      expect(body.errors).toEqual([
+        { operation: "delete", locale: "de-DE", message: "forbidden" },
+      ]);
     });
   });
 });
