@@ -27,7 +27,51 @@ export interface TFBuild {
   installs: number;
   sessions: number;
   crashes: number;
+  invites: number;
+  feedbackCount: number;
 }
+
+// ── Diagnostic types ──────────────────────────────────────────────
+
+export type TFDiagnosticType = "DISK_WRITES" | "HANGS" | "LAUNCHES";
+
+export interface TFDiagnosticSignature {
+  id: string;
+  diagnosticType: TFDiagnosticType;
+  signature: string;
+  weight: number;
+}
+
+export interface TFCallStackFrame {
+  symbolName: string;
+  binaryName: string;
+  fileName: string | null;
+  lineNumber: number | null;
+  address: string | null;
+  isBlameFrame: boolean;
+  sampleCount: number;
+  subFrames?: TFCallStackFrame[];
+}
+
+export interface TFDiagnosticInsight {
+  category: string;
+  description: string;
+  url: string | null;
+}
+
+export interface TFDiagnosticLog {
+  metadata: Record<string, string>;
+  callStack: TFCallStackFrame[];
+  insights: TFDiagnosticInsight[];
+}
+
+export const DIAGNOSTICS_TTL = 15 * 60 * 1000; // 15 min
+
+export const DIAGNOSTIC_TYPE_LABELS: Record<TFDiagnosticType, string> = {
+  DISK_WRITES: "Disk writes",
+  HANGS: "Hangs",
+  LAUNCHES: "Launches",
+};
 
 export interface TFGroup {
   id: string;

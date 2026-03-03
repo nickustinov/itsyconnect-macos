@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useParams, usePathname, useSearchParams } from "next/navigation";
-import { CheckCircle, Circle } from "@phosphor-icons/react";
+import { CheckCircle, Circle, WarningCircle } from "@phosphor-icons/react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,7 +18,9 @@ import {
 import { toast } from "sonner";
 import { apiFetch, ApiError } from "@/lib/api-fetch";
 import { useVersions } from "@/lib/versions-context";
-import { useSubmissionChecklist } from "@/lib/submission-checklist-context";
+import { useSubmissionChecklist, type FieldStatus } from "@/lib/submission-checklist-context";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+import { localeName } from "@/lib/asc/locale-names";
 import { useFormDirty } from "@/lib/form-dirty-context";
 import { useErrorReport } from "@/lib/error-report-context";
 import type { AscErrorReportData } from "@/components/error-report-dialog";
@@ -39,6 +41,31 @@ function getPageSegment(pathname: string): string {
   return parts[parts.length - 1] ?? "";
 }
 
+function ChecklistIcon({ status, localesWithIssues }: { status: FieldStatus; localesWithIssues?: string[] }) {
+  if (status === "ok") {
+    return <CheckCircle size={14} weight="fill" className="text-green-500/70" />;
+  }
+  if (status === "warn" && localesWithIssues?.length) {
+    const n = localesWithIssues.length;
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="inline-flex">
+            <WarningCircle size={14} weight="fill" className="text-amber-500" />
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="top">
+          <p className="mb-2">Missing in {n} locale{n > 1 ? "s" : ""}:</p>
+          {localesWithIssues.map((l) => (
+            <p key={l}>{localeName(l)}</p>
+          ))}
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+  return <Circle size={14} />;
+}
+
 function SubmissionChecklist({ version }: { version: AscVersion }) {
   const { flags } = useSubmissionChecklist();
 
@@ -46,28 +73,28 @@ function SubmissionChecklist({ version }: { version: AscVersion }) {
   const rd = version.reviewDetail?.attributes;
   const hasContact = !!(rd?.contactEmail && rd?.contactFirstName && rd?.contactLastName && rd?.contactPhone);
 
-  const items = [
-    { label: "Build", done: hasBuild },
-    { label: "Description", done: flags.hasDescription },
-    { label: "What's new", done: flags.hasWhatsNew },
-    { label: "Keywords", done: flags.hasKeywords },
-    { label: "Review contact", done: hasContact },
+  const items: { label: string; status: FieldStatus; localesWithIssues?: string[] }[] = [
+    { label: "Build", status: hasBuild ? "ok" : "missing" },
+    { label: "Description", status: flags.description.status, localesWithIssues: flags.description.localesWithIssues },
+    { label: "What's new", status: flags.whatsNew.status, localesWithIssues: flags.whatsNew.localesWithIssues },
+    { label: "Keywords", status: flags.keywords.status, localesWithIssues: flags.keywords.localesWithIssues },
+    { label: "Review contact", status: hasContact ? "ok" : "missing" },
   ];
 
   return (
-    <div className="flex items-center gap-3.5">
-      {items.map((item) => (
-        <span
-          key={item.label}
-          className={`flex items-center gap-1.5 text-xs ${item.done ? "text-muted-foreground" : "text-muted-foreground/60"}`}
-        >
-          {item.done
-            ? <CheckCircle size={14} weight="fill" className="text-green-500/70" />
-            : <Circle size={14} />}
-          {item.label}
-        </span>
-      ))}
-    </div>
+    <TooltipProvider>
+      <div className="flex items-center gap-3.5">
+        {items.map((item) => (
+          <span
+            key={item.label}
+            className={`flex items-center gap-1.5 text-xs ${item.status === "ok" ? "text-muted-foreground" : "text-muted-foreground/60"}`}
+          >
+            <ChecklistIcon status={item.status} localesWithIssues={item.localesWithIssues} />
+            {item.label}
+          </span>
+        ))}
+      </div>
+    </TooltipProvider>
   );
 }
 
@@ -76,7 +103,11 @@ function useChecklistReady(version: AscVersion): boolean {
   const hasBuild = version.build !== null;
   const rd = version.reviewDetail?.attributes;
   const hasContact = !!(rd?.contactEmail && rd?.contactFirstName && rd?.contactLastName && rd?.contactPhone);
-  return hasBuild && flags.hasDescription && flags.hasWhatsNew && flags.hasKeywords && hasContact;
+  return hasBuild
+    && flags.description.status === "ok"
+    && flags.whatsNew.status === "ok"
+    && flags.keywords.status === "ok"
+    && hasContact;
 }
 
 export function VersionActionFooter() {

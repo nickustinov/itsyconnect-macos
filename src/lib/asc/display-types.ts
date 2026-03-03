@@ -263,6 +263,12 @@ export const BUILD_STATUS_DOTS: Record<string, string> = {
   "Processing exception": "bg-red-500",
 };
 
+export const DIAGNOSTIC_TYPE_DOTS: Record<string, string> = {
+  DISK_WRITES: "bg-amber-500",
+  HANGS: "bg-red-500",
+  LAUNCHES: "bg-blue-500",
+};
+
 export const TESTER_STATUS_DOTS: Record<string, string> = {
   INSTALLED: "bg-green-500",
   ACCEPTED: "bg-yellow-500",

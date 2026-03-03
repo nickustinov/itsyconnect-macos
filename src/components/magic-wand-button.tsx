@@ -8,13 +8,23 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Spinner } from "@/components/ui/spinner";
 import { useAIStatus } from "@/lib/hooks/use-ai-status";
 import { localeName } from "@/lib/asc/locale-names";
+import { PLATFORM_LABELS } from "@/lib/asc/version-types";
 import { AIRequiredDialog } from "./ai-required-dialog";
 import { AICompareDialog } from "./ai-compare-dialog";
+
+export interface CopyFromVersion {
+  versionId: string;
+  versionString: string;
+  platform: string;
+}
 
 interface MagicWandButtonProps {
   value: string;
@@ -32,6 +42,10 @@ interface MagicWandButtonProps {
   otherLocaleKeywords?: Record<string, string>;
   /** Callback to open the "translate to all languages" dialog for this field. */
   onTranslateAll?: () => void;
+  /** Other versions available to copy this field from. */
+  copyFromVersions?: CopyFromVersion[];
+  /** Callback when the user picks a version to copy from. */
+  onCopyFromVersion?: (versionId: string) => void;
 }
 
 /** Shared locale props for all MagicWandButtons on a page. */
@@ -41,6 +55,8 @@ export interface MagicWandLocaleProps {
   /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
   localeData: Record<string, any>;
   appName?: string;
+  copyFromVersions?: CopyFromVersion[];
+  onCopyFromVersion?: (field: string, versionId: string) => void;
 }
 
 /**
@@ -51,13 +67,17 @@ export interface MagicWandLocaleProps {
 export function wandProps(
   shared: MagicWandLocaleProps,
   field: string,
-): Pick<MagicWandButtonProps, "field" | "locale" | "baseLocale" | "baseValue" | "appName" | "description" | "otherLocaleKeywords"> {
-  const base: Pick<MagicWandButtonProps, "field" | "locale" | "baseLocale" | "baseValue" | "appName"> = {
+): Pick<MagicWandButtonProps, "field" | "locale" | "baseLocale" | "baseValue" | "appName" | "description" | "otherLocaleKeywords" | "copyFromVersions" | "onCopyFromVersion"> {
+  const base: Pick<MagicWandButtonProps, "field" | "locale" | "baseLocale" | "baseValue" | "appName" | "copyFromVersions" | "onCopyFromVersion"> = {
     field,
     locale: shared.locale,
     baseLocale: shared.baseLocale,
     baseValue: shared.localeData[shared.baseLocale]?.[field] ?? "",
     appName: shared.appName,
+    copyFromVersions: shared.copyFromVersions,
+    onCopyFromVersion: shared.onCopyFromVersion
+      ? (versionId: string) => shared.onCopyFromVersion!(field, versionId)
+      : undefined,
   };
 
   if (field !== "keywords") return base;
@@ -95,8 +115,11 @@ export function MagicWandButton({
   description,
   otherLocaleKeywords,
   onTranslateAll,
+  copyFromVersions,
+  onCopyFromVersion,
 }: MagicWandButtonProps) {
   const { configured } = useAIStatus();
+  const [menuOpen, setMenuOpen] = useState(false);
   const [showRequired, setShowRequired] = useState(false);
   const [compare, setCompare] = useState<CompareState | null>(null);
   const [translating, setTranslating] = useState(false);
@@ -224,7 +247,8 @@ export function MagicWandButton({
   const hasTranslateActions = !isBaseLocale && !isKeywords;
   const hasImproveAction = isBaseLocale && !isKeywords;
   const hasTranslateAllAction = !!onTranslateAll;
-  const hasAnyAction = hasKeywordActions || hasTranslateActions || hasImproveAction || hasTranslateAllAction;
+  const hasCopyFromVersionAction = (copyFromVersions?.length ?? 0) > 0 && !!onCopyFromVersion;
+  const hasAnyAction = hasKeywordActions || hasTranslateActions || hasImproveAction || hasTranslateAllAction || hasCopyFromVersionAction;
 
   // Memoize apiBody to avoid re-triggering the dialog's useEffect
   const compareApiBody = useMemo(() => compare?.apiBody, [compare]);
@@ -233,7 +257,7 @@ export function MagicWandButton({
 
   return (
     <>
-      <DropdownMenu>
+      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
@@ -279,6 +303,18 @@ export function MagicWandButton({
               Improve…
             </DropdownMenuItem>
           )}
+          {hasCopyFromVersionAction && (
+            <>
+              <DropdownMenuSeparator />
+              <CopyFromVersionSubMenu
+                versions={copyFromVersions!}
+                onSelect={(versionId) => {
+                  setMenuOpen(false);
+                  onCopyFromVersion!(versionId);
+                }}
+              />
+            </>
+          )}
           {hasTranslateAllAction && (
             <>
               {!isBaseLocale && <DropdownMenuSeparator />}
@@ -311,5 +347,52 @@ export function MagicWandButton({
         onApply={onChange}
       />
     </>
+  );
+}
+
+function CopyFromVersionSubMenu({
+  versions,
+  onSelect,
+}: {
+  versions: CopyFromVersion[];
+  onSelect: (versionId: string) => void;
+}) {
+  const platforms = [...new Set(versions.map((v) => v.platform))];
+  const multiPlatform = platforms.length > 1;
+
+  return (
+    <DropdownMenuSub>
+      <DropdownMenuSubTrigger>Copy from version</DropdownMenuSubTrigger>
+      <DropdownMenuSubContent>
+        {multiPlatform
+          ? platforms.map((platform) => (
+              <DropdownMenuSub key={platform}>
+                <DropdownMenuSubTrigger>
+                  {PLATFORM_LABELS[platform] ?? platform}
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  {versions
+                    .filter((v) => v.platform === platform)
+                    .map((v) => (
+                      <DropdownMenuItem
+                        key={v.versionId}
+                        onSelect={() => onSelect(v.versionId)}
+                      >
+                        {v.versionString}
+                      </DropdownMenuItem>
+                    ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+            ))
+          : versions.map((v) => (
+              <DropdownMenuItem
+                key={v.versionId}
+                onSelect={() => onSelect(v.versionId)}
+              >
+                {v.versionString}
+              </DropdownMenuItem>
+            ))}
+      </DropdownMenuSubContent>
+    </DropdownMenuSub>
   );
 }

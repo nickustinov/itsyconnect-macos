@@ -340,6 +340,8 @@ export default function TestFlightBuildsPage() {
                 <TableHead className="text-right">Installs</TableHead>
                 <TableHead className="text-right">Sessions</TableHead>
                 <TableHead className="text-right">Crashes</TableHead>
+                <TableHead className="text-right">Invites</TableHead>
+                <TableHead className="text-right">Feedback</TableHead>
                 <TableHead className="text-right">Uploaded</TableHead>
               </TableRow>
             </TableHeader>
@@ -418,13 +420,19 @@ export default function TestFlightBuildsPage() {
                       )}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {build.expired ? "–" : build.installs > 0 ? build.installs : "–"}
+                      {build.installs > 0 ? build.installs : "–"}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {build.expired ? "–" : build.sessions > 0 ? build.sessions : "–"}
+                      {build.sessions > 0 ? build.sessions : "–"}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {build.expired ? "–" : build.crashes > 0 ? build.crashes : "–"}
+                      {build.crashes > 0 ? build.crashes : "–"}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {build.invites > 0 ? build.invites : "–"}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {build.feedbackCount > 0 ? build.feedbackCount : "–"}
                     </TableCell>
                     <TableCell className="text-right tabular-nums text-muted-foreground">
                       {formatDate(build.uploadedDate)}

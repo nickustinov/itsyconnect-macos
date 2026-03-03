@@ -9,6 +9,11 @@ export type {
   TFGroupDetail,
   TFFeedbackItem,
   TFScreenshotImage,
+  TFDiagnosticType,
+  TFDiagnosticSignature,
+  TFDiagnosticLog,
+  TFCallStackFrame,
+  TFDiagnosticInsight,
 } from "./types";
 
 export {
@@ -43,6 +48,7 @@ export {
 } from "./info";
 export { listFeedback, getFeedbackCrashLog, deleteFeedbackItem } from "./feedback";
 export { listPreReleaseVersions } from "./pre-release-versions";
+export { listDiagnosticSignatures, getDiagnosticLogs } from "./diagnostics";
 
 // ── Cache invalidation (touches caches across domains) ───────────
 

@@ -131,12 +131,12 @@ function mockGroupBuildsResponse(buildIds: string[]) {
   };
 }
 
-function mockMetricsResponse(installs: number, sessions: number, crashes: number) {
+function mockMetricsResponse(installs: number, sessions: number, crashes: number, invites = 0, feedbackCount = 0) {
   return {
     data: [
       {
         dataPoints: [
-          { values: { installCount: installs, sessionCount: sessions, crashCount: crashes } },
+          { values: { installCount: installs, sessionCount: sessions, crashCount: crashes, inviteCount: invites, feedbackCount } },
         ],
       },
     ],
@@ -212,7 +212,7 @@ describe("listBuilds", () => {
       }
       // Metrics – only build-1 is VALID
       if (url.includes("/v1/builds/build-1/metrics/betaBuildUsages")) {
-        return Promise.resolve(mockMetricsResponse(10, 25, 2));
+        return Promise.resolve(mockMetricsResponse(10, 25, 2, 5, 3));
       }
       return Promise.resolve({ data: [] });
     });
@@ -241,6 +241,8 @@ describe("listBuilds", () => {
     expect(b1.installs).toBe(10);
     expect(b1.sessions).toBe(25);
     expect(b1.crashes).toBe(2);
+    expect(b1.invites).toBe(5);
+    expect(b1.feedbackCount).toBe(3);
 
     // Build 2 – PROCESSING, no whatsNew, no metrics
     const b2 = result[1];
@@ -253,6 +255,8 @@ describe("listBuilds", () => {
     expect(b2.installs).toBe(0);
     expect(b2.sessions).toBe(0);
     expect(b2.crashes).toBe(0);
+    expect(b2.invites).toBe(0);
+    expect(b2.feedbackCount).toBe(0);
 
     // Should cache the result
     expect(mockCacheSet).toHaveBeenCalledWith("tf-builds:app-1", result, BUILDS_TTL);
@@ -384,8 +388,8 @@ describe("fetchBuildMetrics", () => {
     const result = await fetchBuildMetrics(["build-1", "build-2"]);
 
     expect(result.size).toBe(2);
-    expect(result.get("build-1")).toEqual({ installs: 10, sessions: 20, crashes: 3 });
-    expect(result.get("build-2")).toEqual({ installs: 5, sessions: 8, crashes: 0 });
+    expect(result.get("build-1")).toEqual({ installs: 10, sessions: 20, crashes: 3, invites: 0, feedbackCount: 0 });
+    expect(result.get("build-2")).toEqual({ installs: 5, sessions: 8, crashes: 0, invites: 0, feedbackCount: 0 });
   });
 
   it("aggregates multiple data points", async () => {
@@ -393,20 +397,20 @@ describe("fetchBuildMetrics", () => {
       data: [
         {
           dataPoints: [
-            { values: { installCount: 5, sessionCount: 10, crashCount: 1 } },
-            { values: { installCount: 3, sessionCount: 7, crashCount: 2 } },
+            { values: { installCount: 5, sessionCount: 10, crashCount: 1, inviteCount: 2, feedbackCount: 1 } },
+            { values: { installCount: 3, sessionCount: 7, crashCount: 2, inviteCount: 1, feedbackCount: 0 } },
           ],
         },
         {
           dataPoints: [
-            { values: { installCount: 2, sessionCount: 3, crashCount: 0 } },
+            { values: { installCount: 2, sessionCount: 3, crashCount: 0, inviteCount: 0, feedbackCount: 1 } },
           ],
         },
       ],
     });
 
     const result = await fetchBuildMetrics(["build-1"]);
-    expect(result.get("build-1")).toEqual({ installs: 10, sessions: 20, crashes: 3 });
+    expect(result.get("build-1")).toEqual({ installs: 10, sessions: 20, crashes: 3, invites: 3, feedbackCount: 2 });
   });
 
   it("fails silently and returns zero metrics on error", async () => {
@@ -416,7 +420,7 @@ describe("fetchBuildMetrics", () => {
     const result = await fetchBuildMetrics(["build-1"]);
 
     expect(result.size).toBe(1);
-    expect(result.get("build-1")).toEqual({ installs: 0, sessions: 0, crashes: 0 });
+    expect(result.get("build-1")).toEqual({ installs: 0, sessions: 0, crashes: 0, invites: 0, feedbackCount: 0 });
     consoleSpy.mockRestore();
   });
 
@@ -448,7 +452,7 @@ describe("fetchBuildMetrics", () => {
     });
 
     const result = await fetchBuildMetrics(["build-1"]);
-    expect(result.get("build-1")).toEqual({ installs: 5, sessions: 0, crashes: 0 });
+    expect(result.get("build-1")).toEqual({ installs: 5, sessions: 0, crashes: 0, invites: 0, feedbackCount: 0 });
   });
 
   it("logs warning when allSettled result is rejected (line 180)", async () => {
@@ -882,7 +886,7 @@ describe("fetchBuildMetrics – branch coverage", () => {
     });
 
     const result = await fetchBuildMetrics(["build-1"]);
-    expect(result.get("build-1")).toEqual({ installs: 0, sessions: 0, crashes: 0 });
+    expect(result.get("build-1")).toEqual({ installs: 0, sessions: 0, crashes: 0, invites: 0, feedbackCount: 0 });
   });
 
   it("treats non-array item.dataPoints as empty array (line 158 branch 1)", async () => {
@@ -893,7 +897,7 @@ describe("fetchBuildMetrics – branch coverage", () => {
     });
 
     const result = await fetchBuildMetrics(["build-1"]);
-    expect(result.get("build-1")).toEqual({ installs: 0, sessions: 0, crashes: 0 });
+    expect(result.get("build-1")).toEqual({ installs: 0, sessions: 0, crashes: 0, invites: 0, feedbackCount: 0 });
   });
 
   it("skips data points with undefined values (line 161 branch 1)", async () => {
@@ -911,7 +915,7 @@ describe("fetchBuildMetrics – branch coverage", () => {
 
     const result = await fetchBuildMetrics(["build-1"]);
     // Only the second data point should be counted
-    expect(result.get("build-1")).toEqual({ installs: 5, sessions: 3, crashes: 1 });
+    expect(result.get("build-1")).toEqual({ installs: 5, sessions: 3, crashes: 1, invites: 0, feedbackCount: 0 });
   });
 
   it("falls back to 0 when individual metric counts are undefined (line 162 branch 1)", async () => {
@@ -927,6 +931,6 @@ describe("fetchBuildMetrics – branch coverage", () => {
     });
 
     const result = await fetchBuildMetrics(["build-1"]);
-    expect(result.get("build-1")).toEqual({ installs: 0, sessions: 0, crashes: 0 });
+    expect(result.get("build-1")).toEqual({ installs: 0, sessions: 0, crashes: 0, invites: 0, feedbackCount: 0 });
   });
 });

@@ -112,35 +112,47 @@ export async function submitForReview(
 
   const submissionId = submission.data.id;
 
-  // Step 2: add the version as a review submission item
-  await ascFetch("/v1/reviewSubmissionItems", {
-    method: "POST",
-    body: JSON.stringify({
-      data: {
-        type: "reviewSubmissionItems",
-        relationships: {
-          reviewSubmission: {
-            data: { type: "reviewSubmissions", id: submissionId },
-          },
-          appStoreVersion: {
-            data: { type: "appStoreVersions", id: versionId },
+  try {
+    // Step 2: add the version as a review submission item
+    await ascFetch("/v1/reviewSubmissionItems", {
+      method: "POST",
+      body: JSON.stringify({
+        data: {
+          type: "reviewSubmissionItems",
+          relationships: {
+            reviewSubmission: {
+              data: { type: "reviewSubmissions", id: submissionId },
+            },
+            appStoreVersion: {
+              data: { type: "appStoreVersions", id: versionId },
+            },
           },
         },
-      },
-    }),
-  });
+      }),
+    });
 
-  // Step 3: confirm the submission
-  await ascFetch(`/v1/reviewSubmissions/${submissionId}`, {
-    method: "PATCH",
-    body: JSON.stringify({
-      data: {
-        type: "reviewSubmissions",
-        id: submissionId,
-        attributes: { submitted: true },
-      },
-    }),
-  });
+    // Step 3: confirm the submission
+    await ascFetch(`/v1/reviewSubmissions/${submissionId}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        data: {
+          type: "reviewSubmissions",
+          id: submissionId,
+          attributes: { submitted: true },
+        },
+      }),
+    });
+  } catch (err) {
+    // Clean up the dangling draft submission so it doesn't block future attempts
+    try {
+      await ascFetch(`/v1/reviewSubmissions/${submissionId}`, {
+        method: "DELETE",
+      });
+    } catch {
+      // Best-effort cleanup
+    }
+    throw err;
+  }
 }
 
 export async function releaseVersion(versionId: string): Promise<void> {

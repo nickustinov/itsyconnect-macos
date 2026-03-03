@@ -314,6 +314,55 @@ Replace `{w}` and `{h}` with pixel dimensions, `{f}` with format (`png`, `jpg`, 
 .../AppIcon.icns/64x64bb.png
 ```
 
+### Build metrics (betaBuildUsages)
+
+```
+GET /v1/builds/{buildId}/metrics/betaBuildUsages
+```
+
+Returns: `{ data: [{ dataPoints: [{ values: { ... } }] }] }`
+
+Values fields:
+| Field | Type | Notes |
+|---|---|---|
+| `installCount` | number | Total installs |
+| `sessionCount` | number | Total sessions |
+| `crashCount` | number | Total crashes |
+| `inviteCount` | number | Total invites sent |
+| `feedbackCount` | number | Total feedback submissions |
+
+### Build diagnostic signatures
+
+```
+GET /v1/builds/{buildId}/diagnosticSignatures
+  filter[diagnosticType] = DISK_WRITES | HANGS | LAUNCHES
+  limit = 200
+```
+
+Returns: `{ data: [{ id, attributes: { diagnosticType, signature, weight } }] }`
+
+Signature attributes:
+| Field | Type | Notes |
+|---|---|---|
+| `diagnosticType` | string | `DISK_WRITES`, `HANGS`, or `LAUNCHES` |
+| `signature` | string | Human-readable signature (e.g. function name) |
+| `weight` | number | 0–1 fraction indicating relative frequency |
+
+### Diagnostic logs
+
+```
+GET /v1/diagnosticSignatures/{signatureId}/logs
+```
+
+Returns: `{ data: [{ attributes: { diagnosticMetaData, callStackTree, insights } }] }`
+
+- `diagnosticMetaData` – key-value pairs (deviceType, osVersion, etc.)
+- `callStackTree` – array of `{ callStacks: [{ callStackRootFrames: [frame, ...] }] }`
+- Each frame: `{ symbolName, binaryName, fileName?, lineNumber?, address?, isBlameFrame, sampleCount, subFrames? }`
+- `insights` – array of `{ category, description, url? }` with Apple's analysis
+
+**Note:** Diagnostic data is available for all builds including expired ones. Signatures are cached for 15 minutes. Logs are fetched on-demand (no caching).
+
 ## Known API quirks
 
 1. **`fields[type]` strips relationships** – the ASC API follows JSON:API sparse fieldsets: when you specify `fields[someType]=attr1,attr2`, the response omits **all** relationship pointers not listed. To keep relationship data needed by `include`, you must add the relationship names to `fields`. For example: `fields[appStoreVersions]=versionString,...,build,appStoreReviewDetail` – without `build,appStoreReviewDetail` in the list, the `relationships` key is missing from each version object and `resolveIncluded()` cannot match included items to their parents.

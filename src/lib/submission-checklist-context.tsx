@@ -2,16 +2,25 @@
 
 import { createContext, useContext, useState, useCallback } from "react";
 
-export interface ChecklistFlags {
-  hasDescription: boolean;
-  hasWhatsNew: boolean;
-  hasKeywords: boolean;
+export type FieldStatus = "ok" | "warn" | "missing";
+
+export interface FieldIssues {
+  status: FieldStatus;
+  localesWithIssues: string[];
 }
 
+export interface ChecklistFlags {
+  description: FieldIssues;
+  whatsNew: FieldIssues;
+  keywords: FieldIssues;
+}
+
+const defaultField: FieldIssues = { status: "missing", localesWithIssues: [] };
+
 const defaults: ChecklistFlags = {
-  hasDescription: false,
-  hasWhatsNew: false,
-  hasKeywords: false,
+  description: { ...defaultField },
+  whatsNew: { ...defaultField },
+  keywords: { ...defaultField },
 };
 
 interface SubmissionChecklistContextValue {

@@ -126,7 +126,7 @@ function buildReportText(details: string, title: string): string {
   ].join("\n");
 }
 
-const SUPPORT_EMAIL = "support@itsyhome.com";
+const SUPPORT_EMAIL = "support@itsyconnect.com";
 
 export function ErrorReportDialog({ data, onClose }: ErrorReportDialogProps) {
   const [copied, setCopied] = useState(false);

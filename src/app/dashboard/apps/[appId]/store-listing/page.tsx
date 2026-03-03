@@ -22,8 +22,9 @@ import {
 } from "@/lib/asc/locale-names";
 import { useRegisterHeaderLocale } from "@/lib/header-locale-context";
 import { useSubmissionChecklist } from "@/lib/submission-checklist-context";
+import { computeChecklistFlags } from "@/lib/submission-checklist-utils";
 import { useLocaleManagement } from "@/lib/hooks/use-locale-management";
-import type { MagicWandLocaleProps } from "@/components/magic-wand-button";
+import type { MagicWandLocaleProps, CopyFromVersion } from "@/components/magic-wand-button";
 import { BulkAIDialog, type BulkField } from "@/components/bulk-ai-dialog";
 import { BulkAllAIDialog } from "@/components/bulk-all-ai-dialog";
 import type { TFBuild } from "@/lib/asc/testflight/types";
@@ -99,11 +100,50 @@ export default function StoreListingPage() {
 
   const current = localeData[selectedLocale] ?? emptyLocaleFields();
 
+  const copyFromVersions: CopyFromVersion[] = useMemo(
+    () =>
+      versions
+        .filter((v) => v.id !== versionId)
+        .map((v) => ({
+          versionId: v.id,
+          versionString: v.attributes.versionString,
+          platform: v.attributes.platform,
+        })),
+    [versions, versionId],
+  );
+
+  async function handleCopyFromVersion(field: string, sourceVersionId: string) {
+    try {
+      const res = await fetch(
+        `/api/apps/${appId}/versions/${sourceVersionId}/localizations`,
+      );
+      if (!res.ok) {
+        toast.error("Failed to fetch version localizations");
+        return;
+      }
+      const data = await res.json();
+      const locs: { attributes: { locale: string; [key: string]: string } }[] =
+        data.localizations ?? [];
+      const match = locs.find((l) => l.attributes.locale === selectedLocale);
+      if (!match) {
+        toast.error("Locale not available in that version");
+        return;
+      }
+      const value = match.attributes[field] ?? "";
+      updateField(field as keyof LocaleFields, value);
+      toast.success("Copied from version");
+    } catch {
+      toast.error("Failed to fetch version localizations");
+    }
+  }
+
   const wand: MagicWandLocaleProps = {
     locale: selectedLocale,
     baseLocale: locales[0] ?? "",
     localeData,
     appName: app?.name,
+    copyFromVersions,
+    onCopyFromVersion: handleCopyFromVersion,
   };
 
   const { report: reportChecklist } = useSubmissionChecklist();
@@ -247,15 +287,10 @@ export default function StoreListingPage() {
     setValidationErrors(errors);
   }, [localeData, setValidationErrors]);
 
-  // Report submission checklist flags from primary locale
+  // Report submission checklist flags across all locales
   useEffect(() => {
-    const primary = localeData[primaryLocale];
-    if (!primary) return;
-    reportChecklist({
-      hasDescription: (primary.description?.length ?? 0) > 0,
-      hasWhatsNew: (primary.whatsNew?.length ?? 0) > 0,
-      hasKeywords: (primary.keywords?.length ?? 0) > 0,
-    });
+    if (!localeData[primaryLocale]) return;
+    reportChecklist(computeChecklistFlags(localeData, primaryLocale));
   }, [localeData, primaryLocale, reportChecklist]);
 
   // Register save handler for the header Save button

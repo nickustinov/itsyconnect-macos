@@ -189,6 +189,8 @@ export async function getGroupDetail(
       installs: 0,
       sessions: 0,
       crashes: 0,
+      invites: 0,
+      feedbackCount: 0,
     };
   });
 

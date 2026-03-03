@@ -122,6 +122,8 @@ export async function listBuilds(
       installs: metrics?.installs ?? 0,
       sessions: metrics?.sessions ?? 0,
       crashes: metrics?.crashes ?? 0,
+      invites: metrics?.invites ?? 0,
+      feedbackCount: metrics?.feedbackCount ?? 0,
     };
   });
 
@@ -135,6 +137,8 @@ interface BuildMetrics {
   installs: number;
   sessions: number;
   crashes: number;
+  invites: number;
+  feedbackCount: number;
 }
 
 export async function fetchBuildMetrics(
@@ -153,7 +157,7 @@ export async function fetchBuildMetrics(
           const response = await ascFetch<Record<string, unknown>>(
             `/v1/builds/${id}/metrics/betaBuildUsages`,
           );
-          let installs = 0, sessions = 0, crashes = 0;
+          let installs = 0, sessions = 0, crashes = 0, invites = 0, feedbackCount = 0;
 
           // Metrics endpoints return { data: [{ dataPoints: [{ values: { ... } }] }] }
           const dataArr = Array.isArray(response.data) ? response.data : [];
@@ -165,15 +169,17 @@ export async function fetchBuildMetrics(
                 installs += values.installCount ?? 0;
                 sessions += values.sessionCount ?? 0;
                 crashes += values.crashCount ?? 0;
+                invites += values.inviteCount ?? 0;
+                feedbackCount += values.feedbackCount ?? 0;
               }
             }
           }
 
-          map.set(id, { installs, sessions, crashes });
+          map.set(id, { installs, sessions, crashes, invites, feedbackCount });
         } catch (err) {
           // Metrics are best-effort – don't fail the whole build list
           console.warn(`[testflight] build ${id} metrics failed:`, err);
-          map.set(id, { installs: 0, sessions: 0, crashes: 0 });
+          map.set(id, { installs: 0, sessions: 0, crashes: 0, invites: 0, feedbackCount: 0 });
         }
       }),
     );
