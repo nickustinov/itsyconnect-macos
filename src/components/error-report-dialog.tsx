@@ -1,6 +1,7 @@
 "use client";
 
-import { WarningCircle, GithubLogo } from "@phosphor-icons/react";
+import { useState } from "react";
+import { WarningCircle, GithubLogo, Copy, Check, EnvelopeSimple } from "@phosphor-icons/react";
 import {
   Dialog,
   DialogContent,
@@ -111,7 +112,25 @@ function buildGithubUrl(details: string, title: string): string {
   return `https://github.com/nickustinov/itsyconnect-macos/issues/new?${params}`;
 }
 
+function buildReportText(details: string, title: string): string {
+  return [
+    title,
+    "",
+    `App version: ${APP_VERSION}`,
+    "",
+    "Error details:",
+    details,
+    "",
+    "Steps to reproduce:",
+    "(describe what you were doing when this error occurred)",
+  ].join("\n");
+}
+
+const SUPPORT_EMAIL = "support@itsyhome.com";
+
 export function ErrorReportDialog({ data, onClose }: ErrorReportDialogProps) {
+  const [copied, setCopied] = useState(false);
+
   if (!data) return null;
 
   const details = data.kind === "asc"
@@ -131,6 +150,14 @@ export function ErrorReportDialog({ data, onClose }: ErrorReportDialogProps) {
     window.open(url, "_blank");
   }
 
+  function handleCopy() {
+    const text = buildReportText(details, title);
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="sm:max-w-lg">
@@ -146,9 +173,21 @@ export function ErrorReportDialog({ data, onClose }: ErrorReportDialogProps) {
           {details}
         </div>
 
+        <p className="text-xs text-muted-foreground">
+          <EnvelopeSimple size={13} className="inline-block mr-1 -mt-0.5" />
+          You can also email us at{" "}
+          <a href={`mailto:${SUPPORT_EMAIL}`} className="underline">{SUPPORT_EMAIL}</a>
+        </p>
+
         <DialogFooter>
           <Button variant="outline" size="sm" onClick={onClose}>
             Dismiss
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleCopy}>
+            {copied
+              ? <><Check size={14} className="mr-1.5" />Copied</>
+              : <><Copy size={14} className="mr-1.5" />Copy</>
+            }
           </Button>
           <Button size="sm" onClick={handleReport}>
             <GithubLogo size={14} className="mr-1.5" />
