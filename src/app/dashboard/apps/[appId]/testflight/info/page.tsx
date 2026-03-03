@@ -418,10 +418,14 @@ export default function TestFlightInfoPage() {
         primaryLocale,
       );
       setLocales(sorted);
+      // Switch back to a valid locale if the current one was removed
+      if (!sorted.includes(selectedLocale)) {
+        changeLocale(sorted[0] ?? "");
+      }
       setReview(originalReviewRef.current ? { ...originalReviewRef.current } : null);
       setLicenseText(originalLicenseTextRef.current);
     });
-  }, [primaryLocale, setLocales, registerDiscard]);
+  }, [primaryLocale, selectedLocale, setLocales, changeLocale, registerDiscard]);
 
   if (loading) {
     return (

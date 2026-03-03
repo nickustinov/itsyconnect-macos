@@ -354,13 +354,21 @@ export default function AppDetailsPage() {
   useEffect(() => {
     registerDiscard(() => {
       setLocaleData(buildLocaleData(localizations));
+      const sorted = sortLocales(
+        localizations.map((l) => l.attributes.locale),
+        primaryLocale,
+      );
+      setLocales(sorted);
+      if (!sorted.includes(selectedLocale)) {
+        changeLocale(sorted[0] ?? "");
+      }
       setContentRights(contentRightsOriginalRef.current);
       setPrimaryCategoryId(primaryCategoryOriginalRef.current);
       setSecondaryCategoryId(secondaryCategoryOriginalRef.current);
       setNotifUrl(notifUrlOriginalRef.current);
       setNotifSandboxUrl(notifSandboxUrlOriginalRef.current);
     });
-  }, [localizations, registerDiscard]);
+  }, [localizations, primaryLocale, selectedLocale, setLocales, changeLocale, registerDiscard]);
 
   const updateField = useCallback(
     (field: keyof AppInfoLocaleFields, value: string) => {

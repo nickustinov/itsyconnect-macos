@@ -459,13 +459,18 @@ export default function StoreListingPage() {
   useEffect(() => {
     registerDiscard(() => {
       setLocaleData(buildLocaleData(localizations));
+      const sorted = sortLocales(localizations.map((l) => l.attributes.locale), primaryLocale);
+      setLocales(sorted);
+      if (!sorted.includes(selectedLocale)) {
+        changeLocale(sorted[0] ?? "");
+      }
       const reset = deriveReleaseSettings(selectedVersion);
       setReleaseType(reset.releaseType);
       setScheduledDate(reset.scheduledDate);
       setPhasedRelease(reset.phasedRelease);
       setSelectedBuildId(originalBuildIdRef.current);
     });
-  }, [localizations, selectedVersion, registerDiscard]);
+  }, [localizations, primaryLocale, selectedLocale, selectedVersion, setLocales, changeLocale, registerDiscard]);
 
   function updateField(field: keyof LocaleFields, value: string) {
     setLocaleData((prev) => ({
