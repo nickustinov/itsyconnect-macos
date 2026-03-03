@@ -1,7 +1,16 @@
 import { describe, it, expect } from "vitest";
-import { formatDate, formatDateTime, formatDateTimeLong } from "@/lib/format";
+import { formatDateShort, formatDate, formatDateTime, formatDateTimeLong } from "@/lib/format";
 
 describe("format", () => {
+  describe("formatDateShort", () => {
+    it("formats a date as 'day short-month' without year", () => {
+      const result = formatDateShort("2026-01-27");
+      expect(result).toContain("27");
+      expect(result).toContain("Jan");
+      expect(result).not.toContain("2026");
+    });
+  });
+
   describe("formatDate", () => {
     it("formats an ISO date as 'day short-month year'", () => {
       expect(formatDate("2026-02-15T10:00:00Z")).toMatch(/15 Feb 2026/);

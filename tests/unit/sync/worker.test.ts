@@ -178,6 +178,60 @@ describe("sync worker", () => {
     stopSyncWorker();
   });
 
+  it("triggerSync runs all jobs immediately", async () => {
+    mockHasCredentials.mockReturnValue(true);
+    mockSyncApps.mockResolvedValue(undefined);
+    mockSyncAnalytics.mockResolvedValue(undefined);
+    mockSyncTestFlight.mockResolvedValue(undefined);
+
+    const { startSyncWorker, stopSyncWorker, triggerSync } = await getWorker();
+    startSyncWorker();
+
+    // Let initial startup jobs settle so in-flight map is clear
+    await vi.advanceTimersByTimeAsync(0);
+
+    mockSyncApps.mockClear();
+    mockSyncAnalytics.mockClear();
+    mockSyncTestFlight.mockClear();
+
+    triggerSync();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(mockSyncApps).toHaveBeenCalledTimes(1);
+    expect(mockSyncAnalytics).toHaveBeenCalledTimes(1);
+    expect(mockSyncTestFlight).toHaveBeenCalledTimes(1);
+
+    stopSyncWorker();
+  });
+
+  it("triggerSync is a no-op when not running", async () => {
+    mockHasCredentials.mockReturnValue(true);
+
+    const { triggerSync } = await getWorker();
+    triggerSync();
+
+    expect(mockSyncApps).not.toHaveBeenCalled();
+  });
+
+  it("triggerSync is a no-op without credentials", async () => {
+    mockHasCredentials.mockReturnValue(false);
+    mockSyncApps.mockResolvedValue(undefined);
+    mockSyncAnalytics.mockResolvedValue(undefined);
+    mockSyncTestFlight.mockResolvedValue(undefined);
+
+    const { startSyncWorker, stopSyncWorker, triggerSync } = await getWorker();
+    startSyncWorker();
+
+    // startSyncWorker didn't call jobs (no creds), but set running=true
+    // Now triggerSync should still skip because hasCredentials is false
+    mockHasCredentials.mockReturnValue(false);
+    triggerSync();
+
+    expect(mockSyncApps).not.toHaveBeenCalled();
+
+    stopSyncWorker();
+  });
+
   it("deduplicates in-flight jobs", async () => {
     mockHasCredentials.mockReturnValue(true);
     mockSyncAnalytics.mockResolvedValue(undefined);

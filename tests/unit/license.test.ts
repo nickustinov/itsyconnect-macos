@@ -91,6 +91,12 @@ describe("license", () => {
       expect(isPro()).toBe(false);
     });
 
+    it("returns cached result on subsequent calls", () => {
+      expect(isPro()).toBe(false);
+      // Second call hits _proCache without querying DB
+      expect(isPro()).toBe(false);
+    });
+
     it("caches the result in memory", () => {
       // First call queries DB
       expect(isPro()).toBe(false);

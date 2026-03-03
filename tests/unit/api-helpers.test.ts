@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { errorJson, parseBody, syncLocalizations } from "@/lib/api-helpers";
 import type { SyncLocalizationsMutations } from "@/lib/api-helpers";
+import { AscApiError } from "@/lib/asc/client";
 import { z } from "zod";
 
 describe("api-helpers", () => {
@@ -23,6 +24,42 @@ describe("api-helpers", () => {
       const body = await res.json();
       expect(res.status).toBe(500);
       expect(body.error).toBe("Custom fallback");
+    });
+
+    it("uses fallback status when AscApiError has no statusCode", async () => {
+      const ascErr = new AscApiError({
+        category: "connection",
+        message: "Could not connect",
+      });
+      const res = errorJson(ascErr, 503);
+      const body = await res.json();
+
+      expect(res.status).toBe(503);
+      expect(body.error).toBe("Could not connect");
+      expect(body.category).toBe("connection");
+      expect(body.ascErrors).toBeUndefined();
+      expect(body.ascMethod).toBeUndefined();
+      expect(body.ascPath).toBeUndefined();
+    });
+
+    it("extracts structured fields from AscApiError", async () => {
+      const ascErr = new AscApiError({
+        category: "api",
+        message: "Entity not found",
+        statusCode: 404,
+        method: "GET",
+        path: "/v1/apps/123",
+        entries: [{ code: "NOT_FOUND", title: "Not found", detail: "Entity not found" }],
+      });
+      const res = errorJson(ascErr);
+      const body = await res.json();
+
+      expect(res.status).toBe(404);
+      expect(body.error).toBe("Entity not found");
+      expect(body.category).toBe("api");
+      expect(body.ascErrors).toHaveLength(1);
+      expect(body.ascMethod).toBe("GET");
+      expect(body.ascPath).toBe("/v1/apps/123");
     });
   });
 
@@ -216,6 +253,96 @@ describe("api-helpers", () => {
       expect(body.errors).toEqual([
         { operation: "update", locale: "en-US", message: "failed" },
       ]);
+    });
+
+    it("extracts ASC error details on update failure with AscApiError", async () => {
+      const ascErr = new AscApiError({
+        category: "api",
+        message: "validation failed",
+        statusCode: 422,
+        method: "PATCH",
+        path: "/v1/localizations/loc-1",
+        entries: [{ code: "INVALID", title: "Invalid", detail: "Too long" }],
+      });
+      const mutations = makeMutations({
+        update: vi.fn<(id: string, fields: Record<string, unknown>) => Promise<void>>().mockRejectedValue(ascErr),
+      });
+      const req = makePutRequest({
+        locales: { "en-US": { title: "Bad" } },
+        originalLocaleIds: { "en-US": "loc-1" },
+      });
+      const res = await syncLocalizations(req, "p1", mutations);
+      const body = await res.json();
+
+      expect(res.status).toBe(207);
+      expect(body.errors[0]).toEqual({
+        operation: "update",
+        locale: "en-US",
+        message: "validation failed",
+        ascErrors: [{ code: "INVALID", title: "Invalid", detail: "Too long" }],
+        ascMethod: "PATCH",
+        ascPath: "/v1/localizations/loc-1",
+      });
+    });
+
+    it("extracts ASC error details on create failure with AscApiError", async () => {
+      const ascErr = new AscApiError({
+        category: "api",
+        message: "conflict",
+        statusCode: 409,
+        method: "POST",
+        path: "/v1/localizations",
+        entries: [{ code: "CONFLICT", title: "Conflict", detail: "Already exists" }],
+      });
+      const mutations = makeMutations({
+        create: vi.fn<(parentId: string, locale: string, fields: Record<string, unknown>) => Promise<string>>().mockRejectedValue(ascErr),
+      });
+      const req = makePutRequest({
+        locales: { "fr-FR": { title: "New" } },
+        originalLocaleIds: {},
+      });
+      const res = await syncLocalizations(req, "p1", mutations);
+      const body = await res.json();
+
+      expect(res.status).toBe(207);
+      expect(body.errors[0]).toEqual({
+        operation: "create",
+        locale: "fr-FR",
+        message: "conflict",
+        ascErrors: [{ code: "CONFLICT", title: "Conflict", detail: "Already exists" }],
+        ascMethod: "POST",
+        ascPath: "/v1/localizations",
+      });
+    });
+
+    it("extracts ASC error details on delete failure with AscApiError", async () => {
+      const ascErr = new AscApiError({
+        category: "api",
+        message: "not found",
+        statusCode: 404,
+        method: "DELETE",
+        path: "/v1/localizations/loc-1",
+        entries: [{ code: "NOT_FOUND", title: "Not found", detail: "Resource missing" }],
+      });
+      const mutations = makeMutations({
+        delete: vi.fn<(id: string) => Promise<void>>().mockRejectedValue(ascErr),
+      });
+      const req = makePutRequest({
+        locales: {},
+        originalLocaleIds: { "de-DE": "loc-1" },
+      });
+      const res = await syncLocalizations(req, "p1", mutations);
+      const body = await res.json();
+
+      expect(res.status).toBe(207);
+      expect(body.errors[0]).toEqual({
+        operation: "delete",
+        locale: "de-DE",
+        message: "not found",
+        ascErrors: [{ code: "NOT_FOUND", title: "Not found", detail: "Resource missing" }],
+        ascMethod: "DELETE",
+        ascPath: "/v1/localizations/loc-1",
+      });
     });
 
     it("extracts message from Error on create failure", async () => {

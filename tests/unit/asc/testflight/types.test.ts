@@ -30,8 +30,16 @@ describe("deriveBuildStatus", () => {
     expect(deriveBuildStatus("VALID", "BETA_APPROVED", null, false)).toBe("Ready to test");
   });
 
+  it("returns 'Waiting for review' for WAITING_FOR_BETA_REVIEW", () => {
+    expect(deriveBuildStatus("VALID", "WAITING_FOR_BETA_REVIEW", null, false)).toBe("Waiting for review");
+  });
+
   it("returns 'In beta review' for IN_BETA_REVIEW", () => {
     expect(deriveBuildStatus("VALID", "IN_BETA_REVIEW", null, false)).toBe("In beta review");
+  });
+
+  it("returns 'Rejected' for BETA_REJECTED", () => {
+    expect(deriveBuildStatus("VALID", "BETA_REJECTED", null, false)).toBe("Rejected");
   });
 
   it("returns 'Ready to submit' for READY_FOR_BETA_SUBMISSION", () => {
@@ -52,6 +60,10 @@ describe("deriveBuildStatus", () => {
 
   it("returns 'Expired' for EXPIRED state string", () => {
     expect(deriveBuildStatus("VALID", "EXPIRED", null, false)).toBe("Expired");
+  });
+
+  it("returns 'N/A' for NOT_APPLICABLE", () => {
+    expect(deriveBuildStatus("VALID", "NOT_APPLICABLE", null, false)).toBe("N/A");
   });
 
   it("falls back to internalBuildState when externalBuildState is null", () => {

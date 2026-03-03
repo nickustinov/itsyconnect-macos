@@ -186,6 +186,13 @@ describe("ascFetch", () => {
     vi.stubGlobal("setTimeout", origSetTimeout);
   });
 
+  it("throws AscApiError with networkError on fetch failure", async () => {
+    insertCred();
+    mockFetch.mockRejectedValueOnce(new TypeError("fetch failed"));
+
+    await expect(ascFetch("/v1/apps")).rejects.toThrow("Could not connect to App Store Connect");
+  });
+
   it("caches JWT and reuses it within 15 minutes", async () => {
     insertCred();
     mockFetch.mockResolvedValue({
