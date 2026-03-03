@@ -212,6 +212,8 @@ let checkSource: "menu" | "settings" | "auto" = "auto";
 let updateInterval: ReturnType<typeof setInterval> | null = null;
 
 function setupAutoUpdater(): void {
+  if (isDev) return;
+
   const feedURL = `https://update.electronjs.org/nickustinov/itsyconnect-macos/${process.platform}-${process.arch}/${app.getVersion()}`;
   autoUpdater.setFeedURL({ url: feedURL });
 
@@ -254,10 +256,8 @@ function setupAutoUpdater(): void {
     });
   });
 
-  if (!isDev) {
-    const settings = loadSettings();
-    if (settings.autoCheckUpdates) startUpdateInterval();
-  }
+  const settings = loadSettings();
+  if (settings.autoCheckUpdates) startUpdateInterval();
 }
 
 function startUpdateInterval(): void {
