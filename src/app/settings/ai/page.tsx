@@ -60,13 +60,17 @@ export default function AISettingsPage() {
     setShowKey(false);
   }
 
+  const providerChanged = hasExistingKey && providerId !== storedProvider;
+
   const hasModelChanges =
     hasExistingKey &&
     (providerId !== storedProvider || modelId !== storedModel);
 
-  const canSave = hasExistingKey
-    ? hasModelChanges || apiKey.trim().length > 0
-    : apiKey.trim().length > 0;
+  const canSave = providerChanged
+    ? apiKey.trim().length > 0
+    : hasExistingKey
+      ? hasModelChanges || apiKey.trim().length > 0
+      : apiKey.trim().length > 0;
 
   async function handleSave() {
     setSaving(true);
@@ -168,7 +172,7 @@ export default function AISettingsPage() {
 
       <section className="space-y-2">
         <h3 className="section-title">API key</h3>
-        {hasExistingKey ? (
+        {hasExistingKey && !providerChanged ? (
           <div className="flex items-center gap-2">
             <CheckCircle size={16} weight="fill" className="text-green-600" />
             <span className="text-sm">Configured</span>
@@ -183,22 +187,29 @@ export default function AISettingsPage() {
             </Button>
           </div>
         ) : (
-          <div className="flex items-center gap-2 max-w-md">
-            <Input
-              type={showKey ? "text" : "password"}
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="Paste your API key"
-              className="font-mono text-sm"
-            />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="shrink-0"
-              onClick={() => setShowKey(!showKey)}
-            >
-              {showKey ? <EyeSlash size={16} /> : <Eye size={16} />}
-            </Button>
+          <div className="space-y-1.5 max-w-md">
+            {providerChanged && (
+              <p className="text-sm text-muted-foreground">
+                Switching to {provider.name} requires a new API key.
+              </p>
+            )}
+            <div className="flex items-center gap-2">
+              <Input
+                type={showKey ? "text" : "password"}
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="Paste your API key"
+                className="font-mono text-sm"
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="shrink-0"
+                onClick={() => setShowKey(!showKey)}
+              >
+                {showKey ? <EyeSlash size={16} /> : <Eye size={16} />}
+              </Button>
+            </div>
           </div>
         )}
       </section>

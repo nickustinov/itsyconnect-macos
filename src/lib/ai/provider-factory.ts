@@ -55,6 +55,34 @@ export function createLanguageModel(
   }
 }
 
+export type AIErrorCategory = "auth" | "permission" | "model_not_found" | "rate_limit" | "unknown";
+
+/** Classify an AI provider error by inspecting its message. */
+export function classifyAIError(err: unknown): AIErrorCategory {
+  const message = err instanceof Error ? err.message : String(err);
+  if (/401|unauthorized|invalid.*key|invalid.*api|incorrect.*key|authentication/i.test(message)) {
+    return "auth";
+  }
+  if (/403|forbidden|permission/i.test(message)) {
+    return "permission";
+  }
+  if (/404|not.found|model/i.test(message)) {
+    return "model_not_found";
+  }
+  if (/429|rate.limit|quota/i.test(message)) {
+    return "rate_limit";
+  }
+  return "unknown";
+}
+
+const ERROR_MESSAGES: Record<AIErrorCategory, string | null> = {
+  auth: "Invalid API key",
+  permission: "API key lacks required permissions",
+  model_not_found: "Model not found – check your provider and model selection",
+  rate_limit: null, // Rate limited but key is valid
+  unknown: null, // Handled separately with original message
+};
+
 /**
  * Validate an API key by making a minimal test call to the provider.
  * Returns null if valid, or an error message string if invalid.
@@ -73,20 +101,11 @@ export async function validateApiKey(
     });
     return null;
   } catch (err) {
+    const category = classifyAIError(err);
+    if (category === "rate_limit") return null;
+    const mapped = ERROR_MESSAGES[category];
+    if (mapped) return mapped;
     const message = err instanceof Error ? err.message : String(err);
-    if (/401|unauthorized|invalid.*key|invalid.*api|incorrect.*key|authentication/i.test(message)) {
-      return "Invalid API key";
-    }
-    if (/403|forbidden|permission/i.test(message)) {
-      return "API key lacks required permissions";
-    }
-    if (/404|not.found|model/i.test(message)) {
-      return "Model not found – check your provider and model selection";
-    }
-    if (/429|rate.limit|quota/i.test(message)) {
-      // Rate limited but key is valid
-      return null;
-    }
     return `API key validation failed: ${message}`;
   }
 }

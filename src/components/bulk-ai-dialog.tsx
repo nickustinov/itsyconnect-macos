@@ -68,6 +68,7 @@ export function BulkAIDialog({
 }: BulkAIDialogProps) {
   const [results, setResults] = useState<Record<string, FieldResult>>({});
   const [checked, setChecked] = useState<Record<string, boolean>>({});
+  const [authError, setAuthError] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   // Run on open
@@ -79,6 +80,7 @@ export function BulkAIDialog({
     }
 
     // Init state
+    setAuthError(false);
     const initialChecked: Record<string, boolean> = {};
     for (const f of fields) {
       initialChecked[f.key] = true;
@@ -147,6 +149,20 @@ export function BulkAIDialog({
       })
         .then(async (res) => {
           const data = await res.json();
+          if (data.error === "ai_auth_error") {
+            controller.abort();
+            setAuthError(true);
+            setResults((prev) => {
+              const next = { ...prev };
+              for (const f of fields) {
+                if (next[f.key]?.status === "loading") {
+                  next[f.key] = { status: "error", value: "" };
+                }
+              }
+              return next;
+            });
+            return;
+          }
           setResults((prev) => ({
             ...prev,
             [field.key]: res.ok
@@ -226,6 +242,15 @@ export function BulkAIDialog({
         <DialogHeader className="pb-4">
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
+
+        {authError && (
+          <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 mb-3 text-sm text-destructive">
+            Your API key is invalid or revoked.{" "}
+            <a href="/settings/ai" className="underline font-medium">
+              Update it in AI settings
+            </a>.
+          </div>
+        )}
 
         <ScrollArea className="min-h-0 overflow-hidden">
           <div className="space-y-4 pr-3">

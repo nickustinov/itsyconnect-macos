@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { generateText } from "ai";
-import { createLanguageModel } from "@/lib/ai/provider-factory";
+import { createLanguageModel, classifyAIError } from "@/lib/ai/provider-factory";
 import { getAISettings } from "@/lib/ai/settings";
-import { isReasoningModel } from "@/lib/ai-providers";
 import {
   buildTranslatePrompt,
   buildImprovePrompt,
@@ -15,15 +14,23 @@ import {
 } from "@/lib/ai/prompts";
 import { errorJson, parseBody } from "@/lib/api-helpers";
 
-/** Provider-specific options to control reasoning effort for reasoning models. */
-function reasoningOptions(
+/**
+ * Provider-specific options to minimise reasoning/thinking overhead.
+ * Our use cases (translation, copywriting, keywords) don't benefit from
+ * chain-of-thought, so we disable or minimise it for every provider.
+ */
+function noThinkingOptions(
   providerId: string,
-  needsDeepThinking: boolean,
-): Record<string, Record<string, string>> {
-  const effort = needsDeepThinking ? "medium" : "low";
+  modelId: string,
+): Record<string, Record<string, string | number | Record<string, string | number>>> {
   switch (providerId) {
     case "openai":
-      return { openai: { reasoningEffort: effort } };
+      return { openai: { reasoningEffort: "low" } };
+    case "google":
+      if (modelId.startsWith("gemini-3")) {
+        return { google: { thinkingConfig: { thinkingLevel: "low" } } };
+      }
+      return { google: { thinkingConfig: { thinkingBudget: 0 } } };
     default:
       return {};
   }
@@ -103,14 +110,14 @@ export async function POST(request: Request) {
   }
 
   let model;
-  let reasoning = false;
   let providerId = "";
+  let modelId = "";
   try {
     const settings = await getAISettings();
     if (!settings) throw new Error("AI not configured");
     model = createLanguageModel(settings.provider, settings.modelId, settings.apiKey);
-    reasoning = isReasoningModel(settings.provider, settings.modelId);
     providerId = settings.provider;
+    modelId = settings.modelId;
   } catch {
     return NextResponse.json(
       { error: "ai_not_configured" },
@@ -184,14 +191,13 @@ export async function POST(request: Request) {
 
   try {
     const needsVariety = action === "draft-reply" || action === "draft-appeal";
-    const needsDeepThinking = action === "improve" || action === "draft-reply" || action === "draft-appeal";
 
     const { text: result } = await generateText({
       model,
       system: "You are a text-processing tool. Output ONLY the final result as plain text with no preamble, explanation, or commentary. Never use markdown, HTML, or any formatting syntax. Never refuse or ask questions.",
       prompt,
-      ...(reasoning ? {} : { temperature: needsVariety ? 0.9 : 0 }),
-      ...(reasoning ? { providerOptions: reasoningOptions(providerId, needsDeepThinking) } : {}),
+      temperature: needsVariety ? 0.9 : 0,
+      providerOptions: noThinkingOptions(providerId, modelId),
     });
 
     // Detect conversational responses that slipped through the prompt constraints
@@ -207,6 +213,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ result: finalResult });
   } catch (err) {
+    const category = classifyAIError(err);
+    if (category === "auth" || category === "permission") {
+      return NextResponse.json({ error: "ai_auth_error" }, { status: 401 });
+    }
     return errorJson(err, 500, "AI request failed");
   }
 }

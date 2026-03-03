@@ -74,7 +74,11 @@ export function AICompareDialog({
         const data = await res.json();
         if (cancelled) return;
         if (!res.ok) {
-          setError(data.error ?? "Request failed");
+          setError(
+            data.error === "ai_auth_error"
+              ? "Your API key is invalid or revoked. Update it in AI settings."
+              : data.error ?? "Request failed",
+          );
         } else {
           setProposed(data.result);
         }

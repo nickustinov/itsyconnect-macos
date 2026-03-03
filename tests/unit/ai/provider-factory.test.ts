@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { createLanguageModel, validateApiKey, getLanguageModel } from "@/lib/ai/provider-factory";
+import { createLanguageModel, validateApiKey, getLanguageModel, classifyAIError } from "@/lib/ai/provider-factory";
 
 // The LanguageModel type is a union; runtime objects have modelId/provider
 // but TS can't see them on every union member. Cast to Record for assertions.
@@ -74,6 +74,38 @@ describe("getLanguageModel", () => {
     vi.mocked(getAISettings).mockResolvedValueOnce(null);
 
     await expect(getLanguageModel()).rejects.toThrow("AI not configured");
+  });
+});
+
+describe("classifyAIError", () => {
+  it("returns 'auth' for 401/unauthorized errors", () => {
+    expect(classifyAIError(new Error("401 Unauthorized"))).toBe("auth");
+    expect(classifyAIError(new Error("invalid api key"))).toBe("auth");
+    expect(classifyAIError(new Error("Incorrect API key provided"))).toBe("auth");
+    expect(classifyAIError(new Error("authentication failed"))).toBe("auth");
+  });
+
+  it("returns 'permission' for 403/forbidden errors", () => {
+    expect(classifyAIError(new Error("403 Forbidden"))).toBe("permission");
+    expect(classifyAIError(new Error("permission denied"))).toBe("permission");
+  });
+
+  it("returns 'model_not_found' for 404/model errors", () => {
+    expect(classifyAIError(new Error("404 model not found"))).toBe("model_not_found");
+  });
+
+  it("returns 'rate_limit' for 429/quota errors", () => {
+    expect(classifyAIError(new Error("429 rate limit exceeded"))).toBe("rate_limit");
+    expect(classifyAIError(new Error("quota exceeded"))).toBe("rate_limit");
+  });
+
+  it("returns 'unknown' for unrecognized errors", () => {
+    expect(classifyAIError(new Error("connection timeout"))).toBe("unknown");
+  });
+
+  it("handles non-Error values", () => {
+    expect(classifyAIError("401 unauthorized")).toBe("auth");
+    expect(classifyAIError("something went wrong")).toBe("unknown");
   });
 });
 

@@ -60,10 +60,19 @@ export async function PUT(request: Request) {
       .run();
   } else {
     // No key: update provider/model only if settings exist
-    const existing = db.select({ id: aiSettings.id }).from(aiSettings).get();
+    const existing = db
+      .select({ id: aiSettings.id, provider: aiSettings.provider })
+      .from(aiSettings)
+      .get();
     if (!existing) {
       return NextResponse.json(
         { error: "API key is required for initial setup" },
+        { status: 400 },
+      );
+    }
+    if (provider !== existing.provider) {
+      return NextResponse.json(
+        { error: "Switching provider requires a new API key" },
         { status: 400 },
       );
     }
