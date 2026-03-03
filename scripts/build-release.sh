@@ -12,9 +12,20 @@ set -e
 #   - gh CLI authenticated (gh auth login)
 #   - Xcode command line tools installed
 #
+# Options:
+#   --no-release   Skip creating a draft GitHub release (notarize only)
+#
 # Usage:
 #   APPLE_ID=you@example.com APPLE_ID_PASSWORD=xxxx-xxxx-xxxx-xxxx APPLE_TEAM_ID=XXXXXXXXXX \
-#     ./scripts/build-release.sh
+#     ./scripts/build-release.sh [--no-release]
+
+SKIP_RELEASE=false
+for arg in "$@"; do
+  case "$arg" in
+    --no-release) SKIP_RELEASE=true ;;
+    *) echo "Unknown option: $arg"; exit 1 ;;
+  esac
+done
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
@@ -28,8 +39,8 @@ for var in APPLE_ID APPLE_ID_PASSWORD APPLE_TEAM_ID; do
   fi
 done
 
-# Check gh is authenticated
-if ! gh auth status &>/dev/null; then
+# Check gh is authenticated (only needed for release)
+if [ "$SKIP_RELEASE" = false ] && ! gh auth status &>/dev/null; then
   echo "ERROR: gh CLI is not authenticated. Run: gh auth login"
   exit 1
 fi
@@ -81,14 +92,20 @@ echo "    ZIP: $ZIP_PATH ($(du -h "$ZIP_PATH" | cut -f1 | xargs))"
 echo "    SHA256 (DMG): $DMG_SHA"
 echo ""
 
-step_start "Creating draft GitHub release v$VERSION"
-gh release create "v$VERSION" "$DMG_PATH" "$ZIP_PATH" \
-  --title "v$VERSION" \
-  --draft \
-  --generate-notes
-step_done
+if [ "$SKIP_RELEASE" = false ]; then
+  step_start "Creating draft GitHub release v$VERSION"
+  gh release create "v$VERSION" "$DMG_PATH" "$ZIP_PATH" \
+    --title "v$VERSION" \
+    --draft \
+    --generate-notes
+  step_done
+fi
 
 TOTAL=$(( SECONDS ))
 echo "==> All done in $(( TOTAL / 60 ))m $(( TOTAL % 60 ))s"
-echo "    Review the draft release on GitHub, then publish it."
-echo "    https://github.com/nickustinov/itsyconnect-macos/releases"
+if [ "$SKIP_RELEASE" = false ]; then
+  echo "    Review the draft release on GitHub, then publish it."
+  echo "    https://github.com/nickustinov/itsyconnect-macos/releases"
+else
+  echo "    GitHub release skipped (--no-release)."
+fi

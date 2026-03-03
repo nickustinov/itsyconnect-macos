@@ -42,6 +42,7 @@ export {
   updateBetaLicenseAgreement,
 } from "./info";
 export { listFeedback, getFeedbackCrashLog, deleteFeedbackItem } from "./feedback";
+export { listPreReleaseVersions } from "./pre-release-versions";
 
 // ── Cache invalidation (touches caches across domains) ───────────
 
@@ -52,4 +53,5 @@ export function invalidateTestFlightCache(appId: string): void {
   cacheInvalidatePrefix(`tf-groups:${appId}`);
   cacheInvalidatePrefix(`tf-info:${appId}`);
   cacheInvalidatePrefix(`tf-feedback:${appId}`);
+  cacheInvalidatePrefix(`tf-pre-release-versions:${appId}`);
 }

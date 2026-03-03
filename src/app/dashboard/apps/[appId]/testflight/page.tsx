@@ -35,10 +35,10 @@ import { CircleNotch, CaretDown, Prohibit, Plus, Minus, Package } from "@phospho
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/api-fetch";
 import { useApps } from "@/lib/apps-context";
-import { useVersions } from "@/lib/versions-context";
+import { usePreReleaseVersions } from "@/lib/pre-release-versions-context";
 import { FooterPortal } from "@/lib/footer-portal-context";
 import { BUILD_STATUS_DOTS } from "@/lib/asc/display-types";
-import { resolveVersion, PLATFORM_LABELS } from "@/lib/asc/version-types";
+import { resolvePreReleaseVersion, PLATFORM_LABELS } from "@/lib/asc/version-types";
 import { useRegisterRefresh } from "@/lib/refresh-context";
 import type { TFBuild, TFGroup } from "@/lib/asc/testflight";
 import { formatDate } from "@/lib/format";
@@ -49,11 +49,11 @@ export default function TestFlightBuildsPage() {
   const searchParams = useSearchParams();
   const { apps } = useApps();
   const app = apps.find((a) => a.id === appId);
-  const { versions, loading: versionsLoading } = useVersions();
+  const { versions: preReleaseVersions, loading: versionsLoading } = usePreReleaseVersions();
 
-  const selectedVersion = resolveVersion(versions, searchParams.get("version"));
-  const platform = selectedVersion?.attributes.platform;
-  const versionString = selectedVersion?.attributes.versionString;
+  const selectedVersion = resolvePreReleaseVersion(preReleaseVersions, searchParams.get("version"));
+  const platform = selectedVersion?.platform;
+  const versionString = selectedVersion?.version;
 
   const [builds, setBuilds] = useState<TFBuild[]>([]);
   const [groups, setGroups] = useState<TFGroup[]>([]);

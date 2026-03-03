@@ -27,6 +27,7 @@ import { VersionActionFooter } from "@/components/layout/version-action-footer";
 import { BuildActionFooter } from "@/components/layout/build-action-footer";
 import { AppsProvider, useApps } from "@/lib/apps-context";
 import { VersionsProvider } from "@/lib/versions-context";
+import { PreReleaseVersionsProvider } from "@/lib/pre-release-versions-context";
 import { FormDirtyProvider } from "@/lib/form-dirty-context";
 import { HeaderLocaleProvider } from "@/lib/header-locale-context";
 import { SubmissionChecklistProvider } from "@/lib/submission-checklist-context";
@@ -88,6 +89,7 @@ export default function DashboardLayout({
     <LicenseProvider>
     <AppsProvider>
       <VersionsProvider>
+      <PreReleaseVersionsProvider>
       <FormDirtyProvider>
       <ErrorReportProvider>
       <HeaderLocaleProvider>
@@ -150,6 +152,7 @@ export default function DashboardLayout({
       </HeaderLocaleProvider>
       </ErrorReportProvider>
       </FormDirtyProvider>
+      </PreReleaseVersionsProvider>
       </VersionsProvider>
     </AppsProvider>
     </LicenseProvider>

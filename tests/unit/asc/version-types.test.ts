@@ -3,6 +3,9 @@ import {
   getVersionPlatforms,
   getVersionsByPlatform,
   resolveVersion,
+  getPreReleasePlatforms,
+  getPreReleasesByPlatform,
+  resolvePreReleaseVersion,
   isValidVersionString,
   hasInvalidVersionChars,
   EDITABLE_STATES,
@@ -10,7 +13,7 @@ import {
   STATE_DOT_COLORS,
   stateLabel,
 } from "@/lib/asc/version-types";
-import type { AscVersion } from "@/lib/asc/version-types";
+import type { AscVersion, PreReleaseVersion } from "@/lib/asc/version-types";
 
 function makeVersion(
   id: string,
@@ -230,5 +233,77 @@ describe("stateLabel", () => {
 
   it("handles single-word states", () => {
     expect(stateLabel("REJECTED")).toBe("Rejected");
+  });
+});
+
+// ── Pre-release version helpers ──────────────────────────────────
+
+function makePreRelease(id: string, version: string, platform: string): PreReleaseVersion {
+  return { id, version, platform };
+}
+
+describe("getPreReleasePlatforms", () => {
+  it("returns unique platforms", () => {
+    const versions = [
+      makePreRelease("1", "1.0.0", "IOS"),
+      makePreRelease("2", "1.1.0", "IOS"),
+      makePreRelease("3", "1.0.0", "MAC_OS"),
+    ];
+    const platforms = getPreReleasePlatforms(versions);
+    expect(platforms).toHaveLength(2);
+    expect(platforms).toContain("IOS");
+    expect(platforms).toContain("MAC_OS");
+  });
+
+  it("returns empty array for no versions", () => {
+    expect(getPreReleasePlatforms([])).toEqual([]);
+  });
+});
+
+describe("getPreReleasesByPlatform", () => {
+  it("filters versions by platform", () => {
+    const versions = [
+      makePreRelease("1", "1.0.0", "IOS"),
+      makePreRelease("2", "2.0.0", "MAC_OS"),
+      makePreRelease("3", "1.1.0", "IOS"),
+    ];
+    const ios = getPreReleasesByPlatform(versions, "IOS");
+    expect(ios).toHaveLength(2);
+    expect(ios.every((v) => v.platform === "IOS")).toBe(true);
+  });
+
+  it("returns empty array when no versions match", () => {
+    const versions = [makePreRelease("1", "1.0.0", "IOS")];
+    expect(getPreReleasesByPlatform(versions, "MAC_OS")).toEqual([]);
+  });
+});
+
+describe("resolvePreReleaseVersion", () => {
+  it("returns version by ID when found", () => {
+    const versions = [
+      makePreRelease("1", "1.0.0", "IOS"),
+      makePreRelease("2", "2.0.0", "IOS"),
+    ];
+    expect(resolvePreReleaseVersion(versions, "2")).toBe(versions[1]);
+  });
+
+  it("falls back to first version when ID not found", () => {
+    const versions = [
+      makePreRelease("1", "1.0.0", "IOS"),
+      makePreRelease("2", "2.0.0", "IOS"),
+    ];
+    expect(resolvePreReleaseVersion(versions, "nonexistent")).toBe(versions[0]);
+  });
+
+  it("falls back to first version when versionId is null", () => {
+    const versions = [
+      makePreRelease("1", "1.0.0", "IOS"),
+      makePreRelease("2", "2.0.0", "IOS"),
+    ];
+    expect(resolvePreReleaseVersion(versions, null)).toBe(versions[0]);
+  });
+
+  it("returns undefined for empty array", () => {
+    expect(resolvePreReleaseVersion([], null)).toBeUndefined();
   });
 });

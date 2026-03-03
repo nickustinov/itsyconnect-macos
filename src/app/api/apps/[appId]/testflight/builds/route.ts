@@ -21,6 +21,7 @@ export async function GET(
 
   try {
     const builds = await listBuilds(appId, forceRefresh, filters);
+
     const cacheKey = platform && versionString
       ? `tf-builds:${appId}:${platform}:${versionString}`
       : `tf-builds:${appId}`;

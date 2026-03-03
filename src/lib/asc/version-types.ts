@@ -124,3 +124,36 @@ export function resolveVersion(
     versions[0]
   );
 }
+
+// ── Pre-release versions (TestFlight) ────────────────────────────
+
+export interface PreReleaseVersion {
+  id: string;
+  version: string;
+  platform: string;
+}
+
+/** Get unique platforms from a list of pre-release versions. */
+export function getPreReleasePlatforms(versions: PreReleaseVersion[]): string[] {
+  return [...new Set(versions.map((v) => v.platform))];
+}
+
+/** Filter pre-release versions by platform. */
+export function getPreReleasesByPlatform(
+  versions: PreReleaseVersion[],
+  platform: string,
+): PreReleaseVersion[] {
+  return versions.filter((v) => v.platform === platform);
+}
+
+/** Resolve a pre-release version by ID or fall back to the first. */
+export function resolvePreReleaseVersion(
+  versions: PreReleaseVersion[],
+  versionId: string | null,
+): PreReleaseVersion | undefined {
+  if (versionId) {
+    const found = versions.find((v) => v.id === versionId);
+    if (found) return found;
+  }
+  return versions[0];
+}

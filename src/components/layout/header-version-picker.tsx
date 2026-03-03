@@ -43,12 +43,16 @@ import { toast } from "sonner";
 import { apiFetch } from "@/lib/api-fetch";
 import { useApps } from "@/lib/apps-context";
 import { useVersions } from "@/lib/versions-context";
+import { usePreReleaseVersions } from "@/lib/pre-release-versions-context";
 import { useFormDirty } from "@/lib/form-dirty-context";
 import { useRefresh } from "@/lib/refresh-context";
 import {
   getVersionPlatforms,
   getVersionsByPlatform,
   resolveVersion,
+  getPreReleasePlatforms,
+  getPreReleasesByPlatform,
+  resolvePreReleaseVersion,
   stateLabel,
   isValidVersionString,
   hasInvalidVersionChars,
@@ -84,6 +88,7 @@ export function HeaderVersionPicker() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { versions, refresh } = useVersions();
+  const { versions: preReleaseVersions } = usePreReleaseVersions();
   const { guardNavigation } = useFormDirty();
 
   const [platformPickerOpen, setPlatformPickerOpen] = useState(false);
@@ -105,12 +110,23 @@ export function HeaderVersionPicker() {
   if (!VERSION_PAGES.has(pageSegment) && !isTestFlight) return null;
   if (pageSegment === "testflight" && !isTestFlight) return null;
 
-  const platforms = getVersionPlatforms(versions);
   const versionParam = searchParams.get("version");
-  const selectedVersion = resolveVersion(versions, versionParam);
-  const currentPlatform = selectedVersion?.attributes.platform ?? platforms[0] ?? "IOS";
-  const allPlatformVersions = getVersionsByPlatform(versions, currentPlatform);
-  const platformVersions = isTestFlight ? allPlatformVersions : filterPickerVersions(allPlatformVersions);
+
+  // Branch data source based on TestFlight vs App Store
+  const platforms = isTestFlight
+    ? getPreReleasePlatforms(preReleaseVersions)
+    : getVersionPlatforms(versions);
+
+  const selectedVersion = isTestFlight ? undefined : resolveVersion(versions, versionParam);
+  const selectedPreRelease = isTestFlight ? resolvePreReleaseVersion(preReleaseVersions, versionParam) : undefined;
+
+  const currentPlatform = isTestFlight
+    ? (selectedPreRelease?.platform ?? platforms[0] ?? "IOS")
+    : (selectedVersion?.attributes.platform ?? platforms[0] ?? "IOS");
+
+  const platformVersions = isTestFlight
+    ? getPreReleasesByPlatform(preReleaseVersions, currentPlatform)
+    : filterPickerVersions(getVersionsByPlatform(versions, currentPlatform));
 
   function navigate(versionId: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -119,10 +135,13 @@ export function HeaderVersionPicker() {
     guardNavigation(() => router.replace(url));
   }
 
-  function handlePlatformChange(platform: string) {
-    const pvs = getVersionsByPlatform(versions, platform);
-    if (pvs.length > 0) {
-      navigate(pvs[0].id);
+  function handlePlatformChange(newPlatform: string) {
+    if (isTestFlight) {
+      const pvs = getPreReleasesByPlatform(preReleaseVersions, newPlatform);
+      if (pvs.length > 0) navigate(pvs[0].id);
+    } else {
+      const pvs = getVersionsByPlatform(versions, newPlatform);
+      if (pvs.length > 0) navigate(pvs[0].id);
     }
   }
 
@@ -153,6 +172,12 @@ export function HeaderVersionPicker() {
       setCreating(false);
     }
   }
+
+  // Display values for the version trigger button
+  const triggerVersionString = isTestFlight
+    ? (selectedPreRelease?.version ?? "–")
+    : (selectedVersion?.attributes.versionString ?? "–");
+  const selectedId = isTestFlight ? selectedPreRelease?.id : selectedVersion?.id;
 
   return (
     <>
@@ -210,8 +235,8 @@ export function HeaderVersionPicker() {
       <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
         <PopoverTrigger asChild>
           <Button variant="outline" className="h-8 gap-1.5 px-2.5 font-mono text-sm">
-            {selectedVersion?.attributes.versionString ?? "–"}
-            {selectedVersion && (
+            {triggerVersionString}
+            {!isTestFlight && selectedVersion && (
               <span
                 className={`size-1.5 shrink-0 rounded-full ${STATE_DOT_COLORS[selectedVersion.attributes.appVersionState] ?? "bg-muted-foreground"}`}
               />
@@ -224,29 +249,47 @@ export function HeaderVersionPicker() {
             <CommandList>
               <CommandEmpty>No versions found.</CommandEmpty>
               <CommandGroup>
-                {platformVersions.map((v) => (
-                  <CommandItem
-                    key={v.id}
-                    value={`${v.attributes.versionString} ${stateLabel(v.attributes.appVersionState)}`}
-                    onSelect={() => {
-                      navigate(v.id);
-                      setPickerOpen(false);
-                    }}
-                  >
-                    {v.id === selectedVersion?.id && (
-                      <Check size={14} className="text-foreground" />
-                    )}
-                    <span className={`font-mono ${v.id !== selectedVersion?.id ? "pl-[22px]" : ""}`}>
-                      {v.attributes.versionString}
-                    </span>
-                    <span className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <span
-                        className={`size-1.5 shrink-0 rounded-full ${STATE_DOT_COLORS[v.attributes.appVersionState] ?? "bg-muted-foreground"}`}
-                      />
-                      {stateLabel(v.attributes.appVersionState)}
-                    </span>
-                  </CommandItem>
-                ))}
+                {isTestFlight
+                  ? (platformVersions as ReturnType<typeof getPreReleasesByPlatform>).map((v) => (
+                      <CommandItem
+                        key={v.id}
+                        value={v.version}
+                        onSelect={() => {
+                          navigate(v.id);
+                          setPickerOpen(false);
+                        }}
+                      >
+                        {v.id === selectedId && (
+                          <Check size={14} className="text-foreground" />
+                        )}
+                        <span className={`font-mono ${v.id !== selectedId ? "pl-[22px]" : ""}`}>
+                          {v.version}
+                        </span>
+                      </CommandItem>
+                    ))
+                  : (platformVersions as AscVersion[]).map((v) => (
+                      <CommandItem
+                        key={v.id}
+                        value={`${v.attributes.versionString} ${stateLabel(v.attributes.appVersionState)}`}
+                        onSelect={() => {
+                          navigate(v.id);
+                          setPickerOpen(false);
+                        }}
+                      >
+                        {v.id === selectedId && (
+                          <Check size={14} className="text-foreground" />
+                        )}
+                        <span className={`font-mono ${v.id !== selectedId ? "pl-[22px]" : ""}`}>
+                          {v.attributes.versionString}
+                        </span>
+                        <span className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <span
+                            className={`size-1.5 shrink-0 rounded-full ${STATE_DOT_COLORS[v.attributes.appVersionState] ?? "bg-muted-foreground"}`}
+                          />
+                          {stateLabel(v.attributes.appVersionState)}
+                        </span>
+                      </CommandItem>
+                    ))}
               </CommandGroup>
               {!isTestFlight && (
                 <>
@@ -507,6 +550,7 @@ export function HeaderRefreshButton() {
   const { appId } = useParams<{ appId?: string }>();
   const { refresh: refreshApps } = useApps();
   const { loading, refresh: refreshVersions } = useVersions();
+  const { refresh: refreshPreReleaseVersions } = usePreReleaseVersions();
   const { guardNavigation } = useFormDirty();
   const { busy: sectionBusy, hasHandler, doRefresh: sectionRefresh } = useRefresh();
   const [refreshing, setRefreshing] = useState(false);
@@ -521,7 +565,7 @@ export function HeaderRefreshButton() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ appId }),
       });
-      await Promise.all([refreshApps(), refreshVersions()]);
+      await Promise.all([refreshApps(), refreshVersions(), refreshPreReleaseVersions()]);
     } finally {
       setRefreshing(false);
     }

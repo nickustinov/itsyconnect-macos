@@ -53,6 +53,10 @@ vi.mock("@/lib/asc/testflight/feedback", () => ({
   deleteFeedbackItem: vi.fn(),
 }));
 
+vi.mock("@/lib/asc/testflight/pre-release-versions", () => ({
+  listPreReleaseVersions: vi.fn(),
+}));
+
 import { invalidateTestFlightCache } from "@/lib/asc/testflight/index";
 
 describe("invalidateTestFlightCache", () => {
@@ -65,6 +69,7 @@ describe("invalidateTestFlightCache", () => {
     expect(mockCacheInvalidatePrefix).toHaveBeenCalledWith("tf-groups:app-1");
     expect(mockCacheInvalidatePrefix).toHaveBeenCalledWith("tf-info:app-1");
     expect(mockCacheInvalidatePrefix).toHaveBeenCalledWith("tf-feedback:app-1");
-    expect(mockCacheInvalidatePrefix).toHaveBeenCalledTimes(4);
+    expect(mockCacheInvalidatePrefix).toHaveBeenCalledWith("tf-pre-release-versions:app-1");
+    expect(mockCacheInvalidatePrefix).toHaveBeenCalledTimes(5);
   });
 });

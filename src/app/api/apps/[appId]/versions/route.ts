@@ -20,7 +20,6 @@ export async function GET(
   try {
     const versions = await listVersions(appId);
     const meta = cacheGetMeta(`versions:${appId}`);
-
     return NextResponse.json({ versions, meta });
   } catch (err) {
     return errorJson(err);
