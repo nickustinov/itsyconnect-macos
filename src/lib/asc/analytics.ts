@@ -746,6 +746,16 @@ async function buildAnalyticsDataInner(
     crashesByDevice: aggregateCrashesByDevice(filteredCrashes),
   };
 
+  // Log date coverage for key series
+  const logRange = (label: string, series: Array<{ date: string }>) => {
+    if (series.length === 0) return console.log(`[analytics] ${label}: no data`);
+    console.log(`[analytics] ${label}: ${series.length} days, ${series[0].date} → ${series[series.length - 1].date}`);
+  };
+  logRange("Downloads", data.dailyDownloads);
+  logRange("Revenue", data.dailyRevenue);
+  logRange("Engagement", data.dailyEngagement);
+  logRange("Sessions", data.dailySessions);
+
   cacheSet(cacheKey, data, ANALYTICS_TTL);
   return data;
 }
