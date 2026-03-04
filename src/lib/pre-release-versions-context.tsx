@@ -27,12 +27,13 @@ export function PreReleaseVersionsProvider({ children }: { children: React.React
   const [versions, setVersions] = useState<PreReleaseVersion[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const refresh = useCallback(async () => {
+  const fetchVersions = useCallback(async (forceRefresh = false) => {
     if (!appId) return;
     setLoading(true);
 
     try {
-      const res = await fetch(`/api/apps/${appId}/testflight/pre-release-versions`);
+      const url = `/api/apps/${appId}/testflight/pre-release-versions${forceRefresh ? "?refresh=1" : ""}`;
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         setVersions(data.versions ?? []);
@@ -44,9 +45,11 @@ export function PreReleaseVersionsProvider({ children }: { children: React.React
     }
   }, [appId]);
 
+  const refresh = useCallback(() => fetchVersions(true), [fetchVersions]);
+
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    fetchVersions();
+  }, [fetchVersions]);
 
   return (
     <PreReleaseVersionsContext.Provider value={{ versions, loading, refresh }}>
