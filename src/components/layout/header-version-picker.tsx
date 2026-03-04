@@ -555,7 +555,7 @@ export function HeaderRefreshButton() {
   const { busy: sectionBusy, hasHandler, doRefresh: sectionRefresh } = useRefresh();
   const [refreshing, setRefreshing] = useState(false);
 
-  if (!appId) return null;
+  if (!appId && !hasHandler) return null;
 
   async function doDefaultRefresh() {
     setRefreshing(true);
@@ -571,7 +571,7 @@ export function HeaderRefreshButton() {
     }
   }
 
-  const busy = sectionBusy || loading || refreshing;
+  const busy = sectionBusy || (appId ? loading : false) || refreshing;
 
   return (
     <Button

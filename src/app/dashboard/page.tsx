@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -32,6 +32,7 @@ import { KpiCard } from "@/components/kpi-card";
 import { AppIcon } from "@/components/app-icon";
 import { DateRangePicker } from "@/components/analytics-range-picker";
 import { useApps } from "@/lib/apps-context";
+import { useRegisterRefresh } from "@/lib/refresh-context";
 import { formatDateShort } from "@/lib/format";
 import { parseRange, filterByDateRange } from "@/lib/analytics-range";
 import type { AnalyticsData } from "@/lib/asc/analytics";
@@ -78,14 +79,20 @@ export default function DashboardPage() {
     try {
       const res = await fetch(`/api/apps/${appId}/analytics`);
       const json = await res.json();
-      setAnalytics((prev) => ({
-        ...prev,
-        [appId]: {
-          data: json.data ?? null,
-          loading: false,
-          pending: json.pending ?? false,
-        },
-      }));
+      setAnalytics((prev) => {
+        // Don't wipe existing data when pending
+        if (json.pending && prev[appId]?.data) {
+          return { ...prev, [appId]: { ...prev[appId], pending: true } };
+        }
+        return {
+          ...prev,
+          [appId]: {
+            data: json.data ?? null,
+            loading: false,
+            pending: json.pending ?? false,
+          },
+        };
+      });
     } catch {
       setAnalytics((prev) => ({
         ...prev,
@@ -97,18 +104,53 @@ export default function DashboardPage() {
   useEffect(() => {
     if (loading || apps.length === 0) return;
 
-    // Initialize loading state for all apps
     const initial: Record<string, AppAnalytics> = {};
     for (const app of apps) {
       initial[app.id] = { data: null, loading: true, pending: false };
     }
     setAnalytics(initial);
 
-    // Fetch all in parallel
     for (const app of apps) {
       fetchAnalytics(app.id);
     }
   }, [apps, loading, fetchAnalytics]);
+
+  // Poll while any app is pending
+  const hasPending = Object.values(analytics).some((a) => a.pending);
+  useEffect(() => {
+    if (!hasPending) return;
+    const timer = setInterval(() => {
+      for (const app of apps) {
+        fetchAnalytics(app.id);
+      }
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [hasPending, apps, fetchAnalytics]);
+
+  // Refresh handler for header button
+  const [refreshing, setRefreshing] = useState(false);
+  const appsRef = useRef(apps);
+  appsRef.current = apps;
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const currentApps = appsRef.current;
+      await Promise.all(
+        currentApps.map((app) =>
+          fetch(`/api/apps/${app.id}/analytics/refresh`, { method: "POST" }),
+        ),
+      );
+      await Promise.all(currentApps.map((app) => fetchAnalytics(app.id)));
+    } finally {
+      setRefreshing(false);
+    }
+  }, [fetchAnalytics]);
+
+  useRegisterRefresh({
+    onRefresh: handleRefresh,
+    busy: refreshing || hasPending,
+  });
 
   // Aggregated KPIs
   const { totalDownloads, totalProceeds, proceeds7d, proceedsYesterday } = useMemo(() => {
