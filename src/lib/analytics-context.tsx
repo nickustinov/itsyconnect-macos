@@ -128,7 +128,7 @@ export function AnalyticsProvider({
     if (!data) return undefined;
     const lastDates: string[] = [];
     for (const series of [data.dailyDownloads, data.dailyRevenue, data.dailySessions, data.dailyEngagement, data.dailyCrashes]) {
-      if (series.length > 0) lastDates.push(series[series.length - 1].date);
+      if (series && series.length > 0) lastDates.push(series[series.length - 1].date);
     }
     if (lastDates.length === 0) return undefined;
     return lastDates.reduce((max, d) => (d > max ? d : max));
