@@ -23,10 +23,10 @@ export function AIRequiredDialog({ open, onOpenChange }: AIRequiredDialogProps) 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>AI key required</DialogTitle>
+          <DialogTitle>AI setup required</DialogTitle>
           <DialogDescription>
-            Configure an AI provider in Settings to use translations and
-            improvements.
+            Configure an AI provider (cloud or local server) in Settings to use
+            translations and improvements.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

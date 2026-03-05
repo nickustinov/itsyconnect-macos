@@ -14,6 +14,14 @@ export interface AIProvider {
 
 export const AI_PROVIDERS: AIProvider[] = [
   {
+    id: "local-openai",
+    name: "Local server (OpenAI-compatible)",
+    envVar: "LOCAL_OPENAI_API_KEY",
+    models: [
+      { id: "local-model", name: "Custom model ID" },
+    ],
+  },
+  {
     id: "anthropic",
     name: "Anthropic",
     envVar: "ANTHROPIC_API_KEY",

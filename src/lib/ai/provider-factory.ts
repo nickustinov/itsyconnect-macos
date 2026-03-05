@@ -6,6 +6,11 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createXai } from "@ai-sdk/xai";
 import { createMistral } from "@ai-sdk/mistral";
 import { getAISettings } from "./settings";
+import {
+  isLocalOpenAIProvider,
+  resolveLocalOpenAIApiKey,
+  resolveLocalOpenAIBaseUrl,
+} from "./local-provider";
 
 /** Create a Vercel AI SDK LanguageModel from stored AI settings. */
 export async function getLanguageModel(): Promise<LanguageModel> {
@@ -14,14 +19,28 @@ export async function getLanguageModel(): Promise<LanguageModel> {
     throw new Error("AI not configured");
   }
 
-  return createLanguageModel(settings.provider, settings.modelId, settings.apiKey);
+  return createLanguageModel(
+    settings.provider,
+    settings.modelId,
+    settings.apiKey,
+    settings.baseUrl ?? undefined,
+  );
 }
 
 export function createLanguageModel(
   provider: string,
   modelId: string,
   apiKey: string,
+  baseUrl?: string,
 ): LanguageModel {
+  if (isLocalOpenAIProvider(provider)) {
+    const openaiCompatible = createOpenAI({
+      apiKey: resolveLocalOpenAIApiKey(apiKey),
+      baseURL: resolveLocalOpenAIBaseUrl(baseUrl),
+    });
+    return openaiCompatible(modelId);
+  }
+
   switch (provider) {
     case "anthropic": {
       const anthropic = createAnthropic({ apiKey });
@@ -91,9 +110,10 @@ export async function validateApiKey(
   provider: string,
   modelId: string,
   apiKey: string,
+  baseUrl?: string,
 ): Promise<string | null> {
   try {
-    const model = createLanguageModel(provider, modelId, apiKey);
+    const model = createLanguageModel(provider, modelId, apiKey, baseUrl);
     await generateText({
       model,
       prompt: "Say hi",
@@ -105,6 +125,9 @@ export async function validateApiKey(
     if (category === "rate_limit") return null;
     const mapped = ERROR_MESSAGES[category];
     if (mapped) return mapped;
+    if (isLocalOpenAIProvider(provider)) {
+      return "Could not reach the local AI server. Ensure it is running and the URL/model are correct.";
+    }
     const message = err instanceof Error ? err.message : String(err);
     return `API key validation failed: ${message}`;
   }

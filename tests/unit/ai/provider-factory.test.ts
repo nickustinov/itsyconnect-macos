@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { createLanguageModel, validateApiKey, getLanguageModel, classifyAIError } from "@/lib/ai/provider-factory";
+import { DEFAULT_LOCAL_OPENAI_BASE_URL } from "@/lib/ai/local-provider";
 
 // The LanguageModel type is a union; runtime objects have modelId/provider
 // but TS can't see them on every union member. Cast to Record for assertions.
@@ -41,6 +42,12 @@ describe("createLanguageModel", () => {
     expect(model.provider).toContain("openai");
   });
 
+  it("creates a local OpenAI-compatible model", () => {
+    const model = createLanguageModel("local-openai", "qwen2.5-7b-instruct", "", DEFAULT_LOCAL_OPENAI_BASE_URL) as Record<string, unknown>;
+    expect(model.modelId).toBe("qwen2.5-7b-instruct");
+    expect(model.provider).toContain("openai");
+  });
+
   it("throws for unknown provider", () => {
     expect(() => createLanguageModel("unknown", "model", "key")).toThrow(
       "Unknown AI provider: unknown",
@@ -62,6 +69,7 @@ describe("getLanguageModel", () => {
     vi.mocked(getAISettings).mockResolvedValueOnce({
       provider: "anthropic",
       modelId: "claude-sonnet-4-6",
+      baseUrl: null,
       apiKey: "sk-test",
     });
 

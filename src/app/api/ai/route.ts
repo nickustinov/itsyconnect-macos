@@ -3,6 +3,7 @@ import { z } from "zod";
 import { generateText } from "ai";
 import { createLanguageModel, classifyAIError } from "@/lib/ai/provider-factory";
 import { getAISettings } from "@/lib/ai/settings";
+import { ensureLocalModelLoaded, isLocalOpenAIProvider } from "@/lib/ai/local-provider";
 import {
   buildTranslatePrompt,
   buildImprovePrompt,
@@ -115,7 +116,24 @@ export async function POST(request: Request) {
   try {
     const settings = await getAISettings();
     if (!settings) throw new Error("AI not configured");
-    model = createLanguageModel(settings.provider, settings.modelId, settings.apiKey);
+
+    if (isLocalOpenAIProvider(settings.provider)) {
+      const loadError = await ensureLocalModelLoaded(
+        settings.modelId,
+        settings.baseUrl ?? undefined,
+        settings.apiKey,
+      );
+      if (loadError) {
+        return NextResponse.json({ error: loadError }, { status: 422 });
+      }
+    }
+
+    model = createLanguageModel(
+      settings.provider,
+      settings.modelId,
+      settings.apiKey,
+      settings.baseUrl ?? undefined,
+    );
     providerId = settings.provider;
     modelId = settings.modelId;
   } catch {

@@ -7,6 +7,11 @@ export function sanitisePath(path: string): string {
 }
 
 /** Replace UUIDs and JWTs in arbitrary text with placeholders. */
-export function sanitiseText(text: string): string {
-  return text.replace(JWT_RE, "<jwt>").replace(UUID_RE, "<id>");
+export function sanitiseText(text: unknown): string {
+  const value = typeof text === "string"
+    ? text
+    : text == null
+      ? ""
+      : String(text);
+  return value.replace(JWT_RE, "<jwt>").replace(UUID_RE, "<id>");
 }

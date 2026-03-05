@@ -36,4 +36,9 @@ describe("sanitiseText", () => {
     expect(result).toContain("<jwt>");
     expect(result).toContain("<id>");
   });
+
+  it("handles undefined and null safely", () => {
+    expect(sanitiseText(undefined)).toBe("");
+    expect(sanitiseText(null)).toBe("");
+  });
 });

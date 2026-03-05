@@ -6,6 +6,7 @@ import { sql } from "drizzle-orm";
 export interface AISettingsResult {
   provider: string;
   modelId: string;
+  baseUrl: string | null;
   apiKey: string;
 }
 
@@ -29,6 +30,7 @@ export async function getAISettings(): Promise<AISettingsResult | null> {
   return {
     provider: row.provider,
     modelId: row.modelId,
+    baseUrl: row.baseUrl,
     apiKey,
   };
 }

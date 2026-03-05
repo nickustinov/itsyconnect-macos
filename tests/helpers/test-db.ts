@@ -22,6 +22,7 @@ export function createTestDb() {
       id TEXT PRIMARY KEY NOT NULL,
       provider TEXT NOT NULL,
       model_id TEXT NOT NULL,
+      base_url TEXT,
       encrypted_api_key TEXT NOT NULL,
       iv TEXT NOT NULL,
       auth_tag TEXT NOT NULL,

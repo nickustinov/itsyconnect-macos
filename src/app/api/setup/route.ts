@@ -7,6 +7,13 @@ import { encrypt } from "@/lib/encryption";
 import { ulid } from "@/lib/ulid";
 import { validateApiKey } from "@/lib/ai/provider-factory";
 import { parseBody } from "@/lib/api-helpers";
+import {
+  DEFAULT_LOCAL_OPENAI_BASE_URL,
+  ensureLocalModelLoaded,
+  isLocalOpenAIProvider,
+  normalizeOpenAICompatibleBaseUrl,
+  resolveLocalOpenAIApiKey,
+} from "@/lib/ai/local-provider";
 
 const setupSchema = z.object({
   // ASC credentials – required
@@ -17,6 +24,7 @@ const setupSchema = z.object({
   // AI settings – optional
   aiProvider: z.string().optional(),
   aiModelId: z.string().optional(),
+  aiBaseUrl: z.string().optional(),
   aiApiKey: z.string().optional(),
 });
 
@@ -40,10 +48,56 @@ export async function POST(request: Request) {
   if (parsed instanceof Response) return parsed;
 
   const data = parsed;
+  const aiProvider = data.aiProvider?.trim();
+  const aiModelId = data.aiModelId?.trim();
+  const aiApiKey = data.aiApiKey?.trim();
+  const aiBaseUrl = data.aiBaseUrl?.trim();
+  const isLocalProvider = aiProvider ? isLocalOpenAIProvider(aiProvider) : false;
+
+  let normalizedAiBaseUrl: string | null = null;
+  if (isLocalProvider) {
+    if (aiBaseUrl) {
+      normalizedAiBaseUrl = normalizeOpenAICompatibleBaseUrl(aiBaseUrl);
+      if (!normalizedAiBaseUrl) {
+        return NextResponse.json(
+          { error: "Invalid local server URL" },
+          { status: 400 },
+        );
+      }
+    } else {
+      normalizedAiBaseUrl = DEFAULT_LOCAL_OPENAI_BASE_URL;
+    }
+  }
+
+  const resolvedAiApiKey =
+    isLocalProvider
+      ? resolveLocalOpenAIApiKey(aiApiKey)
+      : aiApiKey;
+
+  const hasAIConfig =
+    !!aiProvider &&
+    !!aiModelId &&
+    (!!resolvedAiApiKey || isLocalProvider);
 
   // Validate AI key before saving anything
-  if (data.aiProvider && data.aiModelId && data.aiApiKey) {
-    const aiValidationError = await validateApiKey(data.aiProvider, data.aiModelId, data.aiApiKey);
+  if (hasAIConfig) {
+    if (isLocalProvider) {
+      const loadError = await ensureLocalModelLoaded(
+        aiModelId!,
+        normalizedAiBaseUrl ?? undefined,
+        resolvedAiApiKey!,
+      );
+      if (loadError) {
+        return NextResponse.json({ error: loadError }, { status: 422 });
+      }
+    }
+
+    const aiValidationError = await validateApiKey(
+      aiProvider!,
+      aiModelId!,
+      resolvedAiApiKey!,
+      normalizedAiBaseUrl ?? undefined,
+    );
     if (aiValidationError) {
       return NextResponse.json({ error: aiValidationError }, { status: 422 });
     }
@@ -65,13 +119,14 @@ export async function POST(request: Request) {
     .run();
 
   // Store AI settings (already validated above)
-  if (data.aiProvider && data.aiModelId && data.aiApiKey) {
-    const aiEncrypted = encrypt(data.aiApiKey);
+  if (hasAIConfig) {
+    const aiEncrypted = encrypt(resolvedAiApiKey!);
     db.insert(aiSettings)
       .values({
         id: ulid(),
-        provider: data.aiProvider,
-        modelId: data.aiModelId,
+        provider: aiProvider!,
+        modelId: aiModelId!,
+        baseUrl: normalizedAiBaseUrl,
         encryptedApiKey: aiEncrypted.ciphertext,
         iv: aiEncrypted.iv,
         authTag: aiEncrypted.authTag,

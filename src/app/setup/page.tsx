@@ -27,6 +27,10 @@ import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { AI_PROVIDERS } from "@/lib/ai-providers";
 import { ThemeToggle } from "@/components/theme-toggle";
+import {
+  DEFAULT_LOCAL_OPENAI_BASE_URL,
+  isLocalOpenAIProvider,
+} from "@/lib/ai/local-provider";
 
 const WIZARD_STEPS = 3;
 
@@ -71,6 +75,9 @@ export default function SetupPage() {
   // Step 3 – AI
   const [providerId, setProviderId] = useState("anthropic");
   const [modelId, setModelId] = useState("claude-sonnet-4-6");
+  const [baseUrl, setBaseUrl] = useState("");
+  const [detectedModels, setDetectedModels] = useState<string[]>([]);
+  const [testingLocalServer, setTestingLocalServer] = useState(false);
   const [apiKey, setApiKey] = useState("");
   const [showKey, setShowKey] = useState(false);
 
@@ -83,8 +90,52 @@ export default function SetupPage() {
     setProviderId(id);
     const p = AI_PROVIDERS.find((p) => p.id === id)!;
     setModelId(p.models[0].id);
+    setDetectedModels([]);
     setApiKey("");
     setShowKey(false);
+  }
+
+  async function handleTestLocalServer() {
+    setTestingLocalServer(true);
+
+    try {
+      const effectiveBaseUrl = baseUrl.trim() || DEFAULT_LOCAL_OPENAI_BASE_URL;
+      const body: Record<string, string> = { baseUrl: effectiveBaseUrl };
+      if (apiKey.trim()) {
+        body.apiKey = apiKey.trim();
+      }
+
+      const res = await fetch("/api/settings/ai/local-models", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || "Failed to reach local server");
+        setTestingLocalServer(false);
+        return;
+      }
+
+      const models = Array.isArray(data.models)
+        ? data.models.filter((m: unknown): m is string => typeof m === "string" && m.trim().length > 0)
+        : [];
+
+      setDetectedModels(models);
+      if (models.length === 0) {
+        toast.error("Server is reachable, but no models were returned.");
+      } else {
+        if (!models.includes(modelId)) {
+          setModelId(models[0]);
+        }
+        toast.success(`Detected ${models.length} model${models.length === 1 ? "" : "s"}`);
+      }
+    } catch {
+      toast.error("Network error");
+    }
+
+    setTestingLocalServer(false);
   }
 
   async function testConnection(
@@ -188,7 +239,12 @@ export default function SetupPage() {
       }
 
       // Include AI settings if provided
-      if (apiKey.trim()) {
+      if (isLocalOpenAIProvider(providerId) && modelId.trim()) {
+        body.aiProvider = providerId;
+        body.aiModelId = modelId.trim();
+        body.aiBaseUrl = baseUrl.trim() || DEFAULT_LOCAL_OPENAI_BASE_URL;
+        if (apiKey.trim()) body.aiApiKey = apiKey.trim();
+      } else if (apiKey.trim()) {
         body.aiProvider = providerId;
         body.aiModelId = modelId;
         body.aiApiKey = apiKey.trim();
@@ -475,23 +531,78 @@ export default function SetupPage() {
                 </SelectContent>
               </Select>
             </div>
+            {isLocalOpenAIProvider(providerId) && (
+              <div className="space-y-2">
+                <label className="text-sm text-muted-foreground">Local server URL</label>
+                <Input
+                  value={baseUrl}
+                  onChange={(e) => setBaseUrl(e.target.value)}
+                  placeholder={DEFAULT_LOCAL_OPENAI_BASE_URL}
+                  className="font-mono text-sm"
+                />
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleTestLocalServer}
+                    disabled={testingLocalServer}
+                  >
+                    {testingLocalServer ? <><Spinner className="size-3" /> Testing...</> : "Test local server"}
+                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    Tries <span className="font-mono">{(baseUrl.trim() || DEFAULT_LOCAL_OPENAI_BASE_URL)}/models</span>
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Example: <span className="font-mono">http://127.0.0.1:1234</span>. The app uses the OpenAI-compatible <span className="font-mono">/v1</span> API.
+                </p>
+              </div>
+            )}
             <div className="space-y-2">
               <label className="text-sm text-muted-foreground">Model</label>
-              <Select value={modelId} onValueChange={setModelId}>
-                <SelectTrigger className="w-full text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {provider.models.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
-                      {m.name}
-                      <span className="ml-2 font-mono text-xs text-muted-foreground">
-                        {m.id}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {isLocalOpenAIProvider(providerId) ? (
+                <div className="space-y-2">
+                  <Input
+                    value={modelId}
+                    onChange={(e) => setModelId(e.target.value)}
+                    placeholder="qwen2.5-7b-instruct"
+                    className="font-mono text-sm"
+                  />
+                  {detectedModels.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {detectedModels.map((id) => (
+                        <button
+                          key={id}
+                          type="button"
+                          className={`rounded-md border px-2 py-1 text-xs font-mono ${id === modelId ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted"}`}
+                          onClick={() => setModelId(id)}
+                        >
+                          {id}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Use the model ID exposed by your local server (LM Studio loaded model ID).
+                  </p>
+                </div>
+              ) : (
+                <Select value={modelId} onValueChange={setModelId}>
+                  <SelectTrigger className="w-full text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {provider.models.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.name}
+                        <span className="ml-2 font-mono text-xs text-muted-foreground">
+                          {m.id}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-sm text-muted-foreground">
@@ -503,7 +614,9 @@ export default function SetupPage() {
                   type={showKey ? "text" : "password"}
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="Paste your API key"
+                  placeholder={isLocalOpenAIProvider(providerId)
+                    ? "Optional token (if your local server requires auth)"
+                    : "Paste your API key"}
                   className="font-mono text-sm"
                 />
                 <Button

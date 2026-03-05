@@ -42,6 +42,7 @@ describe("getAISettings", () => {
     expect(result).toEqual({
       provider: "anthropic",
       modelId: "claude-sonnet-4-6",
+      baseUrl: null,
       apiKey: "decrypted-api-key",
     });
   });

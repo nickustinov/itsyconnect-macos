@@ -24,6 +24,7 @@ export const aiSettings = sqliteTable("ai_settings", {
   id: text("id").primaryKey().$defaultFn(ulid),
   provider: text("provider").notNull(),
   modelId: text("model_id").notNull(),
+  baseUrl: text("base_url"),
   encryptedApiKey: text("encrypted_api_key").notNull(),
   iv: text("iv").notNull(),
   authTag: text("auth_tag").notNull(),
