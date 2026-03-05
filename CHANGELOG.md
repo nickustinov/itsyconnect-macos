@@ -4,6 +4,7 @@
 
 - Add demo mode – "Explore with sample data" on the setup screen lets you browse the full dashboard with three fictional apps, no credentials required
 - Retry on transient App Store Connect server errors (500) with exponential backoff
+- Fix proceeds chart and date picker disappearing when selected range has no data
 - Fix AI status not updating after configuring a provider without restarting the app
 
 ## 1.1.0

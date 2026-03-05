@@ -319,66 +319,72 @@ export default function DashboardPage() {
         <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
           No analytics data available yet.
         </div>
-      ) : chartData.length > 0 ? (
+      ) : anyLoaded ? (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-sm font-medium">Proceeds</CardTitle>
             <DateRangePicker value={range} onChange={setRange} />
           </CardHeader>
           <CardContent>
-            <ChartContainer config={chartConfig} className="h-[280px] w-full">
-              <LineChart data={chartData} accessibilityLayer>
-                <CartesianGrid vertical={false} />
-                <XAxis
-                  dataKey="date"
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={8}
-                  tickFormatter={formatDateShort}
-                  interval="preserveStartEnd"
-                />
-                <YAxis
-                  tickLine={false}
-                  axisLine={false}
-                  width={50}
-                  tickFormatter={(v) => `$${v}`}
-                />
-                <ChartTooltip
-                  content={
-                    <ChartTooltipContent
-                      labelFormatter={(v) => formatDateShort(v as string)}
-                      formatter={(value, name) => (
-                        <div className="flex flex-1 items-center justify-between gap-2 leading-none">
-                          <span className="text-muted-foreground">{name}</span>
-                          <span className="font-mono font-medium tabular-nums">
-                            ${(value as number).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                          </span>
-                        </div>
-                      )}
+            {chartData.length > 0 ? (
+              <ChartContainer config={chartConfig} className="h-[280px] w-full">
+                <LineChart data={chartData} accessibilityLayer>
+                  <CartesianGrid vertical={false} />
+                  <XAxis
+                    dataKey="date"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    tickFormatter={formatDateShort}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    width={50}
+                    tickFormatter={(v) => `$${v}`}
+                  />
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent
+                        labelFormatter={(v) => formatDateShort(v as string)}
+                        formatter={(value, name) => (
+                          <div className="flex flex-1 items-center justify-between gap-2 leading-none">
+                            <span className="text-muted-foreground">{name}</span>
+                            <span className="font-mono font-medium tabular-nums">
+                              ${(value as number).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                            </span>
+                          </div>
+                        )}
+                      />
+                    }
+                  />
+                  <ChartLegend content={<ChartLegendContent />} />
+                  {appNames.map((name, i) => (
+                    <Line
+                      key={name}
+                      type="monotone"
+                      dataKey={name}
+                      stroke={CHART_COLORS[i % CHART_COLORS.length]}
+                      strokeWidth={2}
+                      dot={false}
                     />
-                  }
-                />
-                <ChartLegend content={<ChartLegendContent />} />
-                {appNames.map((name, i) => (
+                  ))}
                   <Line
-                    key={name}
                     type="monotone"
-                    dataKey={name}
-                    stroke={CHART_COLORS[i % CHART_COLORS.length]}
+                    dataKey="Total"
+                    stroke="oklch(from var(--foreground) l c h / 0.3)"
                     strokeWidth={2}
+                    strokeDasharray="4 4"
                     dot={false}
                   />
-                ))}
-                <Line
-                  type="monotone"
-                  dataKey="Total"
-                  stroke="oklch(from var(--foreground) l c h / 0.3)"
-                  strokeWidth={2}
-                  strokeDasharray="4 4"
-                  dot={false}
-                />
-              </LineChart>
-            </ChartContainer>
+                </LineChart>
+              </ChartContainer>
+            ) : (
+              <p className="py-12 text-center text-sm text-muted-foreground">
+                No data for this date range.
+              </p>
+            )}
           </CardContent>
         </Card>
       ) : null}
