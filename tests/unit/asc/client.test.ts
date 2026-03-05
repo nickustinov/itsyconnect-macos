@@ -102,7 +102,7 @@ describe("ascFetch", () => {
     vi.useFakeTimers();
 
     mockFetch
-      .mockResolvedValueOnce({ ok: false, status: 429 })
+      .mockResolvedValueOnce({ ok: false, status: 429, text: async () => "" })
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({ data: [] }),
@@ -131,17 +131,53 @@ describe("ascFetch", () => {
     );
   });
 
-  it("handles response.text() throwing on error", async () => {
+  it("retries on 500 and succeeds on second attempt", async () => {
     insertCred();
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-      text: () => Promise.reject(new Error("body read failed")),
-    });
+    vi.useFakeTimers();
+
+    mockFetch
+      .mockResolvedValueOnce({ ok: false, status: 500, text: async () => '{"errors":[{"code":"UNEXPECTED_ERROR"}]}' })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: [] }),
+      });
+
+    const promise = ascFetch("/v1/apps");
+    await vi.advanceTimersByTimeAsync(1000);
+    const result = await promise;
+    expect(result).toEqual({ data: [] });
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+
+    vi.useRealTimers();
+  });
+
+  it("throws after exhausting retries on 500", async () => {
+    insertCred();
+    const origSetTimeout = globalThis.setTimeout;
+    vi.stubGlobal("setTimeout", (fn: () => void) => origSetTimeout(fn, 0));
+
+    mockFetch
+      .mockResolvedValueOnce({ ok: false, status: 500, text: async () => "" })
+      .mockResolvedValueOnce({ ok: false, status: 500, text: async () => "" })
+      .mockResolvedValueOnce({ ok: false, status: 500, text: async () => "" });
 
     await expect(ascFetch("/v1/apps")).rejects.toThrow(
       "App Store Connect is temporarily unavailable",
     );
+    expect(mockFetch).toHaveBeenCalledTimes(3);
+
+    vi.stubGlobal("setTimeout", origSetTimeout);
+  });
+
+  it("handles response.text() throwing on error", async () => {
+    insertCred();
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      text: () => Promise.reject(new Error("body read failed")),
+    });
+
+    await expect(ascFetch("/v1/apps")).rejects.toThrow();
   });
 
   it("returns null for 204 no-content responses", async () => {
@@ -174,12 +210,12 @@ describe("ascFetch", () => {
     vi.stubGlobal("setTimeout", (fn: () => void) => origSetTimeout(fn, 0));
 
     mockFetch
-      .mockResolvedValueOnce({ ok: false, status: 429 })
-      .mockResolvedValueOnce({ ok: false, status: 429 })
-      .mockResolvedValueOnce({ ok: false, status: 429 });
+      .mockResolvedValueOnce({ ok: false, status: 429, text: async () => "" })
+      .mockResolvedValueOnce({ ok: false, status: 429, text: async () => "" })
+      .mockResolvedValueOnce({ ok: false, status: 429, text: async () => "" });
 
     await expect(ascFetch("/v1/apps")).rejects.toThrow(
-      "ASC API request failed",
+      "App Store Connect returned an error (429)",
     );
     expect(mockFetch).toHaveBeenCalledTimes(3);
 

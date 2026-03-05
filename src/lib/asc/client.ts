@@ -99,9 +99,13 @@ export async function ascFetch<T>(
       return response.json() as Promise<T>;
     }
 
-    if (response.status === 429) {
-      // Exponential backoff
+    const retryable = response.status === 429 || response.status >= 500;
+
+    if (retryable && attempt < MAX_RETRIES - 1) {
+      const text = await response.text().catch(() => "");
+      const method = options?.method ?? "GET";
       const delay = Math.pow(2, attempt) * 1000;
+      console.warn(`[ASC] ${method} ${path} → ${response.status} (retry ${attempt + 1}/${MAX_RETRIES} in ${delay}ms): ${text.slice(0, 200)}`);
       await new Promise((resolve) => setTimeout(resolve, delay));
       continue;
     }
