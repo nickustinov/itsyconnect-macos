@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { aiSettings } from "@/db/schema";
 import { encrypt } from "@/lib/encryption";
 import { ulid } from "@/lib/ulid";
-import { eq } from "drizzle-orm";
+import { eq, ne, sql } from "drizzle-orm";
 import { validateApiKey } from "@/lib/ai/provider-factory";
 import { parseBody } from "@/lib/api-helpers";
 import {
@@ -24,6 +24,7 @@ export async function GET() {
       baseUrl: aiSettings.baseUrl,
     })
     .from(aiSettings)
+    .orderBy(sql`${aiSettings.updatedAt} DESC`)
     .get();
 
   return NextResponse.json({
@@ -68,6 +69,7 @@ export async function PUT(request: Request) {
   const existing = db
     .select({ id: aiSettings.id, provider: aiSettings.provider })
     .from(aiSettings)
+    .orderBy(sql`${aiSettings.updatedAt} DESC`)
     .get();
 
   async function validateLocalModelLoad(candidateApiKey: string) {
@@ -105,6 +107,7 @@ export async function PUT(request: Request) {
         provider,
         modelId,
         baseUrl: normalizedBaseUrl,
+        updatedAt: new Date().toISOString(),
         encryptedApiKey: encrypted.ciphertext,
         iv: encrypted.iv,
         authTag: encrypted.authTag,
@@ -137,6 +140,7 @@ export async function PUT(request: Request) {
             provider,
             modelId,
             baseUrl: normalizedBaseUrl,
+            updatedAt: new Date().toISOString(),
             encryptedApiKey: encrypted.ciphertext,
             iv: encrypted.iv,
             authTag: encrypted.authTag,
@@ -178,6 +182,7 @@ export async function PUT(request: Request) {
             provider,
             modelId,
             baseUrl: normalizedBaseUrl,
+            updatedAt: new Date().toISOString(),
             encryptedApiKey: encrypted.ciphertext,
             iv: encrypted.iv,
             authTag: encrypted.authTag,
@@ -203,8 +208,13 @@ export async function PUT(request: Request) {
     }
 
     db.update(aiSettings)
-      .set({ provider, modelId, baseUrl: normalizedBaseUrl })
+      .set({ provider, modelId, baseUrl: normalizedBaseUrl, updatedAt: new Date().toISOString() })
       .where(eq(aiSettings.id, existing.id))
+      .run();
+
+    // Cleanup stale rows so every code path resolves the same active settings.
+    db.delete(aiSettings)
+      .where(ne(aiSettings.id, existing.id))
       .run();
   }
 
