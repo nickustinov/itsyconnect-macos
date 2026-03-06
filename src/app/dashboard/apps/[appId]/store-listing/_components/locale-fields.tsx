@@ -35,6 +35,7 @@ export function LocaleFieldsSection({
   onFieldChange,
   wand,
   onBulkAllMode,
+  hideWhatsNew,
 }: {
   current: LocaleFields;
   localeTag: ReactNode;
@@ -42,11 +43,12 @@ export function LocaleFieldsSection({
   onFieldChange: (field: keyof LocaleFields, value: string) => void;
   wand: MagicWandLocaleProps;
   onBulkAllMode: (field: string) => void;
+  hideWhatsNew?: boolean;
 }) {
   return (
     <>
-      {/* What's new */}
-      <section className="space-y-2">
+      {/* What's new – hidden for the first-ever version (ASC rejects it) */}
+      {!hideWhatsNew && <section className="space-y-2">
         <div className="flex items-center gap-1">
           <h3 className="section-title">What&apos;s new{localeTag}</h3>
           <MagicWandButton
@@ -76,7 +78,7 @@ export function LocaleFieldsSection({
             />
           </div>
         </Card>
-      </section>
+      </section>}
 
       {/* Promotional text -- editable anytime per ASC rules */}
       <section className="space-y-2">

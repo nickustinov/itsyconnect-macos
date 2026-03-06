@@ -86,6 +86,9 @@ export default function StoreListingPage() {
     ? !EDITABLE_STATES.has(selectedVersion.attributes.appVersionState)
     : false;
 
+  // No version has been distributed yet – "what's new" is not applicable
+  const isFirstVersion = !versions.some((v) => v.attributes.appStoreState === "READY_FOR_SALE");
+
   const { localizations, loading: locLoading } = useLocalizations(appId, versionId);
 
   const primaryLocale = app?.primaryLocale ?? "";
@@ -154,7 +157,7 @@ export default function StoreListingPage() {
   const bulkFields: BulkField[] = [
     { key: "description", label: "Description", charLimit: FIELD_LIMITS.description },
     { key: "keywords", label: "Keywords", charLimit: FIELD_LIMITS.keywords },
-    { key: "whatsNew", label: "What's new", charLimit: FIELD_LIMITS.whatsNew },
+    ...(!isFirstVersion ? [{ key: "whatsNew", label: "What's new", charLimit: FIELD_LIMITS.whatsNew }] : []),
     { key: "promotionalText", label: "Promotional text", charLimit: FIELD_LIMITS.promotionalText },
   ];
 
@@ -263,7 +266,7 @@ export default function StoreListingPage() {
     const checked: [keyof LocaleFields, number][] = [
       ["description", FIELD_LIMITS.description],
       ["keywords", FIELD_LIMITS.keywords],
-      ["whatsNew", FIELD_LIMITS.whatsNew],
+      ...(!isFirstVersion ? [["whatsNew", FIELD_LIMITS.whatsNew] as [keyof LocaleFields, number]] : []),
       ["promotionalText", FIELD_LIMITS.promotionalText],
     ];
     const fieldLabels: Record<string, string> = {
@@ -286,7 +289,7 @@ export default function StoreListingPage() {
       }
     }
     setValidationErrors(errors);
-  }, [localeData, setValidationErrors]);
+  }, [localeData, isFirstVersion, setValidationErrors]);
 
   // Report submission checklist flags across all locales
   useEffect(() => {
@@ -302,6 +305,7 @@ export default function StoreListingPage() {
 
       // When the version is read-only (live), only promotional text is
       // editable – send just that field to avoid ASC rejecting locked fields.
+      // For the first-ever version, strip whatsNew – ASC rejects it.
       const locPayload = readOnly
         ? Object.fromEntries(
             Object.entries(localeData).map(([locale, fields]) => [
@@ -309,7 +313,14 @@ export default function StoreListingPage() {
               { promotionalText: fields.promotionalText },
             ]),
           )
-        : localeData;
+        : isFirstVersion
+          ? Object.fromEntries(
+              Object.entries(localeData).map(([locale, { whatsNew: _, ...rest }]) => [
+                locale,
+                rest,
+              ]),
+            )
+          : localeData;
 
       // Save localizations
       let locCreatedIds: Record<string, string> = {};
@@ -454,7 +465,7 @@ export default function StoreListingPage() {
 
       setDirty(false);
     });
-  }, [appId, versionId, localeData, readOnly, releaseType, scheduledDate, phasedRelease, selectedBuildId, allBuilds, selectedVersion, registerSave, setDirty, updateVersion, showAscError, showSyncErrors]);
+  }, [appId, versionId, localeData, readOnly, isFirstVersion, releaseType, scheduledDate, phasedRelease, selectedBuildId, allBuilds, selectedVersion, registerSave, setDirty, updateVersion, showAscError, showSyncErrors]);
 
   // Register discard handler for the header Discard button
   useEffect(() => {
@@ -568,6 +579,7 @@ export default function StoreListingPage() {
             onFieldChange={updateField}
             wand={wand}
             onBulkAllMode={(field) => setBulkAllMode({ mode: "translate", field })}
+            hideWhatsNew={isFirstVersion}
           />
         )}
 
