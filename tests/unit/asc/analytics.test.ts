@@ -123,12 +123,14 @@ describe("buildAnalyticsData", () => {
     expect(mockCacheGet).toHaveBeenCalledWith("analytics:app-cached");
   });
 
-  it("creates ONGOING report request when none exist", async () => {
+  it("creates ONGOING and ONE_TIME_SNAPSHOT report requests when none exist", async () => {
     mockCacheGet.mockReturnValue(null);
     // First call: list report requests – returns empty
     mockAscFetch.mockResolvedValueOnce(reportRequestsResponse([]));
-    // Second call: POST to create ONGOING report request
-    mockAscFetch.mockResolvedValueOnce({ data: { id: "new-req" } });
+    // Second call: POST to create ONGOING
+    mockAscFetch.mockResolvedValueOnce({ data: { id: "new-ongoing" } });
+    // Third call: POST to create ONE_TIME_SNAPSHOT
+    mockAscFetch.mockResolvedValueOnce({ data: { id: "new-snapshot" } });
     // Subsequent calls: reports, instances, segments – all empty
     mockAscFetch.mockResolvedValue({ data: [] });
 
@@ -149,10 +151,25 @@ describe("buildAnalyticsData", () => {
         }),
       }),
     );
-    // Should cache the created ID
+    expect(mockAscFetch).toHaveBeenCalledWith(
+      "/v1/analyticsReportRequests",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          data: {
+            type: "analyticsReportRequests",
+            attributes: { accessType: "ONE_TIME_SNAPSHOT" },
+            relationships: {
+              app: { data: { type: "apps", id: "app-empty" } },
+            },
+          },
+        }),
+      }),
+    );
+    // Should cache both created IDs
     expect(mockCacheSet).toHaveBeenCalledWith(
       "asc-report-requests:app-empty",
-      ["new-req"],
+      ["new-ongoing", "new-snapshot"],
       604_800_000,
     );
   });
@@ -1917,7 +1934,7 @@ describe("console logging", () => {
 
     await buildAnalyticsData("app-logdetail");
     expect(consoleLogSpy).toHaveBeenCalledWith(
-      expect.stringContaining("[analytics] app-logdetail: 1 report requests"),
+      expect.stringContaining("[analytics] app-logdetail: 1 usable report requests from 1 total"),
     );
   });
 });

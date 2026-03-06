@@ -44,19 +44,13 @@ const config: ForgeConfig = {
       x64ArchFiles: "**/*.node",
     },
     afterCopy: [
-      // Rebuild better-sqlite3 for the target architecture.
-      // `next build` standalone output only has the host-arch .node file,
-      // so universal builds need it rebuilt per-arch and copied in.
-      (buildPath: string, _electronVersion: string, _platform: string, arch: string, callback: (err?: Error) => void) => {
+      // Rebuild better-sqlite3 inside the packaged standalone node_modules
+      // for the current target arch. Universal builds run this hook per-arch.
+      (buildPath: string, electronVersion: string, _platform: string, arch: string, callback: (err?: Error) => void) => {
         try {
+          const moduleDir = `${buildPath}/.next/standalone/node_modules`;
           execSync(
-            `npx electron-rebuild -f -o better-sqlite3 --build-from-source --arch=${arch}`,
-            { stdio: "inherit" },
-          );
-          const dest = `${buildPath}/.next/standalone/node_modules/better-sqlite3/build/Release`;
-          execSync(`mkdir -p "${dest}"`, { stdio: "inherit" });
-          execSync(
-            `cp node_modules/better-sqlite3/build/Release/better_sqlite3.node "${dest}/better_sqlite3.node"`,
+            `npx electron-rebuild -f --build-from-source --only better-sqlite3 --module-dir "${moduleDir}" --version "${electronVersion}" --arch "${arch}"`,
             { stdio: "inherit" },
           );
           callback();

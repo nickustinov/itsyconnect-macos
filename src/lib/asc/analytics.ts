@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { analyticsBackfill } from "@/db/schema";
 
 const ANALYTICS_TTL = 60 * 60 * 1000; // 1 hour (sync worker refreshes hourly)
+const ANALYTICS_EMPTY_RETRY_TTL = 10 * 60 * 1000; // 10 min (faster retry while ASC is still provisioning reports)
 const REPORT_ID_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days (report request/report IDs never change)
 const INSTANCE_TTL = 30 * 24 * 60 * 60 * 1000; // 30 days (immutable past data)
 const TODAY_TTL = 10 * 60 * 1000; // 10 min (today's data may update)
@@ -61,7 +62,7 @@ export interface AnalyticsData {
 
 interface AscReportRequest {
   id: string;
-  attributes: { accessType: string };
+  attributes: { accessType: string; [key: string]: unknown };
 }
 
 interface AscReport {
@@ -132,6 +133,10 @@ export function parseTsv(raw: string): Array<Record<string, string>> {
 const reportRequestIdsCache = new Map<string, string[]>();
 const reportIdCache = new Map<string, string>();
 
+function normalizeReportName(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
 async function findReportRequestIds(appId: string): Promise<string[]> {
   // Tier 1: in-memory
   const memCached = reportRequestIdsCache.get(appId);
@@ -158,30 +163,57 @@ async function findReportRequestIds(appId: string): Promise<string[]> {
     .filter((r) => r.attributes.accessType === "ONGOING" || r.attributes.accessType === "ONE_TIME_SNAPSHOT")
     .map((r) => r.id);
 
-  console.log(`[analytics] ${appId}: ${ids.length} report requests (${response.data.map((r) => r.attributes.accessType).join(", ")})`);
+  const requestSummary = response.data.map((r) => {
+    const attrs = r.attributes ?? {};
+    const accessType = String(attrs.accessType ?? "UNKNOWN");
+    const state = typeof attrs.state === "string" ? `, state=${attrs.state}` : "";
+    const createdDate = typeof attrs.createdDate === "string" ? `, created=${attrs.createdDate}` : "";
+    return `${r.id}(${accessType}${state}${createdDate})`;
+  }).join("; ");
+  console.log(`[analytics] ${appId}: ${ids.length} usable report requests from ${response.data.length} total`);
+  if (requestSummary) {
+    console.log(`[analytics] ${appId}: report request details: ${requestSummary}`);
+  }
+  if (response.data.length > 0 && ids.length === 0) {
+    console.warn(`[analytics] ${appId}: report requests exist but none are ONGOING/ONE_TIME_SNAPSHOT`);
+  }
 
-  // No report requests exist yet – create an ONGOING one.
-  // ASC requires a POST before analytics data becomes available.
+  // No report requests exist yet – create both ONGOING (daily going forward)
+  // and ONE_TIME_SNAPSHOT (historical backfill). ASC requires a POST before
+  // analytics data becomes available. The snapshot takes hours to process
+  // but will eventually provide the full history.
   if (ids.length === 0) {
-    console.log(`[analytics] ${appId}: creating ONGOING report request`);
-    const created = await ascFetch<{ data: { id: string } }>(
-      "/v1/analyticsReportRequests",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          data: {
-            type: "analyticsReportRequests",
-            attributes: { accessType: "ONGOING" },
-            relationships: {
-              app: { data: { type: "apps", id: appId } },
-            },
+    for (const accessType of ["ONGOING", "ONE_TIME_SNAPSHOT"] as const) {
+      try {
+        console.log(`[analytics] ${appId}: creating ${accessType} report request`);
+        const created = await ascFetch<{ data: { id: string } }>(
+          "/v1/analyticsReportRequests",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              data: {
+                type: "analyticsReportRequests",
+                attributes: { accessType },
+                relationships: {
+                  app: { data: { type: "apps", id: appId } },
+                },
+              },
+            }),
           },
-        }),
-      },
-    );
-    ids = [created.data.id];
-    console.log(`[analytics] ${appId}: created report request ${created.data.id}`);
+        );
+        ids.push(created.data.id);
+        console.log(`[analytics] ${appId}: created ${accessType} report request ${created.data.id}`);
+      } catch (err) {
+        console.warn(`[analytics] ${appId}: failed to create ${accessType} report request`, err);
+      }
+    }
+  }
+
+  if (ids.length === 0) {
+    console.warn(`[analytics] ${appId}: no usable report request IDs after create attempts`);
+  } else {
+    console.log(`[analytics] ${appId}: using report request IDs: ${ids.join(", ")}`);
   }
 
   reportRequestIdsCache.set(appId, ids);
@@ -190,6 +222,7 @@ async function findReportRequestIds(appId: string): Promise<string[]> {
 }
 
 async function findReportId(
+  appId: string,
   requestId: string,
   category: string,
   reportName: string,
@@ -213,6 +246,10 @@ async function findReportId(
     `/v1/analyticsReportRequests/${requestId}/reports?filter[category]=${category}`,
   );
 
+  console.log(
+    `[analytics] ${appId}: request ${requestId} category=${category} returned ${reportsResp.data.length} reports`,
+  );
+
   // Cache all reports from this category for this request
   for (const r of reportsResp.data) {
     const rKey = `${requestId}:${r.attributes.name}`;
@@ -220,7 +257,33 @@ async function findReportId(
     cacheSet(`asc-report-id:${rKey}`, r.id, REPORT_ID_TTL);
   }
 
-  return reportIdCache.get(key) ?? null;
+  const exact = reportIdCache.get(key);
+  if (exact) return exact;
+
+  // Fallback: tolerate punctuation/spacing/case differences in report names.
+  const normalizedExpected = normalizeReportName(reportName);
+  const normalizedMatches = reportsResp.data.filter(
+    (r) => normalizeReportName(r.attributes.name) === normalizedExpected,
+  );
+  if (normalizedMatches.length === 1) {
+    const matched = normalizedMatches[0]!;
+    reportIdCache.set(key, matched.id);
+    cacheSet(dbKey, matched.id, REPORT_ID_TTL);
+    console.warn(
+      `[analytics] ${appId}: report name mismatch for request ${requestId}, using normalized match "${matched.attributes.name}" for expected "${reportName}"`,
+    );
+    return matched.id;
+  }
+
+  const names = reportsResp.data.map((r) => `"${r.attributes.name}"`).join(", ");
+  if (reportsResp.data.length === 0) {
+    console.warn(`[analytics] ${appId}: request ${requestId} has no reports for category=${category}`);
+  } else {
+    console.warn(
+      `[analytics] ${appId}: report "${reportName}" not found in category=${category} for request ${requestId}. Available: ${names}`,
+    );
+  }
+  return null;
 }
 
 // ---------- Concurrency limiter for S3 downloads ----------
@@ -306,6 +369,7 @@ async function downloadInstanceRows(
 // ---------- Report fetching ----------
 
 async function fetchReportData(
+  appId: string,
   requestIds: string[],
   category: string,
   reportName: string,
@@ -318,13 +382,21 @@ async function fetchReportData(
   // Collect instances, deduplicate by processingDate.
   const seenProcessingDates = new Set<string>();
   const uniqueInstances: AscReportInstance[] = [];
+  let matchedRequests = 0;
 
   for (const requestId of requestIds) {
-    const reportId = await findReportId(requestId, category, reportName);
-    if (!reportId) continue;
+    const reportId = await findReportId(appId, requestId, category, reportName);
+    if (!reportId) {
+      console.warn(
+        `[analytics] ${appId}: ${category}/${reportName} missing for request ${requestId}`,
+      );
+      continue;
+    }
+    matchedRequests++;
 
     let url: string | undefined =
       `/v1/analyticsReports/${reportId}/instances?filter[granularity]=${granularity}&limit=${Math.min(limit, 200)}`;
+    const before = uniqueInstances.length;
 
     while (url && uniqueInstances.length < maxInstances) {
       const resp: AscListResponse<AscReportInstance> =
@@ -340,9 +412,18 @@ async function fetchReportData(
 
       url = resp.links?.next;
     }
+    const added = uniqueInstances.length - before;
+    console.log(
+      `[analytics] ${appId}: ${category}/${reportName} request ${requestId} report ${reportId} contributed ${added} instances`,
+    );
   }
 
-  if (uniqueInstances.length === 0) return [];
+  if (uniqueInstances.length === 0) {
+    console.warn(
+      `[analytics] ${appId}: ${category}/${reportName} produced 0 instances (matchedRequests=${matchedRequests}/${requestIds.length}, granularity=${granularity})`,
+    );
+    return [];
+  }
 
   // Download all instances concurrently (semaphore limits S3 requests).
   // Per-instance cache: past days are immutable, today's data may update.
@@ -408,6 +489,9 @@ async function fetchReportData(
     }
   }
 
+  console.log(
+    `[analytics] ${appId}: ${category}/${reportName} rows deduped to ${deduped.length} rows across ${uniqueInstances.length} instances`,
+  );
   return deduped;
 }
 
@@ -803,6 +887,24 @@ function emptyAnalyticsData(): AnalyticsData {
   };
 }
 
+function hasAnyAnalyticsRows(data: AnalyticsData): boolean {
+  return data.dailyDownloads.length > 0
+    || data.dailyRevenue.length > 0
+    || data.dailyEngagement.length > 0
+    || data.dailySessions.length > 0
+    || data.dailyInstallsDeletes.length > 0
+    || data.dailyDownloadsBySource.length > 0
+    || data.dailyTerritoryDownloads.length > 0
+    || data.dailyVersionSessions.length > 0
+    || data.dailyOptIn.length > 0
+    || data.dailyWebPreview.length > 0
+    || data.territories.length > 0
+    || data.discoverySources.length > 0
+    || data.crashesByVersion.length > 0
+    || data.crashesByDevice.length > 0
+    || data.dailyCrashes.length > 0;
+}
+
 // ---------- Build phase helper ----------
 
 async function buildPhase(
@@ -819,7 +921,7 @@ async function buildPhase(
     max = limit,
   ) => {
     try {
-      return await fetchReportData(requestIds, category, reportName, granularity, limit, max);
+      return await fetchReportData(appId, requestIds, category, reportName, granularity, limit, max);
     } catch (err) {
       console.error(`[analytics] ${appId}: ${label} fetch failed`, err);
       throw err;
@@ -930,8 +1032,14 @@ function startBackfill(requestIds: string[], appId: string, cacheKey: string) {
       prevCount = count;
       if (depth === Infinity) break;
     }
-    markBackfilled(appId);
-    console.log(`[analytics] Backfill complete for ${appId}: ${prevCount} total data points`);
+    if (prevCount > 0) {
+      markBackfilled(appId);
+      console.log(`[analytics] Backfill complete for ${appId}: ${prevCount} total data points`);
+    } else {
+      console.warn(
+        `[analytics] Backfill ${appId}: completed with 0 data points, leaving app unmarked so future syncs can retry`,
+      );
+    }
   })()
     .catch((err) => console.error(`[analytics] Backfill failed for ${appId}:`, err))
     .finally(() => backfilling.delete(appId));
@@ -974,7 +1082,7 @@ async function buildAnalyticsDataInner(
   if (requestIds.length === 0) {
     console.warn(`[analytics] ${appId}: no ONGOING or ONE_TIME_SNAPSHOT report requests`);
     const empty = emptyAnalyticsData();
-    cacheSet(cacheKey, empty, ANALYTICS_TTL);
+    cacheSet(cacheKey, empty, ANALYTICS_EMPTY_RETRY_TTL);
     return empty;
   }
 
@@ -994,7 +1102,13 @@ async function buildAnalyticsDataInner(
   ].join(", ");
   console.log(`[analytics] ${appId}: phase 1 in ${(phase1Ms / 1000).toFixed(1)}s – ${reports}`);
 
-  cacheSet(cacheKey, data, ANALYTICS_TTL);
+  const hasRows = hasAnyAnalyticsRows(data);
+  cacheSet(cacheKey, data, hasRows ? ANALYTICS_TTL : ANALYTICS_EMPTY_RETRY_TTL);
+  if (!hasRows) {
+    console.warn(
+      `[analytics] ${appId}: phase 1 returned no rows, using short cache TTL (${ANALYTICS_EMPTY_RETRY_TTL / 60000}m) for retry`,
+    );
+  }
 
   // Phase 2: backfill all historical data (fire-and-forget).
   // Only runs once per app – the DB flag persists across restarts.
