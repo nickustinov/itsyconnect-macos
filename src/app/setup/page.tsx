@@ -376,7 +376,7 @@ export default function SetupPage() {
                   >
                     App Store Connect &rarr; Integrations &rarr; Team keys
                   </a>
-                  {" "}and generate a key with <strong>Admin</strong> access.
+                  {" "}and generate a key with <strong>Admin</strong> or <strong>App Manager + Finance</strong> access.
                   Download the .p8 file and copy the Issuer ID shown on the page.
                 </p>
               </div>
