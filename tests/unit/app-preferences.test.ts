@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockGet = vi.fn();
 const mockRun = vi.fn();
-const mockInsert = vi.fn();
 
 vi.mock("@/db", () => ({
   db: {
@@ -20,6 +19,11 @@ vi.mock("@/db", () => ({
         }),
       }),
     }),
+    delete: () => ({
+      where: () => ({
+        run: mockRun,
+      }),
+    }),
   },
 }));
 
@@ -34,7 +38,11 @@ vi.mock("drizzle-orm", () => ({
   eq: (col: string, val: string) => ({ col, val }),
 }));
 
-import { getFreeSelectedAppId, setFreeSelectedAppId } from "@/lib/app-preferences";
+import {
+  clearFreeSelectedAppId,
+  getFreeSelectedAppId,
+  setFreeSelectedAppId,
+} from "@/lib/app-preferences";
 
 describe("app-preferences", () => {
   beforeEach(() => {
@@ -57,6 +65,13 @@ describe("app-preferences", () => {
   describe("setFreeSelectedAppId", () => {
     it("inserts or updates the preference", () => {
       setFreeSelectedAppId("app-456");
+      expect(mockRun).toHaveBeenCalled();
+    });
+  });
+
+  describe("clearFreeSelectedAppId", () => {
+    it("deletes the stored preference", () => {
+      clearFreeSelectedAppId();
       expect(mockRun).toHaveBeenCalled();
     });
   });

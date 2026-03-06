@@ -7,6 +7,7 @@ import { encrypt } from "@/lib/encryption";
 import { ulid } from "@/lib/ulid";
 import { validateApiKey } from "@/lib/ai/provider-factory";
 import { parseBody } from "@/lib/api-helpers";
+import { clearFreeSelectedAppId } from "@/lib/app-preferences";
 import {
   DEFAULT_LOCAL_OPENAI_BASE_URL,
   ensureLocalModelLoaded,
@@ -104,6 +105,8 @@ export async function POST(request: Request) {
   }
 
   // Store ASC credentials
+  clearFreeSelectedAppId();
+
   const encrypted = encrypt(data.privateKey);
   db.insert(ascCredentials)
     .values({

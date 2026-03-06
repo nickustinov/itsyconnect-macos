@@ -26,3 +26,9 @@ export function setFreeSelectedAppId(appId: string): void {
     })
     .run();
 }
+
+export function clearFreeSelectedAppId(): void {
+  db.delete(appPreferences)
+    .where(eq(appPreferences.key, FREE_SELECTED_APP_KEY))
+    .run();
+}

@@ -28,6 +28,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { AI_PROVIDERS } from "@/lib/ai-providers";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LocalServerFields } from "@/components/local-server-fields";
+import { clearNavigation } from "@/lib/nav-state";
 import {
   DEFAULT_LOCAL_OPENAI_BASE_URL,
   isLocalOpenAIProvider,
@@ -94,6 +95,11 @@ export default function SetupPage() {
     setShowKey(false);
   }
 
+  function resetConnectionTest() {
+    setTestStatus("idle");
+    setTestError("");
+  }
+
   async function testConnection(
     testIssuerId: string,
     testKeyId: string,
@@ -131,8 +137,7 @@ export default function SetupPage() {
     if (!file) return;
 
     setKeyError("");
-    setTestStatus("idle");
-    setTestError("");
+    resetConnectionTest();
     setPrivateKey("");
     setKeyId("");
     setKeyIdFromFile(false);
@@ -158,11 +163,11 @@ export default function SetupPage() {
         setKeyIdFromFile(true);
       }
 
-      // Auto-test connection if issuer ID is filled
       const resolvedKeyId = match ? match[1] : keyId.trim();
       if (issuerId.trim() && resolvedKeyId) {
         testConnection(issuerId.trim(), resolvedKeyId, trimmed);
       }
+
     });
   }
 
@@ -220,6 +225,7 @@ export default function SetupPage() {
       }
 
       toast.success("Setup complete");
+      clearNavigation();
       router.push("/dashboard?entry=1");
       router.refresh();
     } catch {
@@ -237,6 +243,7 @@ export default function SetupPage() {
         setEnteringDemo(false);
         return;
       }
+      clearNavigation();
       router.push("/dashboard?entry=1");
       router.refresh();
     } catch {
@@ -378,7 +385,10 @@ export default function SetupPage() {
               <label className="text-sm text-muted-foreground">Issuer ID</label>
               <Input
                 value={issuerId}
-                onChange={(e) => setIssuerId(e.target.value)}
+                onChange={(e) => {
+                  setIssuerId(e.target.value);
+                  resetConnectionTest();
+                }}
                 placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
                 className="font-mono text-sm"
                 autoFocus
@@ -421,6 +431,23 @@ export default function SetupPage() {
                       {testError || "Connection failed – check your credentials."}
                     </p>
                   )}
+                  {testStatus === "error" &&
+                    keyId.trim() &&
+                    issuerId.trim() && (
+                      <button
+                        type="button"
+                        className="text-xs text-primary underline-offset-4 hover:underline"
+                        onClick={() =>
+                          testConnection(
+                            issuerId.trim(),
+                            keyId.trim(),
+                            privateKey,
+                          )
+                        }
+                      >
+                        Test again
+                      </button>
+                    )}
                 </>
               )}
               {privateKey && !keyError && !keyIdFromFile && (
@@ -437,10 +464,7 @@ export default function SetupPage() {
                   value={keyId}
                   onChange={(e) => {
                     setKeyId(e.target.value);
-                    if (testStatus !== "idle") {
-                      setTestStatus("idle");
-                      setTestError("");
-                    }
+                    resetConnectionTest();
                   }}
                   placeholder="XXXXXXXXXX"
                   className="font-mono text-sm"

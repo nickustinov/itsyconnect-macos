@@ -67,3 +67,11 @@ export function getAppState(appId: string): string | undefined {
   const sub = read().apps[appId];
   return sub !== undefined ? sub : undefined;
 }
+
+export function clearNavigation(): void {
+  try {
+    localStorage.removeItem(NAV_KEY);
+  } catch {
+    // Storage unavailable – silently skip
+  }
+}

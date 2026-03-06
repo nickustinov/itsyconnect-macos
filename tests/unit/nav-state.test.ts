@@ -9,7 +9,13 @@ vi.stubGlobal("localStorage", {
   clear: () => store.clear(),
 });
 
-import { saveNavigation, getLastUrl, getLastAppId, getAppState } from "@/lib/nav-state";
+import {
+  clearNavigation,
+  saveNavigation,
+  getLastUrl,
+  getLastAppId,
+  getAppState,
+} from "@/lib/nav-state";
 
 describe("nav-state", () => {
   beforeEach(() => {
@@ -101,6 +107,16 @@ describe("nav-state", () => {
   describe("getAppState", () => {
     it("returns undefined for unknown appId", () => {
       expect(getAppState("nonexistent")).toBeUndefined();
+    });
+  });
+
+  describe("clearNavigation", () => {
+    it("removes persisted dashboard state", () => {
+      saveNavigation("/dashboard/apps/app-1/details", "");
+      clearNavigation();
+      expect(getLastUrl()).toBeUndefined();
+      expect(getLastAppId()).toBeUndefined();
+      expect(getAppState("app-1")).toBeUndefined();
     });
   });
 
