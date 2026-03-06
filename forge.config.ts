@@ -40,6 +40,9 @@ const config: ForgeConfig = {
             teamId: process.env.APPLE_TEAM_ID!,
           }
         : undefined,
+    osxUniversal: {
+      x64ArchFiles: "**/*.node",
+    },
     ignore: (filePath: string) => {
       if (!filePath) return false;
       if (filePath === "/package.json") return false;
