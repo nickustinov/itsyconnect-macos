@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4.0
+
+- Add AI-powered review insights panel – analyses customer reviews to extract strengths and weaknesses, updates incrementally when new reviews arrive
+- Add unread reviews indicator on the Reviews sidebar item
+
 ## 1.3.1
 
 - Fix "Fix all issues" button showing on storefronts tab when only untapped locales exist – the AI dialog cannot fix missing locales

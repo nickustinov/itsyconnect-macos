@@ -186,6 +186,79 @@ Review body: ${reviewBody}`;
   return prompt;
 }
 
+// --- Review insights prompt ---
+
+export function buildInsightsPrompt(
+  reviews: Array<{ rating: number; title: string; body: string }>,
+  appName?: string,
+): string {
+  let prompt = `Analyse the following ${reviews.length} App Store customer reviews and extract the key strengths and weaknesses.`;
+
+  if (appName) {
+    prompt += `\nThe app is called "${appName}".`;
+  }
+
+  prompt += `
+
+Rules:
+- Return 3–7 strengths (things users love) and 3–7 weaknesses (things users dislike or want improved).
+- Each point should be a short phrase (3–8 words), not a full sentence.
+- Order by frequency – most commonly mentioned first.
+- The "mentions" count is how many reviews mention that theme.
+- Only include a point if at least 2 reviews mention it, unless there are fewer than 10 reviews total.
+- Do NOT invent issues that aren't in the reviews.
+- Do NOT include generic filler like "some users want more features".
+
+Reviews:
+`;
+
+  for (const r of reviews) {
+    prompt += `[${r.rating}/5] ${r.title}: ${r.body}\n\n`;
+  }
+
+  return prompt;
+}
+
+export function buildIncrementalInsightsPrompt(
+  newReviews: Array<{ rating: number; title: string; body: string }>,
+  existingInsights: {
+    strengths: Array<{ point: string; mentions: number }>;
+    weaknesses: Array<{ point: string; mentions: number }>;
+  },
+  totalReviewCount: number,
+): string {
+  let prompt = `You previously analysed ${totalReviewCount - newReviews.length} App Store reviews and produced these insights:\n\n`;
+
+  prompt += `Strengths:\n`;
+  for (const s of existingInsights.strengths) {
+    prompt += `- ${s.point} (${s.mentions} mentions)\n`;
+  }
+  prompt += `\nWeaknesses:\n`;
+  for (const w of existingInsights.weaknesses) {
+    prompt += `- ${w.point} (${w.mentions} mentions)\n`;
+  }
+
+  prompt += `\nNow ${newReviews.length} new review${newReviews.length !== 1 ? "s have" : " has"} come in. Update the insights based on these new reviews.
+
+Rules:
+- Merge new themes into the existing list or increment mention counts for existing themes.
+- Add new points only if the new reviews introduce a genuinely new theme.
+- Remove points that no longer apply given the full picture.
+- Keep 3–7 strengths and 3–7 weaknesses, ordered by frequency.
+- Each point should be a short phrase (3–8 words).
+- The "mentions" count reflects total mentions across ALL ${totalReviewCount} reviews (existing + new).
+- Do NOT invent issues that aren't in the reviews.
+
+New reviews:
+`;
+
+  for (const r of newReviews) {
+    prompt += `[${r.rating}/5] ${r.title}: ${r.body}\n\n`;
+  }
+
+  return prompt;
+}
+
 export function buildImprovePrompt(
   text: string,
   locale: string,

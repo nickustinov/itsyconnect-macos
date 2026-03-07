@@ -43,6 +43,8 @@ import { AIRequiredDialog } from "@/components/ai-required-dialog";
 import type { AscCustomerReview } from "@/lib/asc/reviews";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
+import { useMarkReviewsRead } from "@/lib/hooks/use-unread-reviews";
+import { InsightsPanel } from "./_components/insights-panel";
 
 // ── Territory helpers ──────────────────────────────────────────────
 
@@ -266,6 +268,9 @@ export default function ReviewsPage() {
   const handleRefresh = useCallback(() => fetchReviews(true), [fetchReviews]);
   useRegisterRefresh({ onRefresh: handleRefresh, busy: loading });
 
+  // Mark reviews as read when page is visited
+  useMarkReviewsRead(appId, reviews.length);
+
   // Client-side filtering (sort is server-side via API)
   const territories = useMemo(
     () => [...new Set(reviews.map((r) => r.territory))].sort(),
@@ -304,6 +309,12 @@ export default function ReviewsPage() {
     star,
     count: reviews.filter((r) => r.rating === star).length,
   }));
+
+  const dateRange = useMemo(() => {
+    if (reviews.length === 0) return null;
+    const dates = reviews.map((r) => r.createdDate);
+    return { from: dates[dates.length - 1], to: dates[0] };
+  }, [reviews]);
 
   // ── Handlers ───────────────────────────────────────────────────
 
@@ -1071,6 +1082,13 @@ export default function ReviewsPage() {
       <AIRequiredDialog
         open={showAIRequired}
         onOpenChange={setShowAIRequired}
+      />
+
+      {/* Insights panel – fixed right sidebar, controlled via context */}
+      <InsightsPanel
+        appId={appId}
+        reviewCount={total}
+        dateRange={dateRange}
       />
     </div>
   );

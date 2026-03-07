@@ -19,6 +19,10 @@ const HeaderRefreshButton = dynamic(
   () => import("@/components/layout/header-version-picker").then(m => ({ default: m.HeaderRefreshButton })),
   { ssr: false },
 );
+const HeaderInsightsButton = dynamic(
+  () => import("@/components/layout/header-insights-button").then(m => ({ default: m.HeaderInsightsButton })),
+  { ssr: false },
+);
 const HeaderLocalePicker = dynamic(
   () => import("@/components/layout/header-locale-picker").then(m => ({ default: m.HeaderLocalePicker })),
   { ssr: false },
@@ -38,6 +42,7 @@ import { ConnectionBanner } from "@/components/layout/connection-banner";
 import { DemoBanner } from "@/components/layout/demo-banner";
 import { BreadcrumbProvider } from "@/lib/breadcrumb-context";
 import { ErrorReportProvider } from "@/lib/error-report-context";
+import { InsightsPanelProvider, useInsightsPanel } from "@/lib/insights-panel-context";
 import { LicenseProvider } from "@/lib/license-context";
 import { saveNavigation } from "@/lib/nav-state";
 
@@ -77,6 +82,24 @@ function ReadySignal() {
   return null;
 }
 
+const INSIGHTS_PANEL_WIDTH = "18rem";
+
+function ScrollableContent({ children }: { children: React.ReactNode }) {
+  const { open } = useInsightsPanel();
+  const pathname = usePathname();
+  const onReviews = pathname.match(/\/reviews$/);
+  return (
+    <div
+      className="flex flex-1 flex-col overflow-y-auto pt-6 pb-8"
+      style={{ paddingRight: open && onReviews ? INSIGHTS_PANEL_WIDTH : undefined }}
+    >
+      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-6">
+        {children}
+      </div>
+    </div>
+  );
+}
+
 function NavigationTracker() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -114,6 +137,7 @@ export default function DashboardLayout({
           <AppSidebar />
         </Suspense>
         <SidebarInset className="h-screen overflow-hidden">
+          <InsightsPanelProvider>
           <header className="drag flex h-16 shrink-0 items-center gap-2 border-b bg-sidebar transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
             <div className="drag flex flex-1 items-center gap-2 px-4">
               <div className="no-drag flex items-center gap-2">
@@ -132,6 +156,9 @@ export default function DashboardLayout({
                   <HeaderVersionActions />
                 </Suspense>
                 <Suspense>
+                  <HeaderInsightsButton />
+                </Suspense>
+                <Suspense>
                   <HeaderRefreshButton />
                 </Suspense>
               </div>
@@ -140,11 +167,9 @@ export default function DashboardLayout({
           <DemoBanner />
           <ConnectionBanner />
           <FooterPortalProvider>
-          <div className="flex flex-1 flex-col overflow-y-auto pt-6 pb-8">
-            <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-6">
-              <Suspense>{children}</Suspense>
-            </div>
-          </div>
+          <ScrollableContent>
+            <Suspense>{children}</Suspense>
+          </ScrollableContent>
           </FooterPortalProvider>
           <Suspense>
             <VersionActionFooter />
@@ -152,6 +177,7 @@ export default function DashboardLayout({
           <Suspense>
             <BuildActionFooter />
           </Suspense>
+          </InsightsPanelProvider>
         </SidebarInset>
       </SidebarProvider>
       </BreadcrumbProvider>

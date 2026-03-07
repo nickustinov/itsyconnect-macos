@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { Package, SquaresFour } from "@phosphor-icons/react";
@@ -21,6 +21,8 @@ import { useFormDirty } from "@/lib/form-dirty-context";
 import { AppSwitcher } from "./app-switcher";
 import { NavMain } from "./nav-main";
 import { NavFooter } from "./nav-footer";
+import { useUnreadReviewsPoller } from "@/lib/hooks/use-unread-reviews";
+import { useApps } from "@/lib/apps-context";
 
 function ProBanner() {
   const router = useRouter();
@@ -80,11 +82,16 @@ function PortfolioButton() {
 
 export function AppSidebar() {
   const { appId } = useParams<{ appId?: string }>();
+  const { apps } = useApps();
   const [lastAppId, setLastAppId] = useState<string>();
   useEffect(() => {
     if (!appId) setLastAppId(getLastAppId());
   }, [appId]);
   const navAppId = appId ?? lastAppId;
+
+  // Poll review counts for all apps to track unread state
+  const appIds = useMemo(() => apps.map((a) => a.id), [apps]);
+  useUnreadReviewsPoller(appIds);
 
   return (
     <Sidebar collapsible="icon">

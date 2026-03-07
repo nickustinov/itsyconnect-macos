@@ -23,7 +23,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuBadge,
 } from "@/components/ui/sidebar";
+import { useHasUnreadReviews } from "@/lib/hooks/use-unread-reviews";
 
 interface NavItem {
   title: string;
@@ -134,11 +136,22 @@ export function NavMain({ appId }: { appId: string }) {
                     <span>{item.title}</span>
                   </Link>
                 </SidebarMenuButton>
+                {item.href === `${base}/reviews` && <ReviewsBadge appId={appId} />}
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
         </SidebarGroup>
       ))}
     </>
+  );
+}
+
+function ReviewsBadge({ appId }: { appId: string }) {
+  const hasUnread = useHasUnreadReviews(appId);
+  if (!hasUnread) return null;
+  return (
+    <SidebarMenuBadge>
+      <span className="size-1.5 rounded-full bg-blue-500" />
+    </SidebarMenuBadge>
   );
 }
