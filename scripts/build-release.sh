@@ -52,6 +52,10 @@ echo ""
 step_start() { STEP_START=$SECONDS; echo "==> $1..."; }
 step_done() { echo "    done in $(( SECONDS - STEP_START ))s"; echo ""; }
 
+step_start "Cleaning previous build artifacts"
+rm -rf out/
+step_done
+
 step_start "Compiling Electron TypeScript"
 npm run electron:compile
 step_done
