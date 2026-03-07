@@ -41,7 +41,10 @@ import { useApps } from "@/lib/apps-context";
 import { useVersions } from "@/lib/versions-context";
 import { resolveVersion, EDITABLE_STATES } from "@/lib/asc/version-types";
 import { useLocalizations } from "@/lib/hooks/use-localizations";
+import { useAppInfo } from "@/lib/hooks/use-app-info";
+import { pickAppInfo } from "@/lib/asc/app-info-utils";
 import { useScreenshotSets } from "@/lib/hooks/use-screenshot-sets";
+import { RemoveLocaleDialog } from "@/components/remove-locale-dialog";
 import { localeName, sortLocales } from "@/lib/asc/locale-names";
 import {
   screenshotImageUrl,
@@ -569,7 +572,10 @@ export default function ScreenshotsPage() {
     appId,
     versionId,
   );
+  const { appInfos } = useAppInfo(appId);
+  const appInfoId = useMemo(() => pickAppInfo(appInfos)?.id ?? "", [appInfos]);
   const primaryLocale = app?.primaryLocale ?? "";
+  const [removeLocaleCode, setRemoveLocaleCode] = useState<string | null>(null);
 
   const {
     locales, setLocales,
@@ -768,23 +774,6 @@ export default function ScreenshotsPage() {
     }
   }
 
-  function handleDeleteLocale(code: string) {
-    const needsLocaleSwitch = selectedLocale === code;
-    setLocales((prev) => prev.filter((l) => l !== code));
-    if (needsLocaleSwitch) {
-      const remaining = locales.filter((l) => l !== code);
-      changeLocale(remaining[0] ?? "");
-    }
-    toast(`Removed ${localeName(code)}`, {
-      action: {
-        label: "Undo",
-        onClick: () => {
-          setLocales((prev) => sortLocales([...prev, code], primaryLocale));
-        },
-      },
-    });
-  }
-
   // Register locale picker in the header bar
   useRegisterHeaderLocale({
     locales,
@@ -793,7 +782,7 @@ export default function ScreenshotsPage() {
     onLocaleChange: changeLocale,
     onLocaleAdd: handleAddLocale,
     onLocalesAdd: handleBulkAddLocales,
-    onLocaleDelete: handleDeleteLocale,
+    onLocaleDelete: (code: string) => setRemoveLocaleCode(code),
     section: "screenshots",
     otherSectionLocales,
     readOnly,
@@ -885,6 +874,26 @@ export default function ScreenshotsPage() {
           )}
         </>
       )}
+      <RemoveLocaleDialog
+        open={removeLocaleCode !== null}
+        onOpenChange={(open) => { if (!open) setRemoveLocaleCode(null); }}
+        locale={removeLocaleCode ?? ""}
+        appId={appId}
+        versionId={versionId}
+        appInfoId={appInfoId}
+        sections={{
+          storeListing: otherSectionLocales["store-listing"]?.includes(removeLocaleCode ?? "") ?? false,
+          appDetails: otherSectionLocales.details?.includes(removeLocaleCode ?? "") ?? false,
+          screenshots: locales.includes(removeLocaleCode ?? ""),
+        }}
+        onRemoved={() => {
+          if (removeLocaleCode === selectedLocale) {
+            const remaining = locales.filter((l) => l !== removeLocaleCode);
+            changeLocale(remaining[0] ?? primaryLocale);
+          }
+          refreshLocalizations();
+        }}
+      />
     </div>
   );
 }

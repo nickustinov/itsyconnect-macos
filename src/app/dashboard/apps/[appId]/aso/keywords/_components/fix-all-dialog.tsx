@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { localeName, FIELD_LIMITS } from "@/lib/asc/locale-names";
+import { buildForbiddenKeywords } from "@/lib/asc/keyword-utils";
 import { CharCount } from "@/components/char-count";
 import type { LocaleKeywordData, StorefrontAnalysis } from "./keyword-analysis";
 
@@ -40,24 +41,13 @@ function buildForbiddenWords(
   appName: string | undefined,
   appSubtitle: string | null,
 ): string[] {
-  const forbidden = new Set<string>();
-  for (const ld of analysis.localeData) {
-    if (ld.locale === locale) continue;
-    for (const kw of ld.keywords) {
-      forbidden.add(kw.toLowerCase());
-    }
-  }
-  if (appName) {
-    for (const w of appName.toLowerCase().split(/[\s\-–/&]+/)) {
-      if (w.length > 1) forbidden.add(w);
-    }
-  }
-  if (appSubtitle) {
-    for (const w of appSubtitle.toLowerCase().split(/[\s\-–/&]+/)) {
-      if (w.length > 1) forbidden.add(w);
-    }
-  }
-  return [...forbidden];
+  return buildForbiddenKeywords({
+    appName,
+    subtitle: appSubtitle ?? undefined,
+    otherLocaleKeywords: analysis.localeData
+      .filter((ld) => ld.locale !== locale)
+      .map((ld) => ld.keywords.join(",")),
+  });
 }
 
 function cleanKeywords(

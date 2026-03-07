@@ -6,10 +6,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { CharCount } from "@/components/char-count";
 import { KeywordTagInput } from "@/components/keyword-tag-input";
 import { FIELD_LIMITS, FIELD_MIN_LIMITS } from "@/lib/asc/locale-names";
+import { splitMetaWords } from "@/lib/asc/keyword-utils";
 import { MagicWandButton, wandProps } from "@/components/magic-wand-button";
 import type { MagicWandLocaleProps } from "@/components/magic-wand-button";
 
-function KeywordTip({ keywords }: { keywords: string }) {
+
+function KeywordTip({ keywords, appName, subtitle, otherLocaleKeywords }: {
+  keywords: string;
+  appName?: string;
+  subtitle?: string;
+  otherLocaleKeywords?: Record<string, string>;
+}) {
   const len = keywords.length;
   const free = FIELD_LIMITS.keywords - len;
 
@@ -20,14 +27,45 @@ function KeywordTip({ keywords }: { keywords: string }) {
       </Badge>
     );
   }
-  if (free > 15) {
-    return (
-      <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-amber-500/50 text-amber-600 dark:text-amber-400">
-        {free} chars free
-      </Badge>
+
+  // Detect name/subtitle overlaps
+  const metaWords = new Set<string>([
+    ...(appName ? splitMetaWords(appName) : []),
+    ...(subtitle ? splitMetaWords(subtitle) : []),
+  ]);
+
+  const kws = keywords.split(",").map((k) => k.trim().toLowerCase()).filter(Boolean);
+  const overlaps = kws.filter((kw) => kw.split(/\s+/).some((w) => metaWords.has(w)));
+
+  // Detect cross-locale duplicates
+  const otherKws = new Set(
+    Object.values(otherLocaleKeywords ?? {})
+      .flatMap((raw) => raw.split(",").map((w) => w.trim().toLowerCase()))
+      .filter(Boolean),
+  );
+  const dupes = kws.filter((kw) => otherKws.has(kw));
+
+  const issues: string[] = [];
+  if (overlaps.length > 0) issues.push(`${overlaps.length} overlap${overlaps.length > 1 ? "s" : ""}`);
+  if (dupes.length > 0) issues.push(`${dupes.length} dupe${dupes.length > 1 ? "s" : ""}`);
+  if (issues.length === 0 && free <= 15) return null;
+
+  const badges: React.ReactNode[] = [];
+  if (issues.length > 0) {
+    badges.push(
+      <Badge key="issues" variant="outline" className="text-[10px] px-1.5 py-0 border-amber-500/50 text-amber-600 dark:text-amber-400">
+        {issues.join(", ")}
+      </Badge>,
     );
   }
-  return null;
+  if (free > 15) {
+    badges.push(
+      <Badge key="free" variant="outline" className="text-[10px] px-1.5 py-0 border-amber-500/50 text-amber-600 dark:text-amber-400">
+        {free} chars free
+      </Badge>,
+    );
+  }
+  return <>{badges}</>;
 }
 
 export interface LocaleFields {
@@ -181,7 +219,18 @@ export function LocaleFieldsSection({
             disabled={readOnly}
             keywordsInsightsHref={keywordsInsightsHref}
           />
-          <KeywordTip keywords={current.keywords} />
+          <KeywordTip
+            keywords={current.keywords}
+            appName={wand.appName}
+            subtitle={wand.appInfoData?.[wand.locale]?.subtitle ?? undefined}
+            otherLocaleKeywords={(() => {
+              const map: Record<string, string> = {};
+              for (const [loc, data] of Object.entries(wand.localeData)) {
+                if (loc !== wand.locale && data?.keywords) map[loc] = data.keywords as string;
+              }
+              return map;
+            })()}
+          />
         </div>
         <Card className="gap-0 py-0">
           <CardContent className="px-5 py-4">

@@ -24,13 +24,15 @@ import {
   FIELD_MIN_LIMITS,
 } from "@/lib/asc/locale-names";
 import { useRegisterHeaderLocale } from "@/lib/header-locale-context";
+import { useRegisterRefresh } from "@/lib/refresh-context";
 import { useSubmissionChecklist } from "@/lib/submission-checklist-context";
 import { computeStoreListingFlags } from "@/lib/submission-checklist-utils";
 import { useLocaleManagement } from "@/lib/hooks/use-locale-management";
-import { useLocaleHandlers } from "@/lib/hooks/use-locale-handlers";
 import type { MagicWandLocaleProps, CopyFromVersion } from "@/components/magic-wand-button";
 import { BulkAIDialog, type BulkField } from "@/components/bulk-ai-dialog";
 import { BulkAllAIDialog } from "@/components/bulk-all-ai-dialog";
+import { AddLocaleDialog } from "@/components/add-locale-dialog";
+import { RemoveLocaleDialog } from "@/components/remove-locale-dialog";
 import type { TFBuild } from "@/lib/asc/testflight/types";
 import { type LocaleFields, emptyLocaleFields, LocaleFieldsSection } from "./_components/locale-fields";
 import { VersionStringSection } from "./_components/version-string-section";
@@ -94,10 +96,11 @@ export default function StoreListingPage() {
   // No version has been distributed yet – "what's new" is not applicable
   const isFirstVersion = !versions.some((v) => v.attributes.appStoreState === "READY_FOR_SALE");
 
-  const { localizations, loading: locLoading } = useLocalizations(appId, versionId);
+  const { localizations, loading: locLoading, refresh: refreshLocalizations } = useLocalizations(appId, versionId);
   const { appInfos } = useAppInfo(appId);
   const appInfo = useMemo(() => pickAppInfo(appInfos), [appInfos]);
-  const { localizations: infoLocalizations } = useAppInfoLocalizations(appId, appInfo?.id ?? "");
+  const { localizations: infoLocalizations, loading: infoLocLoading, refresh: refreshInfoLocalizations } =
+    useAppInfoLocalizations(appId, appInfo?.id ?? "");
 
   const appInfoData = useMemo(() => {
     const map: Record<string, { name?: string | null; subtitle?: string | null }> = {};
@@ -109,6 +112,13 @@ export default function StoreListingPage() {
     }
     return map;
   }, [infoLocalizations]);
+
+  useRegisterRefresh({
+    onRefresh: async () => {
+      await Promise.all([refreshLocalizations(), refreshInfoLocalizations()]);
+    },
+    busy: locLoading || infoLocLoading,
+  });
 
   const primaryLocale = app?.primaryLocale ?? "";
 
@@ -183,6 +193,8 @@ export default function StoreListingPage() {
 
   const [bulkMode, setBulkMode] = useState<"translate" | "copy" | null>(null);
   const [bulkAllMode, setBulkAllMode] = useState<{ mode: "translate" | "copy"; field?: string } | null>(null);
+  const [addLocaleCode, setAddLocaleCode] = useState<string | null>(null);
+  const [removeLocaleCode, setRemoveLocaleCode] = useState<string | null>(null);
 
   function handleBulkApply(updates: Record<string, Record<string, string>>) {
     setLocaleData((prev) => {
@@ -535,26 +547,14 @@ export default function StoreListingPage() {
     setDirty(true);
   }
 
-  const { handleAddLocale, handleBulkAddLocales, handleDeleteLocale } = useLocaleHandlers({
-    localeData,
-    setLocaleData,
-    setLocales,
-    selectedLocale,
-    changeLocale,
-    primaryLocale,
-    setDirty,
-    emptyFields: emptyLocaleFields,
-  });
-
   // Register locale picker in the header bar
   useRegisterHeaderLocale({
     locales,
     selectedLocale,
     primaryLocale,
     onLocaleChange: changeLocale,
-    onLocaleAdd: handleAddLocale,
-    onLocalesAdd: handleBulkAddLocales,
-    onLocaleDelete: handleDeleteLocale,
+    onLocaleAdd: (code: string) => setAddLocaleCode(code),
+    onLocaleDelete: (code: string) => setRemoveLocaleCode(code),
     onBulkTranslate: () => setBulkMode("translate"),
     onBulkCopy: () => setBulkMode("copy"),
     onBulkTranslateAll: () => setBulkAllMode({ mode: "translate" }),
@@ -672,6 +672,43 @@ export default function StoreListingPage() {
           fields={bulkAllMode?.field ? bulkFields.filter((f) => f.key === bulkAllMode.field) : bulkFields}
           appName={app?.name}
           onApply={handleBulkApply}
+        />
+        <RemoveLocaleDialog
+          open={removeLocaleCode !== null}
+          onOpenChange={(open) => { if (!open) setRemoveLocaleCode(null); }}
+          locale={removeLocaleCode ?? ""}
+          appId={appId}
+          versionId={versionId}
+          appInfoId={appInfo?.id ?? ""}
+          sections={{
+            storeListing: locales.includes(removeLocaleCode ?? ""),
+            appDetails: otherSectionLocales.details?.includes(removeLocaleCode ?? "") ?? false,
+            screenshots: otherSectionLocales.screenshots?.includes(removeLocaleCode ?? "") ?? false,
+          }}
+          onRemoved={() => {
+            // Switch away from the deleted locale before refreshing
+            if (removeLocaleCode === selectedLocale) {
+              const remaining = locales.filter((l) => l !== removeLocaleCode);
+              changeLocale(remaining[0] ?? primaryLocale);
+            }
+            refreshLocalizations();
+            refreshInfoLocalizations();
+          }}
+        />
+        <AddLocaleDialog
+          open={addLocaleCode !== null}
+          onOpenChange={(open) => { if (!open) setAddLocaleCode(null); }}
+          locale={addLocaleCode ?? ""}
+          appId={appId}
+          primaryLocale={primaryLocale}
+          appName={app?.name}
+          versionId={versionId}
+          appInfoId={appInfo?.id ?? ""}
+          isFirstVersion={isFirstVersion}
+          onCreated={() => {
+            refreshLocalizations();
+            if (addLocaleCode) changeLocale(addLocaleCode);
+          }}
         />
 
         {/* Release settings */}

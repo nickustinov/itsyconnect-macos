@@ -17,6 +17,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { useAIStatus } from "@/lib/hooks/use-ai-status";
 import { localeName } from "@/lib/asc/locale-names";
+import { buildForbiddenKeywords, splitMetaWords } from "@/lib/asc/keyword-utils";
 import { PLATFORM_LABELS } from "@/lib/asc/version-types";
 import { AIRequiredDialog } from "./ai-required-dialog";
 import { AICompareDialog } from "./ai-compare-dialog";
@@ -201,37 +202,46 @@ export function MagicWandButton({
   // --- Keyword-specific actions ---
 
   function buildKeywordForbiddenWords(): string[] {
-    const forbidden = new Set<string>();
-    if (otherLocaleKeywords) {
-      for (const kw of Object.values(otherLocaleKeywords)) {
-        for (const w of kw.split(",")) {
-          const trimmed = w.trim().toLowerCase();
-          if (trimmed) forbidden.add(trimmed);
-        }
-      }
-    }
-    if (appName) {
-      for (const w of appName.toLowerCase().split(/[\s\-–/&]+/)) {
-        if (w.length > 1) forbidden.add(w);
-      }
-    }
-    if (subtitle) {
-      for (const w of subtitle.toLowerCase().split(/[\s\-–/&]+/)) {
-        if (w.length > 1) forbidden.add(w);
-      }
-    }
-    return [...forbidden];
+    return buildForbiddenKeywords({
+      appName,
+      subtitle,
+      otherLocaleKeywords: otherLocaleKeywords ?? undefined,
+    });
   }
 
   function handleFixKeywords() {
     if (!requireAI()) return;
     const forbiddenWords = buildKeywordForbiddenWords();
+
+    // Pre-clean: strip name/subtitle overlaps and cross-locale duplicates
+    const metaWords = new Set<string>([
+      ...(appName ? splitMetaWords(appName) : []),
+      ...(subtitle ? splitMetaWords(subtitle) : []),
+    ]);
+    const otherKws = new Set(
+      Object.values(otherLocaleKeywords ?? {})
+        .flatMap((raw) => raw.split(",").map((w) => w.trim().toLowerCase()))
+        .filter(Boolean),
+    );
+
+    const cleaned = value
+      .split(",")
+      .map((k) => k.trim())
+      .filter((k) => {
+        const lower = k.toLowerCase();
+        if (!lower) return false;
+        if (lower.split(/\s+/).some((w) => metaWords.has(w))) return false;
+        if (otherKws.has(lower)) return false;
+        return true;
+      })
+      .join(",");
+
     openCompare({
       title: hasValue ? "Improve keywords" : "Generate keywords",
       charLimit,
       apiBody: {
         action: "fix-keywords",
-        text: value,
+        text: cleaned,
         field,
         locale,
         appName,

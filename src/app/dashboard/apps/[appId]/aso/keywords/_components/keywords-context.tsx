@@ -106,6 +106,12 @@ export function KeywordsProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       try {
+        // Only send changed locales + their IDs – never trigger creates or deletes
+        const changedLocaleIds: Record<string, string> = {};
+        for (const locale of Object.keys(changed)) {
+          const id = originalLocaleIdsRef.current[locale];
+          if (id) changedLocaleIds[locale] = id;
+        }
         const res = await fetch(
           `/api/apps/${appId}/versions/${versionId}/localizations`,
           {
@@ -113,7 +119,7 @@ export function KeywordsProvider({ children }: { children: React.ReactNode }) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               locales: changed,
-              originalLocaleIds: originalLocaleIdsRef.current,
+              originalLocaleIds: changedLocaleIds,
             }),
           },
         );

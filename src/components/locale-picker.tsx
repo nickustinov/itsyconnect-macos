@@ -17,16 +17,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { CaretDown, Check, Plus, X } from "@phosphor-icons/react";
 import { localeName, LOCALE_NAMES } from "@/lib/asc/locale-names";
 import type { SectionName } from "@/lib/section-locales-context";
@@ -66,7 +56,6 @@ export function LocalePicker({
   readOnly,
 }: LocalePickerProps) {
   const [open, setOpen] = useState(false);
-  const [deleteLocale, setDeleteLocale] = useState<string | null>(null);
 
   const activeSet = useMemo(() => new Set(locales), [locales]);
 
@@ -149,7 +138,8 @@ export function LocalePicker({
                           onClick={(e) => {
                             e.stopPropagation();
                             e.preventDefault();
-                            setDeleteLocale(code);
+                            setOpen(false);
+                            onLocaleDelete!(code);
                           }}
                         >
                           <X size={12} />
@@ -233,30 +223,6 @@ export function LocalePicker({
         </Command>
       </PopoverContent>
 
-      <AlertDialog open={deleteLocale !== null} onOpenChange={(v) => { if (!v) setDeleteLocale(null); }}>
-        <AlertDialogContent size="sm">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove {deleteLocale ? localeName(deleteLocale) : ""}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will remove the {deleteLocale ? localeName(deleteLocale) : ""} localization and all its content when you save.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              onClick={() => {
-                if (deleteLocale && onLocaleDelete) {
-                  onLocaleDelete(deleteLocale);
-                }
-                setDeleteLocale(null);
-              }}
-            >
-              Remove
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </Popover>
   );
 }

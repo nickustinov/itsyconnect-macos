@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,7 +29,7 @@ import { CATEGORIES, categoryName } from "@/lib/asc/categories";
 import { CharCount } from "@/components/char-count";
 import { useRegisterHeaderLocale } from "@/lib/header-locale-context";
 import { useLocaleManagement } from "@/lib/hooks/use-locale-management";
-import { useLocaleHandlers } from "@/lib/hooks/use-locale-handlers";
+import { RemoveLocaleDialog } from "@/components/remove-locale-dialog";
 import { apiFetch } from "@/lib/api-fetch";
 import { useSubmissionChecklist } from "@/lib/submission-checklist-context";
 import { computeAppDetailsFlags } from "@/lib/submission-checklist-utils";
@@ -37,9 +37,12 @@ import { MagicWandButton, wandProps } from "@/components/magic-wand-button";
 import type { MagicWandLocaleProps } from "@/components/magic-wand-button";
 import { BulkAIDialog, type BulkField } from "@/components/bulk-ai-dialog";
 import { BulkAllAIDialog } from "@/components/bulk-all-ai-dialog";
+import { AddLocaleDialog } from "@/components/add-locale-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { useTabNavigation } from "@/lib/hooks/use-tab-navigation";
 import { useRegisterRefresh } from "@/lib/refresh-context";
+import { useVersions } from "@/lib/versions-context";
+import { resolveVersion } from "@/lib/asc/version-types";
 
 const SORTED_CATEGORIES = Object.keys(CATEGORIES).sort((a, b) =>
   CATEGORIES[a].localeCompare(CATEGORIES[b]),
@@ -107,6 +110,13 @@ export default function AppDetailsPage() {
     busy: refreshLoading,
   });
 
+  const { versions } = useVersions();
+  const selectedVersion = useMemo(
+    () => resolveVersion(versions, searchParams.get("version")),
+    [versions, searchParams],
+  );
+  const versionId = selectedVersion?.id ?? "";
+
   const primaryLocale = app?.primaryLocale ?? "";
 
   const [localeData, setLocaleData] = useState<
@@ -156,6 +166,8 @@ export default function AppDetailsPage() {
 
   const [bulkMode, setBulkMode] = useState<"translate" | "copy" | null>(null);
   const [bulkAllMode, setBulkAllMode] = useState<{ mode: "translate" | "copy"; field?: string } | null>(null);
+  const [addLocaleCode, setAddLocaleCode] = useState<string | null>(null);
+  const [removeLocaleCode, setRemoveLocaleCode] = useState<string | null>(null);
 
   function handleBulkApply(updates: Record<string, Record<string, string>>) {
     setLocaleData((prev) => {
@@ -407,26 +419,14 @@ export default function AppDetailsPage() {
     [selectedLocale, setDirty],
   );
 
-  const { handleAddLocale, handleBulkAddLocales, handleDeleteLocale } = useLocaleHandlers({
-    localeData,
-    setLocaleData,
-    setLocales,
-    selectedLocale,
-    changeLocale,
-    primaryLocale,
-    setDirty,
-    emptyFields: emptyLocaleFields,
-  });
-
   // Register locale picker in the header bar
   useRegisterHeaderLocale({
     locales,
     selectedLocale,
     primaryLocale,
     onLocaleChange: changeLocale,
-    onLocaleAdd: handleAddLocale,
-    onLocalesAdd: handleBulkAddLocales,
-    onLocaleDelete: handleDeleteLocale,
+    onLocaleAdd: (code: string) => setAddLocaleCode(code),
+    onLocaleDelete: (code: string) => setRemoveLocaleCode(code),
     onBulkTranslate: () => setBulkMode("translate"),
     onBulkCopy: () => setBulkMode("copy"),
     onBulkTranslateAll: () => setBulkAllMode({ mode: "translate" }),
@@ -602,6 +602,40 @@ export default function AppDetailsPage() {
         fields={bulkAllMode?.field ? bulkFields.filter((f) => f.key === bulkAllMode.field) : bulkFields}
         appName={app?.name}
         onApply={handleBulkApply}
+      />
+      <AddLocaleDialog
+        open={addLocaleCode !== null}
+        onOpenChange={(open) => { if (!open) setAddLocaleCode(null); }}
+        locale={addLocaleCode ?? ""}
+        appId={appId}
+        primaryLocale={primaryLocale}
+        appName={app?.name}
+        versionId={versionId}
+        appInfoId={appInfoId}
+        onCreated={() => {
+          refreshLocalizations();
+          if (addLocaleCode) changeLocale(addLocaleCode);
+        }}
+      />
+      <RemoveLocaleDialog
+        open={removeLocaleCode !== null}
+        onOpenChange={(open) => { if (!open) setRemoveLocaleCode(null); }}
+        locale={removeLocaleCode ?? ""}
+        appId={appId}
+        versionId={versionId}
+        appInfoId={appInfoId}
+        sections={{
+          storeListing: otherSectionLocales["store-listing"]?.includes(removeLocaleCode ?? "") ?? false,
+          appDetails: locales.includes(removeLocaleCode ?? ""),
+          screenshots: otherSectionLocales.screenshots?.includes(removeLocaleCode ?? "") ?? false,
+        }}
+        onRemoved={() => {
+          if (removeLocaleCode === selectedLocale) {
+            const remaining = locales.filter((l) => l !== removeLocaleCode);
+            changeLocale(remaining[0] ?? primaryLocale);
+          }
+          refreshLocalizations();
+        }}
       />
 
       {/* Categories */}

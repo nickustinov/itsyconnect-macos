@@ -2,6 +2,13 @@
 
 ## 1.3.0
 
+- Add locale dialog – translates all fields from the primary locale, generates keywords with forbidden-word rules, and creates localizations across store listing and app details in one step
+- Remove locale dialog – choose which sections (store listing, app details, screenshots) to delete from, with immediate ASC deletion
+- Refresh button on the store listing page now reloads localizations from App Store Connect
+- Fix AI keyword generation including subtitle words as keywords – forbidden words now use the translated subtitle
+- Fix keywords save deleting unchanged localizations – only changed locales are sent to the sync endpoint
+- Fix App Store Connect 409 duplicate errors on locale creation – automatically falls back to updating the existing localization
+- Extract shared keyword forbidden-word utilities to eliminate duplicated logic across store listing, keyword insights, and AI dialogs
 - Add keywords insights page with per-locale keyword analysis, cross-locale duplicate detection, and storefront view
 - Add "Fix all issues" bulk AI keyword optimisation across all locales
 - Add per-locale "Fix issues" AI keyword improvement that removes name/subtitle overlaps and cross-locale duplicates

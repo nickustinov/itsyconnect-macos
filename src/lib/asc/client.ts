@@ -72,6 +72,7 @@ export async function ascFetch<T>(
   await acquireToken();
 
   const token = getToken();
+  const method = options?.method ?? "GET";
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
@@ -86,7 +87,6 @@ export async function ascFetch<T>(
         },
       });
     } catch (err) {
-      const method = options?.method ?? "GET";
       console.error(`[ASC] ${method} ${path} → network error`, err);
       const ascError = networkError();
       ascError.method = method;
@@ -98,12 +98,10 @@ export async function ascFetch<T>(
       if (response.status === 204) return null as T;
       return response.json() as Promise<T>;
     }
-
     const retryable = response.status === 429 || response.status >= 500;
 
     if (retryable && attempt < MAX_RETRIES - 1) {
       const text = await response.text().catch(() => "");
-      const method = options?.method ?? "GET";
       const delay = Math.pow(2, attempt) * 1000;
       console.warn(`[ASC] ${method} ${path} → ${response.status} (retry ${attempt + 1}/${MAX_RETRIES} in ${delay}ms): ${text.slice(0, 200)}`);
       await new Promise((resolve) => setTimeout(resolve, delay));
@@ -111,7 +109,6 @@ export async function ascFetch<T>(
     }
 
     const text = await response.text().catch(() => "");
-    const method = options?.method ?? "GET";
     console.error(`[ASC] ${method} ${path} → ${response.status}: ${text.slice(0, 500)}`);
     const ascError = parseAscError(response.status, text);
     ascError.method = method;

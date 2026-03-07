@@ -111,12 +111,12 @@ export function buildFixKeywordsPrompt(
 
   prompt += `
 
-Add at least ${moreCount} more ${locName} keywords. You MUST use close to ${kwLimit} total characters (currently only ${currentLen}).
-IMPORTANT: 1 CJK character = 1 character, NOT 3. Count each Chinese/Japanese/Korean character as exactly 1.
-Comma-separated, no spaces after commas. Single words preferred. No stop words or plurals.
-Output the full keyword string (kept + new). Must be ${kwLimit} chars or fewer but at least ${Math.floor(kwLimit * 0.9)}.`;
+Task: produce a single comma-separated keyword string in ${locName} that is close to ${kwLimit} characters (currently ${currentLen}). Add at least ${moreCount} more keywords.
+Rules: no spaces after commas, single words preferred, no stop words, no plurals, no forbidden words.
+1 CJK character = 1 character, not 3.
+Target length: ${Math.floor(kwLimit * 0.9)}–${kwLimit} characters.
 
-  prompt += OUTPUT_CONSTRAINT;
+Respond with ONLY the keyword string. No other text, no reasoning, no explanation.`;
 
   return prompt;
 }

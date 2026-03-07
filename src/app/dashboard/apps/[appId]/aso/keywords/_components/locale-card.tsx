@@ -12,6 +12,7 @@ import {
   CheckCircle,
 } from "@phosphor-icons/react";
 import { localeName, FIELD_LIMITS } from "@/lib/asc/locale-names";
+import { buildForbiddenKeywords } from "@/lib/asc/keyword-utils";
 import { KeywordTagInput } from "@/components/keyword-tag-input";
 import { CharCount } from "@/components/char-count";
 import { AICompareDialog } from "@/components/ai-compare-dialog";
@@ -99,24 +100,11 @@ export function LocaleCard({
       })
       .join(",");
 
-    // Build forbidden words: other locale keywords + app name/subtitle words
-    const forbiddenSet = new Set<string>();
-    for (const kw of Object.values(otherLocaleKeywords)) {
-      for (const w of kw.split(",")) {
-        const trimmed = w.trim().toLowerCase();
-        if (trimmed) forbiddenSet.add(trimmed);
-      }
-    }
-    if (appName) {
-      for (const w of appName.toLowerCase().split(/[\s\-–/&]+/)) {
-        if (w.length > 1) forbiddenSet.add(w);
-      }
-    }
-    if (appSubtitle) {
-      for (const w of appSubtitle.toLowerCase().split(/[\s\-–/&]+/)) {
-        if (w.length > 1) forbiddenSet.add(w);
-      }
-    }
+    const forbiddenWords = buildForbiddenKeywords({
+      appName,
+      subtitle: appSubtitle ?? undefined,
+      otherLocaleKeywords,
+    });
 
     setCompareState({
       title: `Improve keywords – ${localeName(data.locale)}`,
@@ -129,7 +117,7 @@ export function LocaleCard({
         subtitle: appSubtitle,
         charLimit: FIELD_LIMITS.keywords,
         description,
-        forbiddenWords: [...forbiddenSet],
+        forbiddenWords,
       },
     });
   }

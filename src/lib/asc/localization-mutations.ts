@@ -1,4 +1,4 @@
-import { ascFetch } from "./client";
+import { ascFetch, AscApiError } from "./client";
 import { cacheInvalidate } from "@/lib/cache";
 
 /** ASC rejects empty strings for URI-typed fields – send null to clear them. */
@@ -45,29 +45,50 @@ export async function createVersionLocalization(
   for (const [k, v] of Object.entries(attributes)) {
     if (v !== "") cleaned[k] = v;
   }
-  const res = await ascFetch<{ data: { id: string } }>("/v1/appStoreVersionLocalizations", {
-    method: "POST",
-    body: JSON.stringify({
-      data: {
-        type: "appStoreVersionLocalizations",
-        attributes: { locale, ...cleaned },
-        relationships: {
-          appStoreVersion: {
-            data: { type: "appStoreVersions", id: versionId },
+  try {
+    const res = await ascFetch<{ data: { id: string } }>("/v1/appStoreVersionLocalizations", {
+      method: "POST",
+      body: JSON.stringify({
+        data: {
+          type: "appStoreVersionLocalizations",
+          attributes: { locale, ...cleaned },
+          relationships: {
+            appStoreVersion: {
+              data: { type: "appStoreVersions", id: versionId },
+            },
           },
         },
-      },
-    }),
-  });
-  return res.data.id;
+      }),
+    });
+    return res.data.id;
+  } catch (err) {
+    // 409 DUPLICATE – resource already exists (e.g. 500→retry→409 or pre-existing).
+    // Find it and update instead.
+    if (err instanceof AscApiError && err.ascError.statusCode === 409) {
+      const { listLocalizations } = await import("./localizations");
+      const existing = (await listLocalizations(versionId, true))
+        .find((l) => l.attributes.locale === locale);
+      if (existing) {
+        await updateVersionLocalization(existing.id, attributes);
+        return existing.id;
+      }
+    }
+    throw err;
+  }
 }
 
 export async function deleteVersionLocalization(
   localizationId: string,
 ): Promise<void> {
-  await ascFetch(`/v1/appStoreVersionLocalizations/${localizationId}`, {
-    method: "DELETE",
-  });
+  try {
+    await ascFetch(`/v1/appStoreVersionLocalizations/${localizationId}`, {
+      method: "DELETE",
+    });
+  } catch (err) {
+    // 404 after 500→retry means the first DELETE actually succeeded
+    if (err instanceof AscApiError && err.ascError.statusCode === 404) return;
+    throw err;
+  }
 }
 
 export function invalidateLocalizationsCache(versionId: string): void {
@@ -102,29 +123,50 @@ export async function createAppInfoLocalization(
   for (const [k, v] of Object.entries(attributes)) {
     if (v !== "") cleaned[k] = v;
   }
-  const res = await ascFetch<{ data: { id: string } }>("/v1/appInfoLocalizations", {
-    method: "POST",
-    body: JSON.stringify({
-      data: {
-        type: "appInfoLocalizations",
-        attributes: { locale, ...cleaned },
-        relationships: {
-          appInfo: {
-            data: { type: "appInfos", id: appInfoId },
+  try {
+    const res = await ascFetch<{ data: { id: string } }>("/v1/appInfoLocalizations", {
+      method: "POST",
+      body: JSON.stringify({
+        data: {
+          type: "appInfoLocalizations",
+          attributes: { locale, ...cleaned },
+          relationships: {
+            appInfo: {
+              data: { type: "appInfos", id: appInfoId },
+            },
           },
         },
-      },
-    }),
-  });
-  return res.data.id;
+      }),
+    });
+    return res.data.id;
+  } catch (err) {
+    // 409 DUPLICATE – resource already exists (e.g. 500→retry→409 or pre-existing).
+    // Find it and update instead.
+    if (err instanceof AscApiError && err.ascError.statusCode === 409) {
+      const { listAppInfoLocalizations } = await import("./app-info");
+      const existing = (await listAppInfoLocalizations(appInfoId, true))
+        .find((l) => l.attributes.locale === locale);
+      if (existing) {
+        await updateAppInfoLocalization(existing.id, attributes);
+        return existing.id;
+      }
+    }
+    throw err;
+  }
 }
 
 export async function deleteAppInfoLocalization(
   localizationId: string,
 ): Promise<void> {
-  await ascFetch(`/v1/appInfoLocalizations/${localizationId}`, {
-    method: "DELETE",
-  });
+  try {
+    await ascFetch(`/v1/appInfoLocalizations/${localizationId}`, {
+      method: "DELETE",
+    });
+  } catch (err) {
+    // 404 after 500→retry means the first DELETE actually succeeded
+    if (err instanceof AscApiError && err.ascError.statusCode === 404) return;
+    throw err;
+  }
 }
 
 export function invalidateAppInfoLocalizationsCache(appInfoId: string): void {
