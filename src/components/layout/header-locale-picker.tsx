@@ -85,6 +85,7 @@ export function HeaderLocalePicker() {
                 variant="ghost"
                 size="icon"
                 className="size-7 text-muted-foreground"
+                disabled={config.readOnly}
               >
                 <MagicWand size={14} />
               </Button>
