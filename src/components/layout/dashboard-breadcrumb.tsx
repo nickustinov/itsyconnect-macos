@@ -21,6 +21,7 @@ const PAGE_TITLES: Record<string, string> = {
   analytics: "Analytics",
   sales: "Sales",
   details: "App details",
+  aso: "Keywords",
 };
 
 const TF_SUB_TITLES: Record<string, string> = {

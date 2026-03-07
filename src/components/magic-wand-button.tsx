@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import { MagicWand } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,10 +39,14 @@ interface MagicWandButtonProps {
   disabled?: boolean;
   /** For keywords: description in the current locale (generation context). */
   description?: string;
-  /** For keywords: all other locales' keywords for gap analysis. */
+  /** For keywords: app subtitle in the current locale. */
+  subtitle?: string;
+  /** For keywords: all other locales' keywords (for building forbidden list). */
   otherLocaleKeywords?: Record<string, string>;
   /** Callback to open the "translate to all languages" dialog for this field. */
   onTranslateAll?: () => void;
+  /** Link to keywords insights page (for keywords field). */
+  keywordsInsightsHref?: string;
   /** Other versions available to copy this field from. */
   copyFromVersions?: CopyFromVersion[];
   /** Callback when the user picks a version to copy from. */
@@ -55,6 +60,8 @@ export interface MagicWandLocaleProps {
   /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
   localeData: Record<string, any>;
   appName?: string;
+  /** Per-locale app info (name/subtitle) for keyword context. */
+  appInfoData?: Record<string, { name?: string | null; subtitle?: string | null }>;
   copyFromVersions?: CopyFromVersion[];
   onCopyFromVersion?: (field: string, versionId: string) => void;
 }
@@ -67,7 +74,7 @@ export interface MagicWandLocaleProps {
 export function wandProps(
   shared: MagicWandLocaleProps,
   field: string,
-): Pick<MagicWandButtonProps, "field" | "locale" | "baseLocale" | "baseValue" | "appName" | "description" | "otherLocaleKeywords" | "copyFromVersions" | "onCopyFromVersion"> {
+): Pick<MagicWandButtonProps, "field" | "locale" | "baseLocale" | "baseValue" | "appName" | "description" | "subtitle" | "otherLocaleKeywords" | "copyFromVersions" | "onCopyFromVersion"> {
   const base: Pick<MagicWandButtonProps, "field" | "locale" | "baseLocale" | "baseValue" | "appName" | "copyFromVersions" | "onCopyFromVersion"> = {
     field,
     locale: shared.locale,
@@ -82,8 +89,8 @@ export function wandProps(
 
   if (field !== "keywords") return base;
 
-  // For keywords: provide description context and other locales' keywords
   const description = shared.localeData[shared.locale]?.description ?? "";
+  const subtitle = shared.appInfoData?.[shared.locale]?.subtitle ?? undefined;
   const otherLocaleKeywords: Record<string, string> = {};
   for (const [loc, data] of Object.entries(shared.localeData)) {
     if (loc !== shared.locale && data?.keywords) {
@@ -91,7 +98,7 @@ export function wandProps(
     }
   }
 
-  return { ...base, description, otherLocaleKeywords };
+  return { ...base, description, subtitle, otherLocaleKeywords };
 }
 
 interface CompareState {
@@ -113,8 +120,10 @@ export function MagicWandButton({
   charLimit,
   disabled,
   description,
+  subtitle,
   otherLocaleKeywords,
   onTranslateAll,
+  keywordsInsightsHref,
   copyFromVersions,
   onCopyFromVersion,
 }: MagicWandButtonProps) {
@@ -191,53 +200,45 @@ export function MagicWandButton({
 
   // --- Keyword-specific actions ---
 
-  function handleGenerateKeywords() {
-    if (!requireAI()) return;
-    openCompare({
-      title: "Generate keywords",
-      charLimit,
-      apiBody: {
-        action: "generate-keywords",
-        text: value,
-        field,
-        locale,
-        appName,
-        charLimit,
-        description,
-      },
-    });
+  function buildKeywordForbiddenWords(): string[] {
+    const forbidden = new Set<string>();
+    if (otherLocaleKeywords) {
+      for (const kw of Object.values(otherLocaleKeywords)) {
+        for (const w of kw.split(",")) {
+          const trimmed = w.trim().toLowerCase();
+          if (trimmed) forbidden.add(trimmed);
+        }
+      }
+    }
+    if (appName) {
+      for (const w of appName.toLowerCase().split(/[\s\-–/&]+/)) {
+        if (w.length > 1) forbidden.add(w);
+      }
+    }
+    if (subtitle) {
+      for (const w of subtitle.toLowerCase().split(/[\s\-–/&]+/)) {
+        if (w.length > 1) forbidden.add(w);
+      }
+    }
+    return [...forbidden];
   }
 
-  function handleOptimizeKeywords() {
+  function handleFixKeywords() {
     if (!requireAI()) return;
+    const forbiddenWords = buildKeywordForbiddenWords();
     openCompare({
-      title: "Optimize keywords",
+      title: hasValue ? "Improve keywords" : "Generate keywords",
       charLimit,
       apiBody: {
-        action: "optimize-keywords",
+        action: "fix-keywords",
         text: value,
         field,
         locale,
         appName,
+        subtitle,
         charLimit,
         description,
-      },
-    });
-  }
-
-  function handleFillKeywordGaps() {
-    if (!requireAI()) return;
-    openCompare({
-      title: "Fill gaps from other locales",
-      charLimit,
-      apiBody: {
-        action: "fill-keyword-gaps",
-        text: value,
-        field,
-        locale,
-        appName,
-        charLimit,
-        otherLocaleKeywords,
+        forbiddenWords,
       },
     });
   }
@@ -246,7 +247,7 @@ export function MagicWandButton({
   const hasKeywordActions = isKeywords;
   const hasTranslateActions = !isBaseLocale && !isKeywords;
   const hasImproveAction = isBaseLocale && !isKeywords;
-  const hasTranslateAllAction = !!onTranslateAll;
+  const hasTranslateAllAction = !!onTranslateAll && !isKeywords;
   const hasCopyFromVersionAction = (copyFromVersions?.length ?? 0) > 0 && !!onCopyFromVersion;
   const hasAnyAction = hasKeywordActions || hasTranslateActions || hasImproveAction || hasTranslateAllAction || hasCopyFromVersionAction;
 
@@ -271,21 +272,17 @@ export function MagicWandButton({
         <DropdownMenuContent align="end">
           {hasKeywordActions && (
             <>
-              {hasValue ? (
-                <DropdownMenuItem onSelect={handleOptimizeKeywords}>
-                  Improve…
-                </DropdownMenuItem>
-              ) : (
-                <DropdownMenuItem onSelect={handleGenerateKeywords}>
-                  Generate…
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem
-                onSelect={handleFillKeywordGaps}
-                disabled={!otherLocaleKeywords || Object.keys(otherLocaleKeywords).length === 0}
-              >
-                Fill gaps from other locales…
+              <DropdownMenuItem onSelect={handleFixKeywords}>
+                {hasValue ? "Improve…" : "Generate…"}
               </DropdownMenuItem>
+              {keywordsInsightsHref && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href={keywordsInsightsHref}>Keywords insights</Link>
+                  </DropdownMenuItem>
+                </>
+              )}
             </>
           )}
           {hasTranslateActions && (

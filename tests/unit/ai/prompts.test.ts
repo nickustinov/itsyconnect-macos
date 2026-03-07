@@ -2,9 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   buildTranslatePrompt,
   buildImprovePrompt,
-  buildGenerateKeywordsPrompt,
-  buildOptimizeKeywordsPrompt,
-  buildFillKeywordGapsPrompt,
+  buildFixKeywordsPrompt,
   buildReplyPrompt,
   buildAppealPrompt,
 } from "@/lib/ai/prompts";
@@ -126,99 +124,49 @@ describe("buildImprovePrompt", () => {
   });
 });
 
-describe("buildGenerateKeywordsPrompt", () => {
-  it("includes locale and app context", () => {
-    const prompt = buildGenerateKeywordsPrompt("de-DE", {
-      field: "keywords",
-      appName: "Weatherly",
-      description: "Check the weather forecast anytime.",
-    });
+describe("buildFixKeywordsPrompt", () => {
+  it("includes locale, app context, forbidden words, and existing keywords", () => {
+    const prompt = buildFixKeywordsPrompt(
+      "rain,humidity",
+      "de-DE",
+      ["weather", "forecast"],
+      { field: "keywords", appName: "Weatherly", description: "Check the weather.", subtitle: "Your daily forecast" },
+    );
 
     expect(prompt).toContain("German");
     expect(prompt).toContain("de-DE");
     expect(prompt).toContain("Weatherly");
-    expect(prompt).toContain("Check the weather forecast");
-    expect(prompt).toContain("100 characters");
-    expect(prompt).toContain("comma-separated");
+    expect(prompt).toContain("Your daily forecast");
+    expect(prompt).toContain("Check the weather.");
+    expect(prompt).toContain("rain,humidity");
+    expect(prompt).toContain("weather, forecast");
+    expect(prompt).toContain("100");
   });
 
-  it("works without description", () => {
-    const prompt = buildGenerateKeywordsPrompt("ja", {
-      field: "keywords",
-      appName: "Photon",
-    });
+  it("works without subtitle or description", () => {
+    const prompt = buildFixKeywordsPrompt(
+      "rain",
+      "ja",
+      [],
+      { field: "keywords", appName: "Photon" },
+    );
 
     expect(prompt).toContain("Japanese");
     expect(prompt).toContain("Photon");
+    expect(prompt).not.toContain("Subtitle:");
     expect(prompt).not.toContain("App description for context");
   });
 
-  it("instructs not to duplicate app name words", () => {
-    const prompt = buildGenerateKeywordsPrompt("en-US", {
-      field: "keywords",
-    });
-
-    expect(prompt).toContain("app name");
-    expect(prompt).toContain("auto-indexes");
-  });
-});
-
-describe("buildOptimizeKeywordsPrompt", () => {
-  it("includes current keywords and optimization rules", () => {
-    const prompt = buildOptimizeKeywordsPrompt(
-      "weather, forecast, the best app, rain",
-      "en-US",
-      { field: "keywords", appName: "Weatherly" },
-    );
-
-    expect(prompt).toContain("weather, forecast, the best app, rain");
-    expect(prompt).toContain("English (US)");
-    expect(prompt).toContain("stop words");
-    expect(prompt).toContain("Remove spaces after commas");
-    expect(prompt).toContain("100 characters");
-  });
-
-  it("includes description context when provided", () => {
-    const prompt = buildOptimizeKeywordsPrompt(
-      "weather,rain",
-      "en-US",
-      { field: "keywords", description: "A weather app for daily forecasts." },
-    );
-
-    expect(prompt).toContain("A weather app for daily forecasts.");
-  });
-});
-
-describe("buildFillKeywordGapsPrompt", () => {
-  it("includes current keywords and other locales' keywords", () => {
-    const prompt = buildFillKeywordGapsPrompt(
-      "weather,forecast",
-      "de-DE",
-      {
-        "en-US": "weather,forecast,rain,humidity,uv",
-        "fr-FR": "météo,prévision,pluie,humidité",
-      },
-      { field: "keywords", appName: "Weatherly" },
-    );
-
-    expect(prompt).toContain("German");
-    expect(prompt).toContain("weather,forecast");
-    expect(prompt).toContain("English (US)");
-    expect(prompt).toContain("rain,humidity,uv");
-    expect(prompt).toContain("French (France)");
-    expect(prompt).toContain("missing");
-  });
-
-  it("shows (empty) when current keywords are empty", () => {
-    const prompt = buildFillKeywordGapsPrompt(
+  it("handles empty keywords", () => {
+    const prompt = buildFixKeywordsPrompt(
       "",
-      "ja",
-      { "en-US": "weather,rain" },
+      "en-US",
+      ["existing"],
       { field: "keywords" },
     );
 
-    expect(prompt).toContain("(empty)");
-    expect(prompt).toContain("Japanese");
+    expect(prompt).toContain("English (US)");
+    expect(prompt).not.toContain("Keep these:");
   });
 });
 

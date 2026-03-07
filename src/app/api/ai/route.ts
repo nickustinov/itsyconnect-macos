@@ -9,9 +9,6 @@ import {
   buildImprovePrompt,
   buildReplyPrompt,
   buildAppealPrompt,
-  buildGenerateKeywordsPrompt,
-  buildOptimizeKeywordsPrompt,
-  buildFillKeywordGapsPrompt,
   buildFixKeywordsPrompt,
 } from "@/lib/ai/prompts";
 import { errorJson, parseBody } from "@/lib/api-helpers";
@@ -78,9 +75,6 @@ const requestSchema = z.object({
     "translate",
     "improve",
     "copy",
-    "generate-keywords",
-    "optimize-keywords",
-    "fill-keyword-gaps",
     "fix-keywords",
     "draft-reply",
     "draft-appeal",
@@ -96,7 +90,6 @@ const requestSchema = z.object({
   charLimit: z.number().optional(),
   description: z.string().optional(),
   subtitle: z.string().optional(),
-  otherLocaleKeywords: z.record(z.string(), z.string()).optional(),
   forbiddenWords: z.array(z.string()).optional(),
 });
 
@@ -106,7 +99,7 @@ export async function POST(request: Request) {
 
   const {
     action, text, field, reviewTitle, rating, fromLocale, toLocale, locale,
-    appName, charLimit, description, subtitle, otherLocaleKeywords, forbiddenWords,
+    appName, charLimit, description, subtitle, forbiddenWords,
   } = parsed;
 
   // Copy needs no AI – echo the text back
@@ -169,36 +162,6 @@ export async function POST(request: Request) {
         );
       }
       prompt = buildImprovePrompt(text, locale, context);
-      break;
-    }
-    case "generate-keywords": {
-      if (!locale) {
-        return NextResponse.json(
-          { error: "locale is required for generate-keywords" },
-          { status: 400 },
-        );
-      }
-      prompt = buildGenerateKeywordsPrompt(locale, { ...context, description, subtitle });
-      break;
-    }
-    case "optimize-keywords": {
-      if (!locale) {
-        return NextResponse.json(
-          { error: "locale is required for optimize-keywords" },
-          { status: 400 },
-        );
-      }
-      prompt = buildOptimizeKeywordsPrompt(text, locale, { ...context, description, subtitle });
-      break;
-    }
-    case "fill-keyword-gaps": {
-      if (!locale) {
-        return NextResponse.json(
-          { error: "locale is required for fill-keyword-gaps" },
-          { status: 400 },
-        );
-      }
-      prompt = buildFillKeywordGapsPrompt(text, locale, otherLocaleKeywords ?? {}, context);
       break;
     }
     case "fix-keywords": {

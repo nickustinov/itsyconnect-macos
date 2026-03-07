@@ -58,6 +58,7 @@ export function LocaleFieldsSection({
   wand,
   onBulkAllMode,
   hideWhatsNew,
+  keywordsInsightsHref,
 }: {
   current: LocaleFields;
   localeTag: ReactNode;
@@ -66,6 +67,7 @@ export function LocaleFieldsSection({
   wand: MagicWandLocaleProps;
   onBulkAllMode: (field: string) => void;
   hideWhatsNew?: boolean;
+  keywordsInsightsHref?: string;
 }) {
   return (
     <>
@@ -177,7 +179,7 @@ export function LocaleFieldsSection({
             {...wandProps(wand, "keywords")}
             charLimit={FIELD_LIMITS.keywords}
             disabled={readOnly}
-            onTranslateAll={() => onBulkAllMode("keywords")}
+            keywordsInsightsHref={keywordsInsightsHref}
           />
           <KeywordTip keywords={current.keywords} />
         </div>

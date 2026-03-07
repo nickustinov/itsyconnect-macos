@@ -11,6 +11,10 @@ describe("wandProps", () => {
       "fr-FR": { description: "French desc", keywords: "météo,pluie" },
     },
     appName: "Weatherly",
+    appInfoData: {
+      "de-DE": { name: "Weatherly", subtitle: "Dein Wetterdienst" },
+      "en-US": { name: "Weatherly", subtitle: "Your weather app" },
+    },
   };
 
   it("returns field, locale, baseLocale, baseValue, and appName for text fields", () => {
@@ -24,10 +28,10 @@ describe("wandProps", () => {
     });
   });
 
-  it("does not include description or otherLocaleKeywords for non-keyword fields", () => {
+  it("does not include description or subtitle for non-keyword fields", () => {
     const result = wandProps(shared, "description");
     expect(result).not.toHaveProperty("description");
-    expect(result).not.toHaveProperty("otherLocaleKeywords");
+    expect(result).not.toHaveProperty("subtitle");
   });
 
   it("returns empty string when base locale has no data for the field", () => {
@@ -41,11 +45,12 @@ describe("wandProps", () => {
     expect(result.baseValue).toBe("");
   });
 
-  it("includes description and otherLocaleKeywords for keywords field", () => {
+  it("includes description, subtitle, and otherLocaleKeywords for keywords field", () => {
     const result = wandProps(shared, "keywords");
     expect(result.field).toBe("keywords");
     expect(result.baseValue).toBe("weather,rain");
     expect(result.description).toBe("German desc");
+    expect(result.subtitle).toBe("Dein Wetterdienst");
     expect(result.otherLocaleKeywords).toEqual({
       "en-US": "weather,rain",
       "fr-FR": "météo,pluie",
@@ -57,9 +62,10 @@ describe("wandProps", () => {
     expect(result.otherLocaleKeywords).not.toHaveProperty("de-DE");
   });
 
-  it("works without appName", () => {
-    const noApp = { ...shared, appName: undefined };
+  it("works without appName or appInfoData", () => {
+    const noApp = { ...shared, appName: undefined, appInfoData: undefined };
     const result = wandProps(noApp, "keywords");
     expect(result.appName).toBeUndefined();
+    expect(result.subtitle).toBeUndefined();
   });
 });

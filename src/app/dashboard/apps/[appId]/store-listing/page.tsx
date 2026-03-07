@@ -14,6 +14,8 @@ import { useVersions } from "@/lib/versions-context";
 import { useFormDirty } from "@/lib/form-dirty-context";
 import { resolveVersion, EDITABLE_STATES, type AscVersion } from "@/lib/asc/version-types";
 import { useLocalizations } from "@/lib/hooks/use-localizations";
+import { useAppInfo, useAppInfoLocalizations } from "@/lib/hooks/use-app-info";
+import { pickAppInfo } from "@/lib/asc/app-info-utils";
 import type { AscLocalization } from "@/lib/asc/localizations";
 import {
   localeName,
@@ -93,6 +95,20 @@ export default function StoreListingPage() {
   const isFirstVersion = !versions.some((v) => v.attributes.appStoreState === "READY_FOR_SALE");
 
   const { localizations, loading: locLoading } = useLocalizations(appId, versionId);
+  const { appInfos } = useAppInfo(appId);
+  const appInfo = useMemo(() => pickAppInfo(appInfos), [appInfos]);
+  const { localizations: infoLocalizations } = useAppInfoLocalizations(appId, appInfo?.id ?? "");
+
+  const appInfoData = useMemo(() => {
+    const map: Record<string, { name?: string | null; subtitle?: string | null }> = {};
+    for (const loc of infoLocalizations) {
+      map[loc.attributes.locale] = {
+        name: loc.attributes.name,
+        subtitle: loc.attributes.subtitle,
+      };
+    }
+    return map;
+  }, [infoLocalizations]);
 
   const primaryLocale = app?.primaryLocale ?? "";
 
@@ -149,6 +165,7 @@ export default function StoreListingPage() {
     baseLocale: locales[0] ?? "",
     localeData,
     appName: app?.name,
+    appInfoData,
     copyFromVersions,
     onCopyFromVersion: handleCopyFromVersion,
   };
@@ -606,6 +623,7 @@ export default function StoreListingPage() {
             wand={wand}
             onBulkAllMode={(field) => setBulkAllMode({ mode: "translate", field })}
             hideWhatsNew={isFirstVersion}
+            keywordsInsightsHref={`/dashboard/apps/${appId}/aso/keywords`}
           />
         )}
 
