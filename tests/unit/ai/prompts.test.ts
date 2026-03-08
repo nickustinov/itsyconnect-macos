@@ -5,6 +5,7 @@ import {
   buildFixKeywordsPrompt,
   buildReplyPrompt,
   buildAppealPrompt,
+  buildAnalyticsInsightsPrompt,
 } from "@/lib/ai/prompts";
 
 describe("buildTranslatePrompt", () => {
@@ -215,5 +216,159 @@ describe("buildAppealPrompt", () => {
     expect(prompt).toContain("1-star");
     expect(prompt).toContain("Buy my product instead");
     expect(prompt).not.toContain("app is called");
+  });
+});
+
+describe("buildAnalyticsInsightsPrompt", () => {
+  const makeData = (overrides = {}) => ({
+    dailyDownloads: [
+      { date: "2026-03-01", firstTime: 100, redownload: 20, update: 50 },
+      { date: "2026-03-02", firstTime: 120, redownload: 25, update: 55 },
+      { date: "2026-03-03", firstTime: 90, redownload: 15, update: 40 },
+      { date: "2026-03-04", firstTime: 150, redownload: 30, update: 60 },
+      { date: "2026-03-05", firstTime: 200, redownload: 40, update: 70 },
+      { date: "2026-03-06", firstTime: 180, redownload: 35, update: 65 },
+    ],
+    dailyRevenue: [
+      { date: "2026-03-01", proceeds: 500, sales: 600 },
+      { date: "2026-03-02", proceeds: 550, sales: 650 },
+      { date: "2026-03-03", proceeds: 400, sales: 480 },
+      { date: "2026-03-04", proceeds: 700, sales: 800 },
+      { date: "2026-03-05", proceeds: 900, sales: 1000 },
+      { date: "2026-03-06", proceeds: 850, sales: 950 },
+    ],
+    dailyEngagement: [
+      { date: "2026-03-01", impressions: 5000, pageViews: 1000 },
+      { date: "2026-03-02", impressions: 5500, pageViews: 1100 },
+      { date: "2026-03-03", impressions: 4000, pageViews: 800 },
+      { date: "2026-03-04", impressions: 6000, pageViews: 1200 },
+      { date: "2026-03-05", impressions: 7000, pageViews: 1400 },
+      { date: "2026-03-06", impressions: 6500, pageViews: 1300 },
+    ],
+    dailySessions: [
+      { date: "2026-03-01", sessions: 2000, uniqueDevices: 1500, avgDuration: 120 },
+      { date: "2026-03-02", sessions: 2100, uniqueDevices: 1600, avgDuration: 115 },
+    ],
+    dailyInstallsDeletes: [
+      { date: "2026-03-01", installs: 100, deletes: 10 },
+      { date: "2026-03-02", installs: 110, deletes: 15 },
+    ],
+    dailyDownloadsBySource: [],
+    dailyTerritoryDownloads: [],
+    dailyCrashes: [
+      { date: "2026-03-01", crashes: 5, uniqueDevices: 3 },
+      { date: "2026-03-02", crashes: 8, uniqueDevices: 6 },
+    ],
+    territories: [
+      { territory: "United States", code: "US", downloads: 500, revenue: 2000 },
+      { territory: "Germany", code: "DE", downloads: 200, revenue: 800 },
+    ],
+    discoverySources: [
+      { source: "Search", count: 300 },
+      { source: "Browse", count: 150 },
+    ],
+    crashesByVersion: [
+      { version: "2.1.0", platform: "iOS", crashes: 10, uniqueDevices: 8 },
+    ],
+    ...overrides,
+  });
+
+  it("includes period dates and download totals", () => {
+    const prompt = buildAnalyticsInsightsPrompt(makeData());
+
+    expect(prompt).toContain("2026-03-01");
+    expect(prompt).toContain("2026-03-06");
+    expect(prompt).toContain("6 days");
+    expect(prompt).toContain("840"); // 100+120+90+150+200+180 first-time
+  });
+
+  it("includes revenue data", () => {
+    const prompt = buildAnalyticsInsightsPrompt(makeData());
+
+    expect(prompt).toContain("proceeds");
+    expect(prompt).toContain("sales");
+  });
+
+  it("includes conversion funnel metrics", () => {
+    const prompt = buildAnalyticsInsightsPrompt(makeData());
+
+    expect(prompt).toContain("impressions");
+    expect(prompt).toContain("page views");
+    expect(prompt).toContain("first-time downloads");
+  });
+
+  it("includes territory data", () => {
+    const prompt = buildAnalyticsInsightsPrompt(makeData());
+
+    expect(prompt).toContain("United States");
+    expect(prompt).toContain("Germany");
+  });
+
+  it("includes crash data", () => {
+    const prompt = buildAnalyticsInsightsPrompt(makeData());
+
+    expect(prompt).toContain("Crashes");
+    expect(prompt).toContain("2.1.0");
+  });
+
+  it("includes discovery sources", () => {
+    const prompt = buildAnalyticsInsightsPrompt(makeData());
+
+    expect(prompt).toContain("Search");
+    expect(prompt).toContain("Browse");
+  });
+
+  it("includes sessions and duration", () => {
+    const prompt = buildAnalyticsInsightsPrompt(makeData());
+
+    expect(prompt).toContain("Sessions");
+    expect(prompt).toContain("avg duration");
+  });
+
+  it("includes download trend comparison", () => {
+    const prompt = buildAnalyticsInsightsPrompt(makeData());
+
+    expect(prompt).toContain("Download trend");
+    expect(prompt).toContain("%");
+  });
+
+  it("handles minimal data without crashing", () => {
+    const prompt = buildAnalyticsInsightsPrompt(makeData({
+      dailyRevenue: [],
+      dailyEngagement: [],
+      dailySessions: [],
+      dailyInstallsDeletes: [],
+      dailyCrashes: [],
+      territories: [],
+      discoverySources: [],
+      crashesByVersion: [],
+    }));
+
+    expect(prompt).toContain("2026-03-01");
+    expect(prompt).not.toContain("Crashes");
+    expect(prompt).not.toContain("Sessions");
+  });
+
+  it("handles empty downloads array", () => {
+    const prompt = buildAnalyticsInsightsPrompt(makeData({
+      dailyDownloads: [],
+    }));
+
+    expect(prompt).toContain("No data available");
+  });
+
+  it("includes installs and deletions when present", () => {
+    const prompt = buildAnalyticsInsightsPrompt(makeData());
+
+    expect(prompt).toContain("Installs");
+    expect(prompt).toContain("Deletions");
+  });
+
+  it("contains instruction rules for the AI", () => {
+    const prompt = buildAnalyticsInsightsPrompt(makeData());
+
+    expect(prompt).toContain("3–5 highlights");
+    expect(prompt).toContain("2–4 opportunities");
+    expect(prompt).toContain("actionable");
   });
 });

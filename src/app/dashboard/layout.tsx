@@ -43,6 +43,7 @@ import { DemoBanner } from "@/components/layout/demo-banner";
 import { BreadcrumbProvider } from "@/lib/breadcrumb-context";
 import { ErrorReportProvider } from "@/lib/error-report-context";
 import { InsightsPanelProvider, useInsightsPanel } from "@/lib/insights-panel-context";
+import { InsightsPanel } from "@/components/layout/insights-panel";
 import { LicenseProvider } from "@/lib/license-context";
 import { saveNavigation } from "@/lib/nav-state";
 
@@ -87,11 +88,11 @@ const INSIGHTS_PANEL_WIDTH = "18rem";
 function ScrollableContent({ children }: { children: React.ReactNode }) {
   const { open } = useInsightsPanel();
   const pathname = usePathname();
-  const onReviews = pathname.match(/\/reviews$/);
+  const hasPanel = pathname.match(/\/reviews$/) || pathname.match(/\/analytics(\/|$)/);
   return (
     <div
       className="flex flex-1 flex-col overflow-y-auto pt-6 pb-8"
-      style={{ paddingRight: open && onReviews ? INSIGHTS_PANEL_WIDTH : undefined }}
+      style={{ paddingRight: open && hasPanel ? INSIGHTS_PANEL_WIDTH : undefined }}
     >
       <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-6">
         {children}
@@ -171,6 +172,9 @@ export default function DashboardLayout({
             <Suspense>{children}</Suspense>
           </ScrollableContent>
           </FooterPortalProvider>
+          <Suspense>
+            <InsightsPanel />
+          </Suspense>
           <Suspense>
             <VersionActionFooter />
           </Suspense>

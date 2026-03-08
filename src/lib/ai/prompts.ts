@@ -257,6 +257,143 @@ New reviews:
   return prompt;
 }
 
+// --- Analytics insights prompt ---
+
+interface AnalyticsDataForPrompt {
+  dailyDownloads: Array<{ date: string; firstTime: number; redownload: number; update: number }>;
+  dailyRevenue: Array<{ date: string; proceeds: number; sales: number }>;
+  dailyEngagement: Array<{ date: string; impressions: number; pageViews: number }>;
+  dailySessions: Array<{ date: string; sessions: number; uniqueDevices: number; avgDuration: number }>;
+  dailyInstallsDeletes: Array<{ date: string; installs: number; deletes: number }>;
+  dailyDownloadsBySource: Array<{ date: string; search: number; browse: number; webReferrer: number; unavailable: number }>;
+  dailyTerritoryDownloads: Array<{ date: string; code: string; downloads: number }>;
+  dailyCrashes: Array<{ date: string; crashes: number; uniqueDevices: number }>;
+  territories: Array<{ territory: string; code: string; downloads: number; revenue: number }>;
+  discoverySources: Array<{ source: string; count: number }>;
+  crashesByVersion: Array<{ version: string; platform: string; crashes: number; uniqueDevices: number }>;
+}
+
+function sum(arr: number[]): number {
+  return arr.reduce((s, v) => s + v, 0);
+}
+
+/**
+ * Summarise analytics data into a compact text block for the AI.
+ * We send aggregated stats + recent daily trends, not raw per-day data,
+ * to keep token usage reasonable.
+ */
+function summariseAnalytics(data: AnalyticsDataForPrompt): string {
+  const lines: string[] = [];
+  const days = data.dailyDownloads.length;
+
+  if (days === 0) return "No data available.";
+
+  const firstDate = data.dailyDownloads[0].date;
+  const lastDate = data.dailyDownloads[days - 1].date;
+  lines.push(`Period: ${firstDate} to ${lastDate} (${days} days)`);
+
+  // Downloads
+  const totalFirstTime = sum(data.dailyDownloads.map((d) => d.firstTime));
+  const totalRedownloads = sum(data.dailyDownloads.map((d) => d.redownload));
+  const totalUpdates = sum(data.dailyDownloads.map((d) => d.update));
+  lines.push(`\nDownloads: ${(totalFirstTime + totalRedownloads).toLocaleString()} total (${totalFirstTime.toLocaleString()} first-time, ${totalRedownloads.toLocaleString()} redownloads, ${totalUpdates.toLocaleString()} updates)`);
+
+  // Compare first half vs second half for trend
+  if (days >= 6) {
+    const mid = Math.floor(days / 2);
+    const firstHalf = sum(data.dailyDownloads.slice(0, mid).map((d) => d.firstTime + d.redownload));
+    const secondHalf = sum(data.dailyDownloads.slice(mid).map((d) => d.firstTime + d.redownload));
+    const halfDays1 = mid;
+    const halfDays2 = days - mid;
+    const avgFirst = firstHalf / halfDays1;
+    const avgSecond = secondHalf / halfDays2;
+    if (avgFirst > 0) {
+      const change = ((avgSecond - avgFirst) / avgFirst * 100).toFixed(1);
+      lines.push(`Download trend: ${change}% (daily avg first half vs second half of period)`);
+    }
+  }
+
+  // Revenue
+  const totalProceeds = sum(data.dailyRevenue.map((d) => d.proceeds));
+  const totalSales = sum(data.dailyRevenue.map((d) => d.sales));
+  if (totalProceeds > 0 || totalSales > 0) {
+    lines.push(`\nRevenue: $${totalProceeds.toLocaleString()} proceeds, $${totalSales.toLocaleString()} sales`);
+  }
+
+  // Engagement & conversion
+  const totalImpressions = sum(data.dailyEngagement.map((d) => d.impressions));
+  const totalPageViews = sum(data.dailyEngagement.map((d) => d.pageViews));
+  if (totalImpressions > 0) {
+    const pageViewRate = ((totalPageViews / totalImpressions) * 100).toFixed(1);
+    const downloadRate = totalPageViews > 0
+      ? ((totalFirstTime / totalPageViews) * 100).toFixed(1)
+      : "0";
+    lines.push(`\nConversion funnel: ${totalImpressions.toLocaleString()} impressions → ${totalPageViews.toLocaleString()} page views (${pageViewRate}%) → ${totalFirstTime.toLocaleString()} first-time downloads (${downloadRate}% of page views)`);
+  }
+
+  // Sessions
+  const totalSessions = sum(data.dailySessions.map((d) => d.sessions));
+  const avgDuration = data.dailySessions.length > 0
+    ? sum(data.dailySessions.map((d) => d.avgDuration)) / data.dailySessions.length
+    : 0;
+  if (totalSessions > 0) {
+    lines.push(`\nSessions: ${totalSessions.toLocaleString()} total, avg duration ${avgDuration.toFixed(1)}s`);
+  }
+
+  // Installs vs deletes
+  const totalInstalls = sum(data.dailyInstallsDeletes.map((d) => d.installs));
+  const totalDeletes = sum(data.dailyInstallsDeletes.map((d) => d.deletes));
+  if (totalInstalls > 0 || totalDeletes > 0) {
+    lines.push(`Installs: ${totalInstalls.toLocaleString()}, Deletions: ${totalDeletes.toLocaleString()}`);
+  }
+
+  // Discovery sources
+  if (data.discoverySources.length > 0) {
+    const sourceTotal = sum(data.discoverySources.map((s) => s.count));
+    const sourceLines = data.discoverySources
+      .filter((s) => s.count > 0)
+      .map((s) => `${s.source}: ${s.count.toLocaleString()} (${((s.count / sourceTotal) * 100).toFixed(0)}%)`)
+      .join(", ");
+    lines.push(`\nDiscovery sources: ${sourceLines}`);
+  }
+
+  // Top territories
+  if (data.territories.length > 0) {
+    const top = data.territories.slice(0, 10);
+    lines.push(`\nTop territories by downloads: ${top.map((t) => `${t.territory} (${t.downloads.toLocaleString()})`).join(", ")}`);
+  }
+
+  // Crashes
+  const totalCrashes = sum(data.dailyCrashes.map((d) => d.crashes));
+  if (totalCrashes > 0) {
+    lines.push(`\nCrashes: ${totalCrashes.toLocaleString()} total`);
+    if (data.crashesByVersion.length > 0) {
+      const topCrash = data.crashesByVersion.slice(0, 3);
+      lines.push(`By version: ${topCrash.map((c) => `${c.version} (${c.crashes} crashes, ${c.uniqueDevices} devices)`).join(", ")}`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
+export function buildAnalyticsInsightsPrompt(
+  data: AnalyticsDataForPrompt,
+): string {
+  const summary = summariseAnalytics(data);
+
+  return `Analyse the following App Store Connect analytics data and extract key insights.
+
+${summary}
+
+Rules:
+- Return 3–5 highlights: notable trends, anomalies, or key observations from the data.
+- Return 2–4 opportunities: actionable suggestions based on the data (e.g. improve conversion, address churn, capitalise on growth).
+- Each point should be a concise sentence (10–20 words), not a paragraph.
+- Be specific – reference actual numbers and percentages from the data.
+- Do NOT invent data that isn't provided.
+- Do NOT state obvious things like "downloads exist" – focus on what's interesting or actionable.`;
+}
+
 export function buildImprovePrompt(
   text: string,
   locale: string,

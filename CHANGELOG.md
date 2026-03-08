@@ -2,6 +2,8 @@
 
 ## 1.4.0
 
+- Add AI-powered analytics insights – highlights trends, anomalies, and actionable opportunities from App Store Connect metrics
+- Unify insights panel across reviews and analytics pages with shared sidebar and magic wand button
 - Add AI-powered review insights panel – analyses customer reviews to extract strengths and weaknesses, updates incrementally when new reviews arrive
 - Add unread reviews indicator on the Reviews sidebar item
 - Fix app overview KPI cards to show all-time totals instead of last 30 days

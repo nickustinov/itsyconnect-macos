@@ -45,7 +45,6 @@ import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 import { useMarkReviewsRead } from "@/lib/hooks/use-unread-reviews";
 import { usePersistedState, usePersistedBool } from "@/lib/hooks/use-persisted-range";
-import { InsightsPanel } from "./_components/insights-panel";
 
 // ── Territory helpers ──────────────────────────────────────────────
 
@@ -1122,12 +1121,6 @@ export default function ReviewsPage() {
         onOpenChange={setShowAIRequired}
       />
 
-      {/* Insights panel – fixed right sidebar, controlled via context */}
-      <InsightsPanel
-        appId={appId}
-        reviewCount={total}
-        dateRange={dateRange}
-      />
     </div>
   );
 }
