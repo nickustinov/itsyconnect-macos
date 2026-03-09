@@ -125,27 +125,33 @@ export function AppSwitcher() {
                   No matching apps
                 </div>
               )}
-              {filteredApps.map((app) => (
-                <DropdownMenuItem
-                  key={app.id}
-                  onClick={() => guardNavigation(() => router.push(buildAppUrl(app.id)))}
-                  className="gap-2 p-2"
-                >
-                  <AppIcon
-                    iconUrl={app.iconUrl}
-                    name={app.name}
-                    className="size-6"
-                    iconSize={12}
-                    rounded="rounded-md"
-                  />
-                  <div className="grid flex-1 leading-tight">
-                    <span className="truncate font-medium">{app.name}</span>
-                    <span className="truncate text-xs font-mono text-muted-foreground">
-                      {app.id}
-                    </span>
-                  </div>
-                </DropdownMenuItem>
-              ))}
+              {filteredApps.map((app) => {
+                const idx = apps.indexOf(app);
+                return (
+                  <DropdownMenuItem
+                    key={app.id}
+                    onClick={() => guardNavigation(() => router.push(buildAppUrl(app.id)))}
+                    className="gap-2 p-2"
+                  >
+                    <AppIcon
+                      iconUrl={app.iconUrl}
+                      name={app.name}
+                      className="size-6"
+                      iconSize={12}
+                      rounded="rounded-md"
+                    />
+                    <div className="grid flex-1 leading-tight">
+                      <span className="truncate font-medium">{app.name}</span>
+                      <span className="truncate text-xs font-mono text-muted-foreground">
+                        {app.id}
+                      </span>
+                    </div>
+                    {idx >= 0 && idx < 9 && !search && (
+                      <kbd className="shrink-0 text-[13px] text-muted-foreground/50">⌘{idx + 1}</kbd>
+                    )}
+                  </DropdownMenuItem>
+                );
+              })}
             </div>
             {truncated && (
               <DropdownMenuItem

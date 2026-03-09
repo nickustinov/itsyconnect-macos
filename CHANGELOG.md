@@ -5,6 +5,8 @@
 - Fix resubmission after App Review rejection – handle UNRESOLVED_ISSUES submissions to avoid ITEM_PART_OF_ANOTHER_SUBMISSION errors
 - Rename "Resubmit for review" button to "Update review" to match App Store Connect terminology
 - Revamp review insights prompt with three categories (strengths, weaknesses, potential) and stricter rules
+- Show version statuses in portfolio app cards – non-live versions display platform, version, and state like App Store Connect
+- Add keyboard shortcuts: ⌘P portfolio, ⌘1–9 switch apps, ⌘O overview, ⌘L store listing, ⌘R reviews, ⌘A analytics, ⌘B builds
 
 ## 1.4.1
 

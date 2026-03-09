@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { Package, SquaresFour } from "@phosphor-icons/react";
-import { getLastAppId } from "@/lib/nav-state";
+import { getLastAppId, getAppState } from "@/lib/nav-state";
 import {
   Sidebar,
   SidebarContent,
@@ -62,7 +62,7 @@ function PortfolioButton() {
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <SidebarMenuButton asChild tooltip="Portfolio" isActive={isActive}>
+        <SidebarMenuButton asChild tooltip="Portfolio ⌘P" isActive={isActive}>
           <Link
             href="/dashboard"
             onNavigate={(e) => {
@@ -73,6 +73,7 @@ function PortfolioButton() {
           >
             <SquaresFour size={16} />
             <span>Portfolio</span>
+            <kbd className="ml-auto text-[13px] text-muted-foreground/50">⌘P</kbd>
           </Link>
         </SidebarMenuButton>
       </SidebarMenuItem>
@@ -82,7 +83,10 @@ function PortfolioButton() {
 
 export function AppSidebar() {
   const { appId } = useParams<{ appId?: string }>();
+  const router = useRouter();
+  const pathname = usePathname();
   const { apps } = useApps();
+  const { guardNavigation } = useFormDirty();
   const [lastAppId, setLastAppId] = useState<string>();
   useEffect(() => {
     if (!appId) setLastAppId(getLastAppId());
@@ -92,6 +96,49 @@ export function AppSidebar() {
   // Poll review counts for all apps to track unread state
   const appIds = useMemo(() => apps.map((a) => a.id), [apps]);
   useUnreadReviewsPoller(appIds);
+
+  // Cmd+P → Portfolio, Cmd+1..9 → switch apps, Cmd+O/L/R/A/B → nav pages
+  const PAGE_SHORTCUTS: Record<string, string> = {
+    o: "",                // Overview
+    l: "/store-listing",  // Store listing
+    r: "/reviews",        // Reviews
+    a: "/analytics",      // Analytics
+    b: "/testflight",     // Builds
+  };
+
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (!e.metaKey && !e.ctrlKey) return;
+      if (e.key === "p") {
+        e.preventDefault();
+        guardNavigation(() => router.push("/dashboard"));
+        return;
+      }
+      const n = parseInt(e.key, 10);
+      if (n >= 1 && n <= 9 && n <= apps.length) {
+        e.preventDefault();
+        const target = apps[n - 1];
+        const saved = getAppState(target.id);
+        const url = saved
+          ? `/dashboard/apps/${target.id}${saved}`
+          : `/dashboard/apps/${target.id}`;
+        guardNavigation(() => router.push(url));
+        return;
+      }
+      const activeId = appId ?? lastAppId;
+      const subpath = PAGE_SHORTCUTS[e.key];
+      if (activeId && subpath !== undefined) {
+        e.preventDefault();
+        guardNavigation(() => router.push(`/dashboard/apps/${activeId}${subpath}`));
+      }
+    },
+    [apps, appId, lastAppId, router, guardNavigation],
+  );
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
 
   return (
     <Sidebar collapsible="icon">

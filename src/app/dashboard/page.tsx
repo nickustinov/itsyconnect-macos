@@ -37,6 +37,12 @@ import { formatDateShort } from "@/lib/format";
 import { parseRange, filterByDateRange } from "@/lib/analytics-range";
 import { usePersistedRange } from "@/lib/hooks/use-persisted-range";
 import type { AnalyticsData } from "@/lib/asc/analytics";
+import {
+  PLATFORM_LABELS,
+  STATE_DOT_COLORS,
+  stateLabel,
+  type AscVersion,
+} from "@/lib/asc/version-types";
 import { ReportInitiatedBanner } from "@/components/report-initiated-banner";
 
 const CHART_COLORS = [
@@ -61,6 +67,7 @@ export default function DashboardPage() {
   const { apps, loading, truncated, needsAppSelection, refresh: refreshApps } = useApps();
   const devSimulate = searchParams.get("analyticsState") === "initiated";
   const [analytics, setAnalytics] = useState<Record<string, AppAnalytics>>({});
+  const [appVersions, setAppVersions] = useState<Record<string, AscVersion[]>>({});
   const [range, setRange] = usePersistedRange("range:portfolio-proceeds");
 
   // entry=1 means proxy redirected here on app launch – restore last URL
@@ -147,6 +154,16 @@ export default function DashboardPage() {
     }
   }, []);
 
+  const fetchVersions = useCallback(async (appId: string) => {
+    try {
+      const res = await fetch(`/api/apps/${appId}/versions`);
+      const json = await res.json();
+      setAppVersions((prev) => ({ ...prev, [appId]: json.versions ?? [] }));
+    } catch {
+      // Non-critical
+    }
+  }, []);
+
   useEffect(() => {
     if (loading || apps.length === 0 || needsAppSelection) return;
 
@@ -158,8 +175,9 @@ export default function DashboardPage() {
 
     for (const app of apps) {
       fetchAnalytics(app.id);
+      fetchVersions(app.id);
     }
-  }, [apps, loading, needsAppSelection, fetchAnalytics]);
+  }, [apps, loading, needsAppSelection, fetchAnalytics, fetchVersions]);
 
   // Poll while any app is pending
   const hasPending = Object.values(analytics).some((a) => a.pending);
@@ -187,11 +205,13 @@ export default function DashboardPage() {
           fetch(`/api/apps/${app.id}/analytics/refresh`, { method: "POST" }),
         ),
       );
-      await Promise.all(currentApps.map((app) => fetchAnalytics(app.id)));
+      await Promise.all(
+        currentApps.flatMap((app) => [fetchAnalytics(app.id), fetchVersions(app.id)]),
+      );
     } finally {
       setRefreshing(false);
     }
-  }, [fetchAnalytics]);
+  }, [fetchAnalytics, fetchVersions]);
 
   useRegisterRefresh({
     onRefresh: handleRefresh,
@@ -496,6 +516,7 @@ export default function DashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {apps.map((app) => {
           const entry = analytics[app.id];
+          const versions = pickPendingVersions(appVersions[app.id] ?? []);
           return (
             <Link key={app.id} href={`/dashboard/apps/${app.id}`}>
               <Card className="h-full transition-colors hover:bg-muted/50">
@@ -517,6 +538,20 @@ export default function DashboardPage() {
                   ) : (
                     <p className="text-xs text-muted-foreground">No data</p>
                   )}
+                  {versions.length > 0 && (
+                    <div className="mt-3 space-y-0.5 border-t pt-3">
+                      {versions.map((v) => (
+                        <div key={v.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <span className={`size-1.5 shrink-0 rounded-full ${STATE_DOT_COLORS[v.attributes.appVersionState] ?? "bg-muted-foreground"}`} />
+                          <span className="truncate">
+                            {PLATFORM_LABELS[v.attributes.platform] ?? v.attributes.platform}{" "}
+                            {v.attributes.versionString}{" "}
+                            {stateLabel(v.attributes.appVersionState)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </Link>
@@ -535,6 +570,22 @@ export default function DashboardPage() {
       </div>
     </div>
   );
+}
+
+const LIVE_STATES = new Set(["READY_FOR_SALE", "READY_FOR_DISTRIBUTION"]);
+
+/** Pick non-live versions to show in portfolio cards (newest per platform). */
+function pickPendingVersions(versions: AscVersion[]): AscVersion[] {
+  const seen = new Set<string>();
+  const result: AscVersion[] = [];
+  for (const v of versions) {
+    if (LIVE_STATES.has(v.attributes.appVersionState)) continue;
+    const p = v.attributes.platform;
+    if (seen.has(p)) continue;
+    seen.add(p);
+    result.push(v);
+  }
+  return result;
 }
 
 function AppCardStats({ data }: { data: AnalyticsData }) {

@@ -31,6 +31,7 @@ interface NavItem {
   title: string;
   href: string;
   icon: Icon;
+  shortcut?: string;
 }
 
 interface NavGroup {
@@ -45,8 +46,8 @@ function getNavGroups(appId: string): NavGroup[] {
     {
       label: "Release",
       items: [
-        { title: "Overview", href: base, icon: Gauge },
-        { title: "Store listing", href: `${base}/store-listing`, icon: Storefront },
+        { title: "Overview", href: base, icon: Gauge, shortcut: "⌘O" },
+        { title: "Store listing", href: `${base}/store-listing`, icon: Storefront, shortcut: "⌘L" },
         { title: "Screenshots", href: `${base}/screenshots`, icon: Images },
         { title: "App details", href: `${base}/details`, icon: Info },
         { title: "App review", href: `${base}/review`, icon: Stamp },
@@ -55,15 +56,15 @@ function getNavGroups(appId: string): NavGroup[] {
     {
       label: "Insights",
       items: [
-        { title: "Reviews", href: `${base}/reviews`, icon: ChatsCircle },
-        { title: "Analytics", href: `${base}/analytics`, icon: ChartLineUp },
+        { title: "Reviews", href: `${base}/reviews`, icon: ChatsCircle, shortcut: "⌘R" },
+        { title: "Analytics", href: `${base}/analytics`, icon: ChartLineUp, shortcut: "⌘A" },
         { title: "Keywords", href: `${base}/aso/keywords`, icon: MagnifyingGlass },
       ],
     },
     {
       label: "TestFlight",
       items: [
-        { title: "Builds", href: `${base}/testflight`, icon: Truck },
+        { title: "Builds", href: `${base}/testflight`, icon: Truck, shortcut: "⌘B" },
         { title: "Groups", href: `${base}/testflight/groups`, icon: UsersThree },
         { title: "Beta app info", href: `${base}/testflight/info`, icon: Info },
         { title: "Feedback", href: `${base}/testflight/feedback`, icon: ChatDots },
@@ -121,7 +122,7 @@ export function NavMain({ appId }: { appId: string }) {
               <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton
                   asChild
-                  tooltip={item.title}
+                  tooltip={item.shortcut ? `${item.title} ${item.shortcut}` : item.title}
                   isActive={isActive(item.href)}
                 >
                   <Link
@@ -134,6 +135,9 @@ export function NavMain({ appId }: { appId: string }) {
                   >
                     <item.icon size={16} />
                     <span>{item.title}</span>
+                    {item.shortcut && (
+                      <kbd className="ml-auto text-[13px] text-muted-foreground/50">{item.shortcut}</kbd>
+                    )}
                   </Link>
                 </SidebarMenuButton>
                 {item.href === `${base}/reviews` && <ReviewsBadge appId={appId} />}
