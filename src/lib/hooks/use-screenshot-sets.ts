@@ -63,7 +63,7 @@ export function useScreenshotSets(
     }
   }, [appId, versionId, localizationId]);
 
-  const refresh = useCallback(() => fetchSets(), [fetchSets]);
+  const refresh = useCallback(() => fetchSets(true), [fetchSets]);
 
   // Reset initial load flag when parameters change
   useEffect(() => {

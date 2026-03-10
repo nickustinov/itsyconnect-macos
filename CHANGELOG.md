@@ -3,6 +3,8 @@
 ## 1.5.1
 
 - Fix screenshot display size labels to match current App Store Connect
+- Show all locales on screenshots page instead of only the primary locale
+- Fix screenshot refresh not bypassing cache
 
 ## 1.5.0
 

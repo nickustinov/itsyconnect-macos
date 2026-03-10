@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import {
   CaretLeft,
@@ -60,6 +60,7 @@ import {
   type AscScreenshotSet,
 } from "@/lib/asc/display-types";
 import { useRegisterHeaderLocale } from "@/lib/header-locale-context";
+import { useRegisterRefresh } from "@/lib/refresh-context";
 import { EmptyState } from "@/components/empty-state";
 import { useLocaleManagement } from "@/lib/hooks/use-locale-management";
 import { useScreenshotOperations } from "@/lib/hooks/use-screenshot-operations";
@@ -589,25 +590,15 @@ export default function ScreenshotsPage() {
     [localizations],
   );
 
-  // Reset locale state when version changes
-  const [prevVersionId, setPrevVersionId] = useState(versionId);
-  if (versionId !== prevVersionId) {
-    setPrevVersionId(versionId);
-    if (primaryLocale) {
-      setLocales([primaryLocale]);
+  // Populate locale tabs from version localizations (same as store listing)
+  useEffect(() => {
+    if (!localizations.length || !primaryLocale) return;
+    const sorted = sortLocales(localizations.map((l) => l.attributes.locale), primaryLocale);
+    setLocales(sorted);
+    if (!selectedLocale || !sorted.includes(selectedLocale)) {
       setSelectedLocale(primaryLocale);
     }
-  }
-
-  // Start with only the primary locale (initial mount)
-  useEffect(() => {
-    if (!primaryLocale) return;
-    setLocales((prev) => {
-      if (prev.length > 0) return prev;
-      setSelectedLocale(primaryLocale);
-      return [primaryLocale];
-    });
-  }, [primaryLocale]);
+  }, [localizations, primaryLocale]);
 
   const selectedLocalization = localizations.find(
     (l) => l.attributes.locale === selectedLocale,
@@ -711,6 +702,9 @@ export default function ScreenshotsPage() {
     screenshotSets,
     setScreenshotSets: setRawSets,
   });
+
+  const handleRefresh = useCallback(() => refresh(), [refresh]);
+  useRegisterRefresh({ onRefresh: handleRefresh, busy: ssLoading });
 
   async function createLocalization(locale: string) {
     const res = await fetch(
