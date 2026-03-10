@@ -285,6 +285,13 @@ function setupStoreKit(port: number): void {
 let checkSource: "menu" | "settings" | "auto" = "auto";
 let updateInterval: ReturnType<typeof setInterval> | null = null;
 let autoUpdater: Electron.AutoUpdater | null = null;
+let lastUpdateStatus: { state: string; message?: string; notes?: string[] } | null = null;
+
+function sendUpdateStatus(status: { state: string; message?: string; notes?: string[] }): void {
+  lastUpdateStatus = status;
+  console.log(`[updater] sendUpdateStatus: ${status.state}, window=${!!mainWindow}`);
+  mainWindow?.webContents.send("update-status", status);
+}
 
 function setupAutoUpdater(): void {
   if (isDev || isMAS) return;
@@ -298,7 +305,8 @@ function setupAutoUpdater(): void {
   updater.setFeedURL({ url: feedURL });
 
   updater.on("error", (err) => {
-    mainWindow?.webContents.send("update-status", { state: "error", message: err.message });
+    console.log("[updater] error:", err.message);
+    sendUpdateStatus({ state: "error", message: err.message });
     if (checkSource === "menu") {
       dialog.showMessageBox({ message: "Update check failed", detail: err.message });
     }
@@ -306,11 +314,13 @@ function setupAutoUpdater(): void {
   });
 
   updater.on("checking-for-update", () => {
-    mainWindow?.webContents.send("update-status", { state: "checking" });
+    console.log("[updater] checking-for-update");
+    sendUpdateStatus({ state: "checking" });
   });
 
   updater.on("update-available", () => {
-    mainWindow?.webContents.send("update-status", { state: "available" });
+    console.log("[updater] update-available");
+    sendUpdateStatus({ state: "available" });
     if (checkSource === "menu") {
       dialog.showMessageBox({ message: "A new update is being downloaded." });
     }
@@ -318,45 +328,26 @@ function setupAutoUpdater(): void {
   });
 
   updater.on("update-not-available", () => {
-    mainWindow?.webContents.send("update-status", { state: "up-to-date" });
+    console.log("[updater] update-not-available");
+    sendUpdateStatus({ state: "up-to-date" });
     if (checkSource === "menu") {
       dialog.showMessageBox({ message: "You're up to date!" });
     }
     checkSource = "auto";
   });
 
-  updater.on("update-downloaded", () => {
-    const notes = getLatestChangelog();
-    mainWindow?.webContents.send("update-status", { state: "downloaded", notes });
+  updater.on("update-downloaded", (_event, releaseNotes: string) => {
+    console.log("[updater] update-downloaded, releaseNotes:", releaseNotes);
+    const notes = releaseNotes
+      ? releaseNotes.split(/\r?\n/).filter((l) => l.trim()).map((l) => l.replace(/^[-*]\s*/, "").trim())
+      : [];
+    sendUpdateStatus({ state: "downloaded", notes });
   });
 
   const settings = loadSettings();
   if (settings.autoCheckUpdates) startUpdateInterval();
 }
 
-/** Read the top section from CHANGELOG.md for the update banner. */
-function getLatestChangelog(): string[] {
-  try {
-    const changelogPath = path.join(app.getAppPath(), "CHANGELOG.md");
-    const content = fs.readFileSync(changelogPath, "utf-8");
-    const lines = content.split("\n");
-    const notes: string[] = [];
-    let inSection = false;
-    for (const line of lines) {
-      if (line.startsWith("## ") && !inSection) {
-        inSection = true;
-        continue;
-      }
-      if (line.startsWith("## ") && inSection) break;
-      if (inSection && line.startsWith("- ")) {
-        notes.push(line.slice(2).trim());
-      }
-    }
-    return notes;
-  } catch {
-    return [];
-  }
-}
 
 function startUpdateInterval(): void {
   if (updateInterval || !autoUpdater) return;
@@ -562,6 +553,12 @@ function createWindow(port: number): void {
 
   ipcMain.once("app-ready", () => {
     mainWindow?.show();
+    // Replay cached update status so the renderer doesn't miss events that
+    // fired before it mounted (e.g. update-downloaded on relaunch)
+    if (lastUpdateStatus) {
+      console.log("[updater] replaying cached status:", lastUpdateStatus.state);
+      mainWindow?.webContents.send("update-status", lastUpdateStatus);
+    }
   });
 
   let saveTimeout: ReturnType<typeof setTimeout> | null = null;

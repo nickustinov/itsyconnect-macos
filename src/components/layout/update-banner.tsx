@@ -6,19 +6,21 @@ import { Button } from "@/components/ui/button";
 
 export function UpdateBanner() {
   const [notes, setNotes] = useState<string[]>([]);
+  const [ready, setReady] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
     const unsub = window.electron?.updates.onStatus((status) => {
       if (status.state === "downloaded") {
         setNotes(status.notes ?? []);
+        setReady(true);
         setDismissed(false);
       }
     });
     return () => { unsub?.(); };
   }, []);
 
-  if (dismissed || notes.length === 0) return null;
+  if (dismissed || !ready) return null;
 
   return (
     <div className="fixed right-4 bottom-4 z-50 w-80 rounded-lg border bg-popover p-4 shadow-lg">
@@ -31,14 +33,16 @@ export function UpdateBanner() {
           <X size={14} />
         </button>
       </div>
-      <ul className="mb-4 space-y-1 text-xs text-muted-foreground">
-        {notes.map((note, i) => (
-          <li key={i} className="flex gap-1.5">
-            <span className="mt-1.5 size-1 shrink-0 rounded-full bg-muted-foreground/50" />
-            <span>{note}</span>
-          </li>
-        ))}
-      </ul>
+      {notes.length > 0 && (
+        <ul className="mb-4 space-y-1 text-xs text-muted-foreground">
+          {notes.map((note, i) => (
+            <li key={i} className="flex gap-1.5">
+              <span className="mt-1.5 size-1 shrink-0 rounded-full bg-muted-foreground/50" />
+              <span>{note}</span>
+            </li>
+          ))}
+        </ul>
+      )}
       <div className="flex gap-2">
         <Button
           size="sm"
