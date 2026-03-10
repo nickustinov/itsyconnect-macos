@@ -167,6 +167,15 @@ export async function POST(
       cached: false,
     });
   } catch (err) {
+    console.warn(`[ai] Analytics insights generation failed for ${appId}:`, err);
+    if (cached?.insights) {
+      return NextResponse.json({
+        insights: cached.insights,
+        dataHash: cached.dataHash,
+        cached: true,
+        stale: true,
+      });
+    }
     const category = classifyAIError(err);
     if (category === "auth" || category === "permission") {
       return NextResponse.json({ error: "ai_auth_error" }, { status: 401 });
