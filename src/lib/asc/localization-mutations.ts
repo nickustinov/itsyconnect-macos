@@ -23,6 +23,7 @@ export async function updateVersionLocalization(
   localizationId: string,
   attributes: Record<string, unknown>,
 ): Promise<void> {
+  console.log("[asc-mutations] updateVersionLocalization id=%s fields=%s", localizationId, Object.keys(attributes).join(","));
   await ascFetch(`/v1/appStoreVersionLocalizations/${localizationId}`, {
     method: "PATCH",
     body: JSON.stringify({
@@ -40,6 +41,7 @@ export async function createVersionLocalization(
   locale: string,
   attributes: Record<string, unknown>,
 ): Promise<string> {
+  console.log("[asc-mutations] createVersionLocalization version=%s locale=%s fields=%s", versionId, locale, Object.keys(attributes).join(","));
   // Strip empty strings – ASC rejects them on create
   const cleaned: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(attributes)) {
@@ -61,19 +63,23 @@ export async function createVersionLocalization(
       method: "POST",
       body: JSON.stringify(payload),
     });
+    console.log("[asc-mutations] createVersionLocalization: created id=%s", res.data.id);
     return res.data.id;
   } catch (err) {
     // 409 DUPLICATE – resource already exists (e.g. 500→retry→409 or pre-existing).
     // Find it and update instead.
     if (err instanceof AscApiError && err.ascError.statusCode === 409) {
+      console.log("[asc-mutations] createVersionLocalization: 409 – finding existing for locale=%s", locale);
       const { listLocalizations } = await import("./localizations");
       const existing = (await listLocalizations(versionId, true))
         .find((l) => l.attributes.locale === locale);
       if (existing) {
+        console.log("[asc-mutations] createVersionLocalization: updating existing id=%s", existing.id);
         await updateVersionLocalization(existing.id, attributes);
         return existing.id;
       }
     }
+    console.error("[asc-mutations] createVersionLocalization: failed", err);
     throw err;
   }
 }
@@ -102,6 +108,7 @@ export async function updateAppInfoLocalization(
   localizationId: string,
   attributes: Record<string, unknown>,
 ): Promise<void> {
+  console.log("[asc-mutations] updateAppInfoLocalization id=%s fields=%s", localizationId, Object.keys(attributes).join(","));
   await ascFetch(`/v1/appInfoLocalizations/${localizationId}`, {
     method: "PATCH",
     body: JSON.stringify({
@@ -119,6 +126,7 @@ export async function createAppInfoLocalization(
   locale: string,
   attributes: Record<string, unknown>,
 ): Promise<string> {
+  console.log("[asc-mutations] createAppInfoLocalization appInfo=%s locale=%s fields=%s", appInfoId, locale, Object.keys(attributes).join(","));
   // Strip empty strings – ASC rejects them on create
   const cleaned: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(attributes)) {

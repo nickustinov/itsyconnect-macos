@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "277e966c-120d-4d2b-83bd-afd232ce6ba6",
-  "prevId": "c4d5e6f7-a8b9-0123-cdef-456789012345",
+  "id": "b3c4d5e6-f7a8-9012-bcde-f34567890123",
+  "prevId": "7a8a2ec7-3411-477a-be8c-35b425cfbd5d",
   "tables": {
     "ai_settings": {
       "name": "ai_settings",
@@ -101,30 +101,6 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "app_preferences": {
-      "name": "app_preferences",
-      "columns": {
-        "key": {
-          "name": "key",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "value": {
-          "name": "value",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
     "asc_credentials": {
       "name": "asc_credentials",
       "columns": {
@@ -191,14 +167,6 @@
           "notNull": true,
           "autoincrement": false,
           "default": true
-        },
-        "is_demo": {
-          "name": "is_demo",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": false
         },
         "created_at": {
           "name": "created_at",

@@ -210,6 +210,8 @@ export async function POST(request: Request) {
 
   try {
     const needsVariety = action === "draft-reply" || action === "draft-appeal";
+    console.log("[ai] generateText: action=%s field=%s provider=%s model=%s", action, field, providerId, modelId);
+    const t0 = Date.now();
 
     const { text: result } = await generateText({
       model,
@@ -218,6 +220,8 @@ export async function POST(request: Request) {
       temperature: needsVariety ? 0.9 : 0,
       providerOptions: noThinkingOptions(providerId, modelId),
     });
+
+    console.log("[ai] generateText: done in %dms, result length=%d", Date.now() - t0, result.length);
 
     // Detect conversational responses that slipped through the prompt constraints
     if (looksConversational(result)) {
@@ -253,6 +257,7 @@ export async function POST(request: Request) {
         // If stripping left significant budget unused, retry with cleaned base
         const limit = charLimit ?? 100;
         if (cleaned.length < limit * 0.85) {
+          console.log("[ai] fix-keywords: budget underused (%d/%d), retrying", cleaned.length, limit);
           const retryPrompt = buildFixKeywordsPrompt(
             cleaned, locale!, forbiddenWords, { field: "keywords", appName, charLimit, subtitle },
           );
@@ -270,9 +275,11 @@ export async function POST(request: Request) {
 
     // Enforce character limit as a safety net – LLMs don't always respect prompt constraints
     const finalResult = charLimit ? truncateToLimit(cleaned, charLimit, field ?? "") : cleaned;
+    console.log("[ai] returning result: action=%s length=%d total=%dms", action, finalResult.length, Date.now() - t0);
 
     return NextResponse.json({ result: finalResult });
   } catch (err) {
+    console.error("[ai] error: action=%s field=%s", action, field, err);
     const category = classifyAIError(err);
     if (category === "auth" || category === "permission") {
       return NextResponse.json({ error: "ai_auth_error" }, { status: 401 });

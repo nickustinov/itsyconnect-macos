@@ -157,6 +157,27 @@ export default function StoreListingPage() {
       const data = await res.json();
       const locs: { attributes: { locale: string; [key: string]: string } }[] =
         data.localizations ?? [];
+
+      // For whatsNew, copy to all matching locales (not just current)
+      if (field === "whatsNew") {
+        const sourceMap = new Map(locs.map((l) => [l.attributes.locale, l.attributes[field] ?? ""]));
+        let count = 0;
+        setLocaleData((prev) => {
+          const next = { ...prev };
+          for (const locale of Object.keys(next)) {
+            const value = sourceMap.get(locale);
+            if (value !== undefined) {
+              next[locale] = { ...next[locale], [field]: value };
+              count++;
+            }
+          }
+          return next;
+        });
+        setDirty(true);
+        toast.success(`Copied what's new to ${count} locale${count !== 1 ? "s" : ""}`);
+        return;
+      }
+
       const match = locs.find((l) => l.attributes.locale === selectedLocale);
       if (!match) {
         toast.error("Locale not available in that version");

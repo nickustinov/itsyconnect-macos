@@ -147,7 +147,7 @@ export function RemoveLocaleDialog({
             <Spinner className="size-5" />
           </div>
         ) : (
-          <div className="space-y-3 py-2">
+          <div className="space-y-1 py-2">
             {sectionList.map((s) => (
               <label
                 key={s.key}

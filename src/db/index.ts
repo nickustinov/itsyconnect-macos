@@ -33,6 +33,19 @@ function init() {
 
   migrate(_db, { migrationsFolder: path.join(process.cwd(), "drizzle") });
 
+  // Safety net: ensure schema from all migrations exists even if drizzle's
+  // migrator skipped some (e.g. missing snapshot files in a prior release).
+  // ALTER TABLE fails silently if column already exists; CREATE TABLE IF NOT
+  // EXISTS is naturally idempotent.
+  const safeguardStatements = [
+    "ALTER TABLE ai_settings ADD COLUMN base_url text",
+    "ALTER TABLE asc_credentials ADD COLUMN is_demo integer DEFAULT false",
+    "CREATE TABLE IF NOT EXISTS app_preferences (key text PRIMARY KEY NOT NULL, value text NOT NULL)",
+  ];
+  for (const stmt of safeguardStatements) {
+    try { _sqlite.exec(stmt); } catch { /* already applied */ }
+  }
+
   return { sqlite: _sqlite, db: _db };
 }
 

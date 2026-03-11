@@ -183,6 +183,7 @@ export function AddLocaleDialog({
   const translateField = useCallback(
     async (field: string, baseValue: string) => {
       if (!baseValue.trim()) return;
+      console.log("[add-locale] translateField: start", field, `(${baseValue.length} chars)`);
       updateField(field, { translating: true });
       try {
         const res = await fetch("/api/ai", {
@@ -198,13 +199,14 @@ export function AddLocaleDialog({
             charLimit: FIELD_LIMITS[field],
           }),
         });
+        console.log("[add-locale] translateField: response", field, res.status);
         if (res.ok) {
           const data = await res.json();
           updateField(field, { value: data.result, translating: false });
           return data.result as string;
         }
-      } catch {
-        // Fall through – keep base value
+      } catch (err) {
+        console.error("[add-locale] translateField: error", field, err);
       }
       updateField(field, { translating: false });
       return undefined;
@@ -215,6 +217,7 @@ export function AddLocaleDialog({
   // Fix keywords: dedupe, remove forbidden, fill budget
   const fixKeywords = useCallback(
     async (translatedKeywords: string, description: string, subtitle: string, forbiddenWords: string[]) => {
+      console.log("[add-locale] fixKeywords: start", `(${translatedKeywords.length} chars, ${forbiddenWords.length} forbidden)`);
       updateField("keywords", { translating: true });
       try {
         const res = await fetch("/api/ai", {
@@ -232,13 +235,14 @@ export function AddLocaleDialog({
             forbiddenWords,
           }),
         });
+        console.log("[add-locale] fixKeywords: response", res.status);
         if (res.ok) {
           const data = await res.json();
           updateField("keywords", { value: data.result, translating: false });
           return;
         }
-      } catch {
-        // Fall through – keep translated keywords
+      } catch (err) {
+        console.error("[add-locale] fixKeywords: error", err);
       }
       updateField("keywords", { translating: false });
     },
@@ -254,10 +258,12 @@ export function AddLocaleDialog({
     setError(null);
 
     async function init() {
+      console.log("[add-locale] init: fetching base data for", locale);
       const [versionRes, infoRes] = await Promise.all([
         fetch(`/api/apps/${appId}/versions/${versionId}/localizations?refresh`),
         fetch(`/api/apps/${appId}/info/${appInfoId}/localizations?refresh`),
       ]);
+      console.log("[add-locale] init: fetched version=%d info=%d", versionRes.status, infoRes.status);
 
       if (!versionRes.ok || !infoRes.ok) {
         setError("Failed to load base locale data");
@@ -344,9 +350,11 @@ export function AddLocaleDialog({
 
       setFields(initial);
       setLoading(false);
+      console.log("[add-locale] init: done, fields initialised for", locale);
     }
 
-    init().catch(() => {
+    init().catch((err) => {
+      console.error("[add-locale] init: failed", err);
       setError("Failed to initialise");
       setLoading(false);
     });
@@ -356,6 +364,7 @@ export function AddLocaleDialog({
   const handleTranslate = useCallback(async () => {
     const base = baseDataRef.current;
     if (!base) return;
+    console.log("[add-locale] handleTranslate: start");
 
     setFields((prev) => {
       const next = { ...prev };
@@ -402,10 +411,12 @@ export function AddLocaleDialog({
     });
 
     await Promise.all(promises);
+    console.log("[add-locale] handleTranslate: text fields done");
 
     // Keywords: translate → strip forbidden → fill budget
     const keywordsChecked = fields.keywords?.checked && storeListingEnabled;
     if (keywordsChecked && base.storeListing.keywords.trim()) {
+      console.log("[add-locale] handleTranslate: keywords step 1 – translate");
       // Step 1: Translate base keywords
       const translatedKw = await translateField("keywords", base.storeListing.keywords);
 
@@ -427,11 +438,13 @@ export function AddLocaleDialog({
         .join(",");
 
       // Step 3: Fill remaining budget with new locale-specific keywords
+      console.log("[add-locale] handleTranslate: keywords step 3 – fix-keywords");
       await fixKeywords(raw, finalDesc, finalSubtitle, forbidden);
     } else if (keywordsChecked) {
       updateField("keywords", { translating: false });
     }
 
+    console.log("[add-locale] handleTranslate: complete");
     setTranslated(true);
   }, [
     fields,
@@ -461,6 +474,7 @@ export function AddLocaleDialog({
 
   // Save – create localizations via API
   async function handleCreate() {
+    console.log("[add-locale] handleCreate: start", locale);
     setSaving(true);
     setError(null);
 
@@ -476,6 +490,7 @@ export function AddLocaleDialog({
             storeFields[f] = fs.value;
           }
         }
+        console.log("[add-locale] handleCreate: saving version localization", Object.keys(storeFields));
         const res = await fetch(`/api/apps/${appId}/versions/${versionId}/localizations`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -487,11 +502,13 @@ export function AddLocaleDialog({
           }),
         });
         const data = await res.json();
+        console.log("[add-locale] handleCreate: version localization response", res.status, data);
         if (data.errors?.length > 0) {
           throw new Error(data.errors[0].message);
         }
       }
 
+      console.log("[add-locale] handleCreate: step 1 done");
       // Step 2: Update the auto-created appInfo localization with user's app details fields.
       if (appDetailsEnabled) {
         const detailFields: Record<string, string> = {};
@@ -502,10 +519,12 @@ export function AddLocaleDialog({
           }
         }
         if (Object.keys(detailFields).length > 0) {
+          console.log("[add-locale] handleCreate: fetching app info localizations to find auto-created ID");
           // Fetch to find the auto-created localization ID
           const listRes = await fetch(
             `/api/apps/${appId}/info/${appInfoId}/localizations?refresh`,
           );
+          console.log("[add-locale] handleCreate: app info list response", listRes.status);
           if (listRes.ok) {
             const listData = await listRes.json();
             /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -514,6 +533,7 @@ export function AddLocaleDialog({
             );
             /* eslint-enable @typescript-eslint/no-explicit-any */
             if (autoCreated) {
+              console.log("[add-locale] handleCreate: patching app info localization", autoCreated.id);
               // PATCH the auto-created localization
               const res = await fetch(`/api/apps/${appId}/info/${appInfoId}/localizations`, {
                 method: "PUT",
@@ -524,18 +544,23 @@ export function AddLocaleDialog({
                 }),
               });
               const data = await res.json();
+              console.log("[add-locale] handleCreate: app info patch response", res.status, data);
               if (data.errors?.length > 0) {
                 throw new Error(data.errors[0].message);
               }
+            } else {
+              console.log("[add-locale] handleCreate: auto-created app info localization not found for", locale);
             }
           }
         }
       }
 
+      console.log("[add-locale] handleCreate: success");
       toast.success(`Added ${localeName(locale)}`);
       onOpenChange(false);
       onCreated();
     } catch (err) {
+      console.error("[add-locale] handleCreate: error", err);
       setError(err instanceof Error ? err.message : "Failed to create locale");
     } finally {
       setSaving(false);
@@ -576,7 +601,7 @@ export function AddLocaleDialog({
                 {error}
               </div>
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-2">
                 {/* Store listing section */}
                 <FieldSection
                   title="Store listing"
@@ -658,22 +683,42 @@ export function AddLocaleDialog({
         </ScrollArea>
 
         <DialogFooter className="border-t pt-4 mt-2">
-          {aiConfigured && !loading && (
+          <div className="flex-1" />
+          {aiConfigured && !loading && !translated && (
             <Button
               variant="outline"
-              onClick={handleTranslate}
-              disabled={anyTranslating || translated}
-              className="mr-auto"
+              onClick={handleCreate}
+              disabled={loading || saving || anyTranslating || (!storeListingEnabled && !appDetailsEnabled)}
+            >
+              {saving && !anyTranslating ? (
+                <>
+                  <Spinner className="size-3.5" />
+                  Adding…
+                </>
+              ) : (
+                "Add without translation"
+              )}
+            </Button>
+          )}
+          {aiConfigured && !loading ? (
+            <Button
+              onClick={translated ? handleCreate : handleTranslate}
+              disabled={anyTranslating || saving || (!storeListingEnabled && !appDetailsEnabled)}
             >
               {anyTranslating ? (
                 <>
                   <Spinner className="size-3.5" />
                   Translating…
                 </>
+              ) : saving ? (
+                <>
+                  <Spinner className="size-3.5" />
+                  Adding…
+                </>
               ) : translated ? (
                 <>
                   <MagicWand className="size-4" />
-                  Translated
+                  Add translated locale
                 </>
               ) : (
                 <>
@@ -682,23 +727,21 @@ export function AddLocaleDialog({
                 </>
               )}
             </Button>
+          ) : (
+            <Button
+              onClick={handleCreate}
+              disabled={loading || saving || anyTranslating || (!storeListingEnabled && !appDetailsEnabled)}
+            >
+              {saving ? (
+                <>
+                  <Spinner className="size-3.5" />
+                  Adding…
+                </>
+              ) : (
+                "Add locale"
+              )}
+            </Button>
           )}
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleCreate}
-            disabled={loading || saving || anyTranslating || (!storeListingEnabled && !appDetailsEnabled)}
-          >
-            {saving ? (
-              <>
-                <Spinner className="size-3.5" />
-                Adding…
-              </>
-            ) : (
-              "Add locale"
-            )}
-          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

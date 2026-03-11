@@ -3,6 +3,9 @@
 ## 1.6.1
 
 - Rework add locale dialog
+- Fix invisible window on launch with stale nav state
+- Fix app_preferences table missing after update
+- Fix "copy from version" on what's new copying to all locales
 - Fix adding locale failing with 409/500 errors
 - Fix remove locale dialog not detecting app details
 - Fix locale picker showing stale data after removing a locale

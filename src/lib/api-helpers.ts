@@ -88,9 +88,12 @@ export async function syncLocalizations(
   const createdIds: Record<string, string> = {};
   const ops: Promise<void>[] = [];
 
+  console.log("[syncLocalizations] parentId=%s locales=%s existing=%s", parentId, Object.keys(locales).join(","), Object.keys(originalLocaleIds).join(","));
+
   for (const [locale, fields] of Object.entries(locales)) {
     const existingId = originalLocaleIds[locale];
     if (existingId) {
+      console.log("[syncLocalizations] update locale=%s id=%s fields=%s", locale, existingId, Object.keys(fields).join(","));
       ops.push(
         mutations.update(existingId, fields).catch((err) => {
           const syncErr: SyncError = {
@@ -107,8 +110,10 @@ export async function syncLocalizations(
         }),
       );
     } else {
+      console.log("[syncLocalizations] create locale=%s fields=%s", locale, Object.keys(fields).join(","));
       ops.push(
         mutations.create(parentId, locale, fields).then((id) => {
+          console.log("[syncLocalizations] created locale=%s id=%s", locale, id);
           createdIds[locale] = id;
         }).catch((err) => {
           const syncErr: SyncError = {
@@ -148,9 +153,11 @@ export async function syncLocalizations(
   }
 
   await Promise.allSettled(ops);
+  console.log("[syncLocalizations] all ops settled, errors=%d created=%s", errors.length, Object.keys(createdIds).join(","));
   mutations.invalidateCache();
 
   if (errors.length > 0) {
+    console.log("[syncLocalizations] returning 207 with errors:", JSON.stringify(errors));
     return NextResponse.json({ ok: false, errors, createdIds }, { status: 207 });
   }
 
