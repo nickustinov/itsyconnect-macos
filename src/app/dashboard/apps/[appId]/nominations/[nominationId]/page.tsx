@@ -49,7 +49,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { CalendarBlank, CheckCircle, Circle, MagicWand, Plus, Trash } from "@phosphor-icons/react";
+import { Archive, ArrowCounterClockwise, CalendarBlank, CheckCircle, Circle, MagicWand, Plus, Trash } from "@phosphor-icons/react";
 import {
   Combobox,
   ComboboxChip,
@@ -601,6 +601,9 @@ export default function NominationDetailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
   const checklistReady = useNominationChecklistReady(form);
+
+  // Archive / unarchive
+  const [archiving, setArchiving] = useState(false);
 
   // Breadcrumb
   useSetBreadcrumbTitle(
@@ -1179,6 +1182,79 @@ export default function NominationDetailPage() {
                 Submit nomination
               </Button>
             </div>
+          </div>
+        </FooterPortal>
+      )}
+
+      {/* ── Archive / unarchive footer ─────────────────────────────── */}
+      {!isNew && (nomination?.attributes.state === "SUBMITTED" || nomination?.attributes.state === "ARCHIVED") && (
+        <FooterPortal>
+          <div className="flex shrink-0 items-center justify-end gap-4 border-t bg-sidebar px-6 py-3">
+            {nomination.attributes.state === "SUBMITTED" ? (
+              <Button
+                variant="outline"
+                disabled={archiving}
+                onClick={async () => {
+                  setArchiving(true);
+                  try {
+                    const res = await fetch("/api/nominations", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        action: "update",
+                        id: nominationId,
+                        attributes: { archived: true },
+                      }),
+                    });
+                    if (!res.ok) {
+                      const data = await res.json().catch(() => ({}));
+                      throw new Error(data.error ?? "Failed to archive nomination");
+                    }
+                    toast.success("Nomination archived");
+                    await fetchNomination();
+                  } catch (err) {
+                    toast.error(err instanceof Error ? err.message : "Failed to archive");
+                  } finally {
+                    setArchiving(false);
+                  }
+                }}
+              >
+                {archiving ? <Spinner className="size-3.5 mr-1.5" /> : <Archive size={14} className="mr-1.5" />}
+                Archive
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                disabled={archiving}
+                onClick={async () => {
+                  setArchiving(true);
+                  try {
+                    const res = await fetch("/api/nominations", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        action: "update",
+                        id: nominationId,
+                        attributes: { archived: false },
+                      }),
+                    });
+                    if (!res.ok) {
+                      const data = await res.json().catch(() => ({}));
+                      throw new Error(data.error ?? "Failed to unarchive nomination");
+                    }
+                    toast.success("Nomination unarchived");
+                    await fetchNomination();
+                  } catch (err) {
+                    toast.error(err instanceof Error ? err.message : "Failed to unarchive");
+                  } finally {
+                    setArchiving(false);
+                  }
+                }}
+              >
+                {archiving ? <Spinner className="size-3.5 mr-1.5" /> : <ArrowCounterClockwise size={14} className="mr-1.5" />}
+                Unarchive
+              </Button>
+            )}
           </div>
         </FooterPortal>
       )}

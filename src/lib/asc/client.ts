@@ -98,7 +98,7 @@ export async function ascFetch<T>(
       if (response.status === 204) return null as T;
       return response.json() as Promise<T>;
     }
-    const retryable = response.status === 429 || response.status >= 500;
+    const retryable = (response.status === 429 || response.status >= 500) && method !== "POST";
 
     if (retryable && attempt < MAX_RETRIES - 1) {
       const text = await response.text().catch(() => "");

@@ -23,10 +23,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Archive,
+  ArrowCounterClockwise,
   CircleNotch,
   Plus,
   Trash,
-  PencilSimple,
   Trophy,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
@@ -84,6 +85,9 @@ export default function NominationsPage() {
   // Delete confirmation
   const [deleteTarget, setDeleteTarget] = useState<AscNomination | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Archive / unarchive
+  const [archivingId, setArchivingId] = useState<string | null>(null);
 
   // ── Fetch ────────────────────────────────────────────────────────
 
@@ -157,6 +161,32 @@ export default function NominationsPage() {
       toast.error(err instanceof Error ? err.message : "Failed to delete");
     } finally {
       setDeleting(false);
+    }
+  }
+
+  async function handleArchiveToggle(nom: AscNomination) {
+    const archive = nom.attributes.state !== "ARCHIVED";
+    setArchivingId(nom.id);
+    try {
+      const res = await fetch("/api/nominations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "update",
+          id: nom.id,
+          attributes: { archived: archive },
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? `Failed to ${archive ? "archive" : "unarchive"}`);
+      }
+      toast.success(archive ? "Nomination archived" : "Nomination unarchived");
+      await fetchNominations(true);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update");
+    } finally {
+      setArchivingId(null);
     }
   }
 
@@ -279,6 +309,36 @@ export default function NominationsPage() {
                     </div>
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
+                    {nom.attributes.state === "SUBMITTED" && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-muted-foreground hover:text-foreground"
+                        disabled={archivingId === nom.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleArchiveToggle(nom);
+                        }}
+                      >
+                        {archivingId === nom.id ? <CircleNotch size={14} className="animate-spin" /> : <Archive size={14} />}
+                        Archive
+                      </Button>
+                    )}
+                    {nom.attributes.state === "ARCHIVED" && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-muted-foreground hover:text-foreground"
+                        disabled={archivingId === nom.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleArchiveToggle(nom);
+                        }}
+                      >
+                        {archivingId === nom.id ? <CircleNotch size={14} className="animate-spin" /> : <ArrowCounterClockwise size={14} />}
+                        Unarchive
+                      </Button>
+                    )}
                     {nom.attributes.state === "DRAFT" && (
                       <Button
                         variant="ghost"

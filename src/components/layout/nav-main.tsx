@@ -24,7 +24,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuBadge,
 } from "@/components/ui/sidebar";
 import { useHasUnreadReviews } from "@/lib/hooks/use-unread-reviews";
 
@@ -142,12 +141,12 @@ export function NavMain({ appId }: { appId: string }) {
                   >
                     <item.icon size={16} />
                     <span>{item.title}</span>
+                    {item.href === `${base}/reviews` && <ReviewsBadge appId={appId} />}
                     {item.shortcut && (
                       <kbd className="ml-auto text-[13px] text-muted-foreground/50">{item.shortcut}</kbd>
                     )}
                   </Link>
                 </SidebarMenuButton>
-                {item.href === `${base}/reviews` && <ReviewsBadge appId={appId} />}
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
@@ -160,9 +159,5 @@ export function NavMain({ appId }: { appId: string }) {
 function ReviewsBadge({ appId }: { appId: string }) {
   const hasUnread = useHasUnreadReviews(appId);
   if (!hasUnread) return null;
-  return (
-    <SidebarMenuBadge>
-      <span className="size-1.5 rounded-full bg-blue-500" />
-    </SidebarMenuBadge>
-  );
+  return <span className="size-1.5 shrink-0 rounded-full bg-blue-500" />;
 }
