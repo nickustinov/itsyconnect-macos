@@ -846,9 +846,10 @@ export default function ScreenshotsPage() {
     if (!localizations.length || !primaryLocale) return;
     const sorted = sortLocales(localizations.map((l) => l.attributes.locale), primaryLocale);
     setLocales(sorted);
-    if (!selectedLocale || !sorted.includes(selectedLocale)) {
-      setSelectedLocale(primaryLocale);
-    }
+    setSelectedLocale((prev) => {
+      if (prev && sorted.includes(prev)) return prev;
+      return sorted[0] ?? "";
+    });
   }, [localizations, primaryLocale]);
 
   const selectedLocalization = localizations.find(

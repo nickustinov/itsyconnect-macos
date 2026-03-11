@@ -368,7 +368,7 @@ export default function AISettingsPage() {
               type={showGeminiKey ? "text" : "password"}
               value={geminiKey}
               onChange={(e) => setGeminiKey(e.target.value)}
-              placeholder="Google AI API key"
+              placeholder="Gemini API key"
               className="font-mono text-sm"
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleSaveGeminiKey();

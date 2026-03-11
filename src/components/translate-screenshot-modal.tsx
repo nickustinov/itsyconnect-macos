@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Eye, EyeSlash, Info } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,7 +30,7 @@ interface TranslateScreenshotModalProps {
   onCopy: () => Promise<void>;
 }
 
-type Phase = "idle" | "translating" | "done" | "error" | "needs-key";
+type Phase = "idle" | "translating" | "done" | "error";
 
 export function TranslateScreenshotModal({
   open,
@@ -53,6 +53,7 @@ export function TranslateScreenshotModal({
   const [geminiKey, setGeminiKey] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [hasKey, setHasKey] = useState<boolean | null>(null);
+  const keyInputRef = useRef<HTMLInputElement>(null);
 
   // Reset state and check key availability when modal opens
   useEffect(() => {
@@ -70,13 +71,18 @@ export function TranslateScreenshotModal({
       .then((res) => res.json())
       .then((data: { available: boolean }) => {
         setHasKey(data.available);
-        if (!data.available) setPhase("needs-key");
       })
       .catch(() => {
         setHasKey(false);
-        setPhase("needs-key");
       });
   }, [open]);
+
+  // Focus key input when it appears
+  useEffect(() => {
+    if (hasKey === false) {
+      setTimeout(() => keyInputRef.current?.focus(), 0);
+    }
+  }, [hasKey]);
 
   async function handleTranslate(keyOverride?: string) {
     setError("");
@@ -99,11 +105,13 @@ export function TranslateScreenshotModal({
 
       if (!res.ok) {
         if (data.error === "gemini_key_required") {
-          setPhase("needs-key");
+          setHasKey(false);
+          setPhase("idle");
           return;
         }
         if (data.error === "gemini_auth_error") {
-          setPhase("needs-key");
+          setHasKey(false);
+          setPhase("idle");
           setError("Invalid API key. Please check and try again.");
           return;
         }
@@ -159,45 +167,6 @@ export function TranslateScreenshotModal({
           </DialogTitle>
         </DialogHeader>
 
-        {/* Needs key – inline form */}
-        {phase === "needs-key" && (
-          <div className="space-y-3 rounded-lg border bg-muted/20 p-4">
-            <div className="flex items-start gap-2 text-sm">
-              <Info size={16} className="mt-0.5 shrink-0 text-muted-foreground" />
-              <p className="text-muted-foreground">
-                Screenshot translation uses Gemini 3 Pro Image. Enter your Google AI API key to continue.
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Input
-                  type={showKey ? "text" : "password"}
-                  placeholder="Google AI API key"
-                  value={geminiKey}
-                  onChange={(e) => setGeminiKey(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleKeySubmit();
-                  }}
-                  className="pr-9"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowKey(!showKey)}
-                  className="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground"
-                >
-                  {showKey ? <EyeSlash size={14} /> : <Eye size={14} />}
-                </button>
-              </div>
-              <Button onClick={handleKeySubmit} disabled={!geminiKey.trim()}>
-                Translate
-              </Button>
-            </div>
-            {error && (
-              <p className="text-sm text-destructive">{error}</p>
-            )}
-          </div>
-        )}
-
         {/* Preview area – always visible */}
         <div className="flex min-h-[400px] flex-col items-center justify-center rounded-lg border bg-muted/20 p-3">
           {phase === "done" && translatedSrc ? (
@@ -220,6 +189,43 @@ export function TranslateScreenshotModal({
             </p>
           )}
         </div>
+
+        {/* Needs key – inline form */}
+        {hasKey === false && phase !== "done" && (
+          <div className="space-y-3 rounded-lg border bg-muted/20 p-4">
+            <div className="flex items-start gap-2 text-sm">
+              <Info size={16} className="mt-0.5 shrink-0 text-orange-500" />
+              <p className="text-muted-foreground">
+                Screenshot translation uses Gemini 3 Pro Image. Enter your Gemini API key to continue.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Input
+                  ref={keyInputRef}
+                  type={showKey ? "text" : "password"}
+                  placeholder="Gemini API key"
+                  value={geminiKey}
+                  onChange={(e) => setGeminiKey(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && geminiKey.trim()) handleKeySubmit();
+                  }}
+                  className="pr-9"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowKey(!showKey)}
+                  className="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground"
+                >
+                  {showKey ? <EyeSlash size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+            </div>
+            {error && (
+              <p className="text-sm text-destructive">{error}</p>
+            )}
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex items-center gap-2">
@@ -280,7 +286,10 @@ export function TranslateScreenshotModal({
               </Button>
             </>
           ) : (
-            <Button onClick={() => handleTranslate()} disabled={isWorking || copying}>
+            <Button
+              onClick={() => handleTranslate(hasKey === false && geminiKey.trim() ? geminiKey.trim() : undefined)}
+              disabled={isWorking || copying || (hasKey === false && !geminiKey.trim())}
+            >
               Translate
             </Button>
           )}
