@@ -2,6 +2,8 @@
 
 ## 1.6.2
 
+- Add magic wand button to app name field in app details (translate, copy, improve)
+- Fix app details allowing locale add/delete when version is locked
 - Fix all linting and React compiler errors, make lint failures block CI
 
 ## 1.6.1

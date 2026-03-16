@@ -42,7 +42,7 @@ import { EmptyState } from "@/components/empty-state";
 import { useTabNavigation } from "@/lib/hooks/use-tab-navigation";
 import { useRegisterRefresh } from "@/lib/refresh-context";
 import { useVersions } from "@/lib/versions-context";
-import { resolveVersion } from "@/lib/asc/version-types";
+import { resolveVersion, EDITABLE_STATES } from "@/lib/asc/version-types";
 
 const SORTED_CATEGORIES = Object.keys(CATEGORIES).sort((a, b) =>
   CATEGORIES[a].localeCompare(CATEGORIES[b]),
@@ -116,6 +116,9 @@ export default function AppDetailsPage() {
     [versions, searchParams],
   );
   const versionId = selectedVersion?.id ?? "";
+  const readOnly = selectedVersion
+    ? !EDITABLE_STATES.has(selectedVersion.attributes.appVersionState)
+    : false;
 
   const primaryLocale = app?.primaryLocale ?? "";
 
@@ -446,6 +449,7 @@ export default function AppDetailsPage() {
     onBulkCopyAll: () => setBulkAllMode({ mode: "copy" }),
     section: "details",
     otherSectionLocales,
+    readOnly,
   });
 
   if (!app) {
@@ -525,7 +529,16 @@ export default function AppDetailsPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm text-muted-foreground">Name{localeTag}</label>
+                  <div className="flex items-center gap-1">
+                    <label className="text-sm text-muted-foreground">Name{localeTag}</label>
+                    <MagicWandButton
+                      value={current.name}
+                      onChange={(v) => updateField("name", v)}
+                      {...wandProps(wand, "name")}
+                      charLimit={FIELD_LIMITS.name}
+                      onTranslateAll={() => setBulkAllMode({ mode: "translate", field: "name" })}
+                    />
+                  </div>
                   <CharCount value={current.name} limit={FIELD_LIMITS.name} min={FIELD_MIN_LIMITS.name} />
                 </div>
                 <Input
