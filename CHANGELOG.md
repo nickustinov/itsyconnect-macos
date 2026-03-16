@@ -6,6 +6,7 @@
 - Fix app details allowing locale add/delete when version is locked
 - Fix submitting a new nomination creating a duplicate draft
 - Fix ASC rate limit errors when saving many locales at once
+- Only save changed locales instead of all locales on store listing and app details
 - Fix all linting and React compiler errors, make lint failures block CI
 
 ## 1.6.1

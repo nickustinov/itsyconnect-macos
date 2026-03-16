@@ -289,8 +289,9 @@ export default function StoreListingPage() {
     originalCopyrightRef.current = cr;
   }
 
-  // Track original locale → localization ID mapping for diffing saves
+  // Track original locale → localization ID mapping and data for diffing saves
   const originalLocaleIdsRef = useRef<Record<string, string>>({});
+  const originalLocaleDataRef = useRef<Record<string, LocaleFields>>({});
 
   // Reset locale data when localizations change (during render)
   const [prevLocalizations, setPrevLocalizations] = useState(localizations);
@@ -311,13 +312,14 @@ export default function StoreListingPage() {
     setDirty(false);
   }
 
-  // Snapshot original locale → ID mapping for save diffing
+  // Snapshot original locale IDs and data for save diffing
   useEffect(() => {
     const ids: Record<string, string> = {};
     for (const loc of localizations) {
       ids[loc.attributes.locale] = loc.id;
     }
     originalLocaleIdsRef.current = ids;
+    originalLocaleDataRef.current = buildLocaleData(localizations);
   }, [localizations]);
 
   // Validate field limits across all locales
@@ -363,44 +365,57 @@ export default function StoreListingPage() {
       const promises: Promise<void>[] = [];
       const allSyncErrors: SyncError[] = [];
 
-      // When the version is read-only (live), only promotional text is
-      // editable – send just that field to avoid ASC rejecting locked fields.
-      // For the first-ever version, strip whatsNew – ASC rejects it.
-      const locPayload = readOnly
-        ? Object.fromEntries(
-            Object.entries(localeData).map(([locale, fields]) => [
-              locale,
-              { promotionalText: fields.promotionalText },
-            ]),
-          )
-        : isFirstVersion
-          ? Object.fromEntries(
-              Object.entries(localeData).map(([locale, fields]) => [
-                locale,
-                Object.fromEntries(Object.entries(fields).filter(([k]) => k !== "whatsNew")),
-              ]),
-            )
-          : localeData;
+      // Only send locales that actually changed (or are new/deleted)
+      const changedLocales: Record<string, LocaleFields | Record<string, string>> = {};
+      const changedLocaleIds: Record<string, string> = {};
+      const orig = originalLocaleDataRef.current;
 
-      // Save localizations
-      let locCreatedIds: Record<string, string> = {};
-      promises.push(
-        fetch(`/api/apps/${appId}/versions/${versionId}/localizations`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            locales: locPayload,
-            originalLocaleIds: originalLocaleIdsRef.current,
-          }),
-        }).then(async (res) => {
-          const data = await res.json();
-          if (!res.ok && !data.errors) throw new Error(data.error ?? "Save failed");
-          if (data.errors?.length > 0) {
-            allSyncErrors.push(...(data.errors as SyncError[]));
+      for (const [locale, fields] of Object.entries(localeData)) {
+        const origFields = orig[locale];
+        // New locale or any field differs → include it
+        if (!origFields || Object.keys(fields).some((k) => fields[k as keyof LocaleFields] !== origFields[k as keyof LocaleFields])) {
+          changedLocaleIds[locale] = originalLocaleIdsRef.current[locale];
+          // When read-only, only promotional text is editable.
+          // For the first-ever version, strip whatsNew – ASC rejects it.
+          if (readOnly) {
+            changedLocales[locale] = { promotionalText: fields.promotionalText };
+          } else if (isFirstVersion) {
+            changedLocales[locale] = Object.fromEntries(
+              Object.entries(fields).filter(([k]) => k !== "whatsNew"),
+            );
+          } else {
+            changedLocales[locale] = fields;
           }
-          locCreatedIds = data.createdIds ?? {};
-        }),
-      );
+        }
+      }
+      // Detect deleted locales
+      for (const locale of Object.keys(originalLocaleIdsRef.current)) {
+        if (!localeData[locale]) {
+          changedLocaleIds[locale] = originalLocaleIdsRef.current[locale];
+        }
+      }
+
+      // Save localizations (skip if nothing changed)
+      let locCreatedIds: Record<string, string> = {};
+      if (Object.keys(changedLocales).length > 0 || Object.keys(changedLocaleIds).length > Object.keys(changedLocales).length) {
+        promises.push(
+          fetch(`/api/apps/${appId}/versions/${versionId}/localizations`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              locales: changedLocales,
+              originalLocaleIds: changedLocaleIds,
+            }),
+          }).then(async (res) => {
+            const data = await res.json();
+            if (!res.ok && !data.errors) throw new Error(data.error ?? "Save failed");
+            if (data.errors?.length > 0) {
+              allSyncErrors.push(...(data.errors as SyncError[]));
+            }
+            locCreatedIds = data.createdIds ?? {};
+          }),
+        );
+      }
 
       // Release settings are locked on live versions
       if (!readOnly) {
@@ -478,7 +493,7 @@ export default function StoreListingPage() {
 
       toast.success(readOnly ? "Promotional text saved" : "Store listing saved");
 
-      // Update original snapshot with real IDs from created locales
+      // Update original snapshots so subsequent saves only send new diffs
       const ids = { ...originalLocaleIdsRef.current };
       for (const [locale, id] of Object.entries(locCreatedIds)) {
         ids[locale] = id;
@@ -487,6 +502,7 @@ export default function StoreListingPage() {
         if (!localeData[locale]) delete ids[locale];
       }
       originalLocaleIdsRef.current = ids;
+      originalLocaleDataRef.current = { ...localeData };
 
       // Update cached version with release settings + build
       if (!readOnly && selectedVersion) {

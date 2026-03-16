@@ -188,8 +188,9 @@ export default function AppDetailsPage() {
     );
   }
 
-  // Track original locale → localization ID mapping for diffing saves
+  // Track original locale → localization ID mapping and data for diffing saves
   const originalLocaleIdsRef = useRef<Record<string, string>>({});
+  const originalLocaleDataRef = useRef<Record<string, AppInfoLocaleFields>>({});
 
   // Track which localizations have been synced to avoid re-syncing
   const [syncedLocalizations, setSyncedLocalizations] = useState(localizations);
@@ -217,6 +218,7 @@ export default function AppDetailsPage() {
       ids[loc.attributes.locale] = loc.id;
     }
     originalLocaleIdsRef.current = ids;
+    originalLocaleDataRef.current = buildLocaleData(localizations);
   }, [localizations]);
 
   // Sync content rights when app data loads
@@ -295,26 +297,47 @@ export default function AppDetailsPage() {
     registerSave(async () => {
       const promises: Promise<void>[] = [];
 
-      // Save localizations
+      // Only send locales that actually changed (or are new/deleted)
+      const changedLocales: Record<string, AppInfoLocaleFields> = {};
+      const changedLocaleIds: Record<string, string> = {};
+      const orig = originalLocaleDataRef.current;
+
+      for (const [locale, fields] of Object.entries(localeData)) {
+        const origFields = orig[locale];
+        if (!origFields || Object.keys(fields).some((k) => fields[k as keyof AppInfoLocaleFields] !== origFields[k as keyof AppInfoLocaleFields])) {
+          changedLocales[locale] = fields;
+          changedLocaleIds[locale] = originalLocaleIdsRef.current[locale];
+        }
+      }
+      // Detect deleted locales
+      for (const locale of Object.keys(originalLocaleIdsRef.current)) {
+        if (!localeData[locale]) {
+          changedLocaleIds[locale] = originalLocaleIdsRef.current[locale];
+        }
+      }
+
+      // Save localizations (skip if nothing changed)
       let locCreatedIds: Record<string, string> = {};
       const syncErrors: SyncError[] = [];
-      promises.push(
-        fetch(`/api/apps/${appId}/info/${appInfoId}/localizations`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            locales: localeData,
-            originalLocaleIds: originalLocaleIdsRef.current,
+      if (Object.keys(changedLocales).length > 0 || Object.keys(changedLocaleIds).length > Object.keys(changedLocales).length) {
+        promises.push(
+          fetch(`/api/apps/${appId}/info/${appInfoId}/localizations`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              locales: changedLocales,
+              originalLocaleIds: changedLocaleIds,
+            }),
+          }).then(async (res) => {
+            const data = await res.json();
+            if (!res.ok && !data.errors) throw new Error(data.error ?? "Save failed");
+            if (data.errors?.length > 0) {
+              syncErrors.push(...(data.errors as SyncError[]));
+            }
+            locCreatedIds = data.createdIds ?? {};
           }),
-        }).then(async (res) => {
-          const data = await res.json();
-          if (!res.ok && !data.errors) throw new Error(data.error ?? "Save failed");
-          if (data.errors?.length > 0) {
-            syncErrors.push(...(data.errors as SyncError[]));
-          }
-          locCreatedIds = data.createdIds ?? {};
-        }),
-      );
+        );
+      }
 
       // Save app attributes if changed (content rights + notification URLs)
       const appAttrs: Record<string, string | null> = {};
@@ -384,7 +407,7 @@ export default function AppDetailsPage() {
 
       toast.success("App details saved");
 
-      // Update original snapshot with real IDs from created locales
+      // Update original snapshots so subsequent saves only send new diffs
       const ids: Record<string, string> = { ...originalLocaleIdsRef.current };
       for (const [locale, id] of Object.entries(locCreatedIds)) {
         ids[locale] = id;
@@ -393,6 +416,7 @@ export default function AppDetailsPage() {
         if (!localeData[locale]) delete ids[locale];
       }
       originalLocaleIdsRef.current = ids;
+      originalLocaleDataRef.current = { ...localeData };
 
       // Update app name in context if primary locale name changed
       const primaryName = localeData[primaryLocale]?.name;
