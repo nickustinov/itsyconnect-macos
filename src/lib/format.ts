@@ -36,3 +36,22 @@ export function formatDateTimeLong(iso: string): string {
     minute: "2-digit",
   });
 }
+
+/**
+ * Format a duration in seconds to a human-readable string.
+ * Compact form for axis ticks: "45s", "12m", "2.5h"
+ * Long form for tooltips: "45s", "12m 30s", "2h 15m"
+ */
+export function formatDuration(seconds: number, compact = false): string {
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  if (seconds < 3600) {
+    const m = Math.floor(seconds / 60);
+    const s = Math.round(seconds % 60);
+    if (compact) return s === 0 ? `${m}m` : `${m}m`;
+    return s > 0 ? `${m}m ${s}s` : `${m}m`;
+  }
+  const h = Math.floor(seconds / 3600);
+  const m = Math.round((seconds % 3600) / 60);
+  if (compact) return m === 0 ? `${h}h` : `${h}h`;
+  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}

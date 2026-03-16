@@ -22,7 +22,7 @@ import {
   ChartLegendContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import { formatDateShort } from "@/lib/format";
+import { formatDateShort, formatDuration } from "@/lib/format";
 import { useAnalytics } from "@/lib/analytics-context";
 import { parseRange, filterByDateRange, getStoredRange } from "@/lib/analytics-range";
 import { AnalyticsStateGuard } from "@/components/analytics-state-guard";
@@ -35,7 +35,7 @@ const sessionsConfig = {
 } satisfies ChartConfig;
 
 const durationConfig = {
-  avgDuration: { label: "Avg duration (s)", color: "var(--color-chart-3)" },
+  avgDuration: { label: "Avg duration", color: "var(--color-chart-3)" },
 } satisfies ChartConfig;
 
 const installDeleteConfig = {
@@ -193,8 +193,8 @@ export default function UsagePage() {
                 <YAxis
                   tickLine={false}
                   axisLine={false}
-                  width={35}
-                  tickFormatter={(v) => `${v}s`}
+                  width={45}
+                  tickFormatter={(v) => formatDuration(v as number, true)}
                 />
                 <ChartTooltip
                   content={
@@ -202,7 +202,7 @@ export default function UsagePage() {
                       labelFormatter={(v) => formatDateShort(v as string)}
                       formatter={(value) => (
                         <span className="font-mono font-medium tabular-nums">
-                          {value}s
+                          {formatDuration(value as number)}
                         </span>
                       )}
                     />
