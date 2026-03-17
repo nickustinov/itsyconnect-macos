@@ -5,6 +5,7 @@ import { hasCredentials } from "@/lib/asc/client";
 import { listAppInfos, listAppInfoLocalizations } from "@/lib/asc/app-info";
 import { updateAppInfoLocalization } from "@/lib/asc/localization-mutations";
 import { cacheSet } from "@/lib/cache";
+import { emitChange } from "@/mcp/events";
 
 const DETAIL_FIELDS = z.enum([
   "name",
@@ -59,6 +60,7 @@ export function registerUpdateAppDetails(server: McpServer): void {
       try {
         await updateAppInfoLocalization(loc.id, { [field]: value });
         cacheSet(`appInfoLocalizations:${appInfo.id}`, null, 0);
+        emitChange({ scope: "details", appId });
         return {
           content: [{ type: "text", text: `Updated ${field} for ${locale}.` }],
         };

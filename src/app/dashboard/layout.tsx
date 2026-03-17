@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect } from "react";
+import { Suspense, useCallback, useEffect } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
@@ -36,7 +36,7 @@ import { FormDirtyProvider } from "@/lib/form-dirty-context";
 import { HeaderLocaleProvider } from "@/lib/header-locale-context";
 import { SubmissionChecklistProvider } from "@/lib/submission-checklist-context";
 import { BuildActionProvider } from "@/lib/build-action-context";
-import { RefreshProvider } from "@/lib/refresh-context";
+import { RefreshProvider, useRefresh } from "@/lib/refresh-context";
 import { FooterPortalProvider } from "@/lib/footer-portal-context";
 import { ConnectionBanner } from "@/components/layout/connection-banner";
 import { DemoBanner } from "@/components/layout/demo-banner";
@@ -47,6 +47,7 @@ import { InsightsPanelProvider, useInsightsPanel } from "@/lib/insights-panel-co
 import { InsightsPanel } from "@/components/layout/insights-panel";
 import { LicenseProvider } from "@/lib/license-context";
 import { saveNavigation } from "@/lib/nav-state";
+import { useMcpEvents } from "@/lib/use-mcp-events";
 
 declare global {
   interface Window {
@@ -103,6 +104,13 @@ function ScrollableContent({ children }: { children: React.ReactNode }) {
   );
 }
 
+function McpRefreshListener() {
+  const { doRefresh } = useRefresh();
+  const handler = useCallback(() => { doRefresh(); }, [doRefresh]);
+  useMcpEvents(handler);
+  return null;
+}
+
 function NavigationTracker() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -130,6 +138,7 @@ export default function DashboardLayout({
       <SubmissionChecklistProvider>
       <BuildActionProvider>
       <RefreshProvider>
+      <McpRefreshListener />
       <BreadcrumbProvider>
       <ReadySignal />
       <Suspense>

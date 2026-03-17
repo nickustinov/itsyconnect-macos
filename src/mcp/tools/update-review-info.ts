@@ -8,6 +8,7 @@ import {
   createReviewDetail,
   invalidateVersionsCache,
 } from "@/lib/asc/review-mutations";
+import { emitChange } from "@/mcp/events";
 
 export function registerUpdateReviewInfo(server: McpServer): void {
   server.registerTool(
@@ -57,6 +58,7 @@ export function registerUpdateReviewInfo(server: McpServer): void {
           await createReviewDetail(versionId, attributes);
         }
         invalidateVersionsCache(appId);
+        emitChange({ scope: "review", appId, versionId });
 
         const fields = Object.keys(attributes).join(", ");
         return {

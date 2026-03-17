@@ -8,6 +8,7 @@ import { listAppInfos, listAppInfoLocalizations } from "@/lib/asc/app-info";
 import { updateVersionLocalization } from "@/lib/asc/localization-mutations";
 import { updateAppInfoLocalization } from "@/lib/asc/localization-mutations";
 import { EDITABLE_STATES } from "@/lib/asc/version-types";
+import { emitChange } from "@/mcp/events";
 import { cacheSet } from "@/lib/cache";
 
 const LISTING_FIELDS = ["whatsNew", "description", "keywords", "promotionalText"] as const;
@@ -148,6 +149,7 @@ export function registerTranslate(server: McpServer): void {
         }
 
         cacheSet(`localizations:${versionId}`, null, 0);
+        emitChange({ scope: "listing", appId, versionId });
       }
 
       // Translate app details fields
@@ -188,6 +190,7 @@ export function registerTranslate(server: McpServer): void {
             }
 
             cacheSet(`appInfoLocalizations:${appInfo.id}`, null, 0);
+            emitChange({ scope: "details", appId });
           }
         }
       }

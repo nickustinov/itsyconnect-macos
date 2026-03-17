@@ -6,6 +6,8 @@ import { registerUpdateListing } from "./tools/update-listing";
 import { registerUpdateAppDetails } from "./tools/update-app-details";
 import { registerUpdateReviewInfo } from "./tools/update-review-info";
 import { registerTranslate } from "./tools/translate";
+import { registerAddLocale } from "./tools/add-locale";
+import { registerRemoveLocale } from "./tools/remove-locale";
 
 export function createMcpServer(): McpServer {
   const server = new McpServer({
@@ -19,6 +21,8 @@ export function createMcpServer(): McpServer {
   registerUpdateAppDetails(server);
   registerUpdateReviewInfo(server);
   registerTranslate(server);
+  registerAddLocale(server);
+  registerRemoveLocale(server);
 
   return server;
 }

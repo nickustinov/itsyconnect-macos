@@ -1,34 +1,32 @@
 # MCP server
 
-Itsyconnect includes an optional [MCP](https://modelcontextprotocol.io) (Model Context Protocol) server that lets AI coding assistants interact with your App Store Connect data directly.
+Itsyconnect includes an optional [MCP](https://modelcontextprotocol.io) server that lets AI coding assistants interact with your App Store Connect data.
 
 ## Setup
 
-1. Open **Settings > General**
-2. Enable the **MCP server** toggle
-3. Set the port (default: 3100)
-4. Expand your AI tool's section and copy the config snippet
+1. Open **Settings > General**, enable **MCP server** (default port: 3100)
+2. Copy the config snippet for your AI tool:
 
-### Claude Code
+<details><summary>Claude Code</summary>
 
 ```bash
 claude mcp add --transport http itsyconnect http://127.0.0.1:3100/mcp
 ```
+</details>
 
-### Codex
+<details><summary>Codex</summary>
 
 Add to `~/.codex/config.toml`:
-
 ```toml
 [mcp.itsyconnect]
 type = "remote"
 url = "http://127.0.0.1:3100/mcp"
 ```
+</details>
 
-### Cursor
+<details><summary>Cursor</summary>
 
 Add to `~/.cursor/mcp.json`:
-
 ```json
 {
   "mcpServers": {
@@ -38,11 +36,11 @@ Add to `~/.cursor/mcp.json`:
   }
 }
 ```
+</details>
 
-### OpenCode
+<details><summary>OpenCode</summary>
 
 Add to `opencode.json` under `mcp`:
-
 ```json
 {
   "itsyconnect": {
@@ -51,83 +49,53 @@ Add to `opencode.json` under `mcp`:
   }
 }
 ```
+</details>
 
-## Docker
-
-When running Itsyconnect in Docker, expose the MCP port alongside the web UI port:
-
-```bash
-docker run -d -p 3000:3000 -p 3100:3100 -v itsyconnect-data:/app/data ghcr.io/nickustinov/itsyconnect:latest
-```
-
-Enable the MCP server in **Settings > General** after starting the container.
+**Docker:** expose the MCP port with `-p 3100:3100`, then enable in Settings.
 
 ## Available tools
 
-### list_apps
+| Tool | Description |
+|------|-------------|
+| `list_apps` | List apps with IDs, names, bundle IDs |
+| `list_versions` | List versions with states, locales |
+| `update_listing` | Update a store listing field for a locale |
+| `update_app_details` | Update app details field for a locale |
+| `update_review_info` | Update review notes, demo account, contact |
+| `translate` | Translate field(s) to target locale(s) via AI |
+| `add_locale` | Add a new locale to a version |
+| `remove_locale` | Remove a locale (destructive, requires confirm) |
 
-List all apps in the connected App Store Connect account. Returns app IDs, names, bundle IDs, and primary locales.
-
-### list_versions
-
-List all versions for an app. Returns version IDs, version strings, states, platforms, and available locales for editable versions.
+<details><summary>Tool parameters</summary>
 
 ### update_listing
-
-Update store listing fields for an app version across one or more locales.
-
-**Fields:** `whatsNew`, `description`, `keywords`, `promotionalText`, `supportUrl`, `marketingUrl`
-
-**Parameters:**
-- `appId` – app ID
-- `versionId` – version ID
-- `field` – which field to update
-- `values` – map of locale code to value
+`appId`, `versionId`, `field` (whatsNew, description, keywords, promotionalText, supportUrl, marketingUrl), `locale`, `value`
 
 ### update_app_details
-
-Update app details fields across one or more locales.
-
-**Fields:** `name`, `subtitle`, `privacyPolicyUrl`, `privacyChoicesUrl`
-
-**Parameters:**
-- `appId` – app ID
-- `field` – which field to update
-- `values` – map of locale code to value
+`appId`, `field` (name, subtitle, privacyPolicyUrl, privacyChoicesUrl), `locale`, `value`
 
 ### update_review_info
-
-Update App Store review submission details for a version.
-
-**Fields:** `notes`, `contactEmail`, `contactFirstName`, `contactLastName`, `contactPhone`, `demoAccountName`, `demoAccountPassword`, `demoAccountRequired`
-
-**Parameters:**
-- `appId` – app ID
-- `versionId` – version ID
-- `attributes` – object with fields to update
+`appId`, `versionId`, `attributes` (notes, contactEmail, contactFirstName, contactLastName, contactPhone, demoAccountName, demoAccountPassword, demoAccountRequired)
 
 ### translate
+`appId`, `versionId` (for listing fields), `fields` (comma-separated: whatsNew, description, keywords, promotionalText, name, subtitle), `sourceLocale`, `targetLocales` (comma-separated, omit for all)
 
-Translate store listing or app details fields from a source locale to target locales using the configured AI provider.
+### add_locale
+`appId`, `versionId`, `locale`
 
-**Translatable fields:** `whatsNew`, `description`, `keywords`, `promotionalText`, `name`, `subtitle`
+### remove_locale
+`appId`, `versionId`, `locale`, `confirm` (must be true)
 
-**Parameters:**
-- `appId` – app ID
-- `versionId` – version ID (required for store listing fields)
-- `fields` – array of field names to translate
-- `sourceLocale` – source locale (e.g. `en-US`)
-- `targetLocales` – target locales (omit to translate to all existing locales)
+</details>
 
 **Example prompts:**
-
-> Update the what's new for Itsyconnect 1.7.0 with these release notes and translate to all languages
-
-> Translate the description for my app from English to German, French, and Spanish
+- *Update the what's new for my app and translate to all languages*
+- *Add German and French locales and translate everything*
+- *Translate the description from English to all languages*
 
 ## Architecture
 
-- Runs as a separate HTTP server on its own port (default 3100)
-- Uses MCP Streamable HTTP transport (stateless)
-- Shares the database and ASC client with the main app – no separate process or connection
-- Configurable via Settings UI or the `/api/settings/mcp` API endpoint
+- Separate HTTP server on its own port (default 3100), Streamable HTTP transport (stateless)
+- Shares database and ASC client with the main app – no separate process
+- Mutations push SSE events to auto-refresh the UI
+- Configurable via Settings UI or `/api/settings/mcp` API

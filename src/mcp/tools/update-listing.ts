@@ -7,6 +7,7 @@ import { listLocalizations } from "@/lib/asc/localizations";
 import { updateVersionLocalization } from "@/lib/asc/localization-mutations";
 import { EDITABLE_STATES } from "@/lib/asc/version-types";
 import { cacheSet } from "@/lib/cache";
+import { emitChange } from "@/mcp/events";
 
 const LISTING_FIELDS = z.enum([
   "whatsNew",
@@ -71,6 +72,7 @@ export function registerUpdateListing(server: McpServer): void {
       try {
         await updateVersionLocalization(loc.id, { [field]: value });
         cacheSet(`localizations:${versionId}`, null, 0);
+        emitChange({ scope: "listing", appId, versionId });
         return {
           content: [{ type: "text", text: `Updated ${field} for ${locale} on ${version.attributes.versionString}.` }],
         };
