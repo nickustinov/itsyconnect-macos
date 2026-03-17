@@ -64,20 +64,66 @@ Enable the MCP server in **Settings > General** after starting the container.
 
 ## Available tools
 
-### update_whats_new
+### list_apps
 
-Update the "What's new" release notes for an app version across one or more locales.
+List all apps in the connected App Store Connect account. Returns app IDs, names, bundle IDs, and primary locales.
+
+### list_versions
+
+List all versions for an app. Returns version IDs, version strings, states, platforms, and available locales for editable versions.
+
+### update_listing
+
+Update store listing fields for an app version across one or more locales.
+
+**Fields:** `whatsNew`, `description`, `keywords`, `promotionalText`, `supportUrl`, `marketingUrl`
 
 **Parameters:**
-- `appId` – the App Store Connect app ID (numeric string)
-- `versionId` – the app store version ID to update
-- `whatsNew` – map of locale code (e.g. `en-US`, `de-DE`) to release notes text (max 4000 chars each)
+- `appId` – app ID
+- `versionId` – version ID
+- `field` – which field to update
+- `values` – map of locale code to value
 
-Only locales that already exist on the version will be updated. The version must be in an editable state (Prepare for submission, Rejected, etc.).
+### update_app_details
 
-**Example prompt:**
+Update app details fields across one or more locales.
 
-> Update the what's new for my app's latest version with these release notes in English and German
+**Fields:** `name`, `subtitle`, `privacyPolicyUrl`, `privacyChoicesUrl`
+
+**Parameters:**
+- `appId` – app ID
+- `field` – which field to update
+- `values` – map of locale code to value
+
+### update_review_info
+
+Update App Store review submission details for a version.
+
+**Fields:** `notes`, `contactEmail`, `contactFirstName`, `contactLastName`, `contactPhone`, `demoAccountName`, `demoAccountPassword`, `demoAccountRequired`
+
+**Parameters:**
+- `appId` – app ID
+- `versionId` – version ID
+- `attributes` – object with fields to update
+
+### translate
+
+Translate store listing or app details fields from a source locale to target locales using the configured AI provider.
+
+**Translatable fields:** `whatsNew`, `description`, `keywords`, `promotionalText`, `name`, `subtitle`
+
+**Parameters:**
+- `appId` – app ID
+- `versionId` – version ID (required for store listing fields)
+- `fields` – array of field names to translate
+- `sourceLocale` – source locale (e.g. `en-US`)
+- `targetLocales` – target locales (omit to translate to all existing locales)
+
+**Example prompts:**
+
+> Update the what's new for Itsyconnect 1.7.0 with these release notes and translate to all languages
+
+> Translate the description for my app from English to German, French, and Spanish
 
 ## Architecture
 

@@ -3,12 +3,21 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { createMcpServer } from "./server";
 import { getMcpEnabled, getMcpPort } from "@/lib/mcp-preferences";
 
-let httpServer: Server | null = null;
+// Store on globalThis so the reference survives HMR in dev
+const g = globalThis as unknown as { __mcpServer?: Server | null };
+
+function getServer(): Server | null {
+  return g.__mcpServer ?? null;
+}
+
+function setServer(s: Server | null) {
+  g.__mcpServer = s;
+}
 
 export async function startMcpServer(port: number): Promise<void> {
-  if (httpServer) return;
+  await stopMcpServer();
 
-  httpServer = createServer(async (req, res) => {
+  const httpServer = createServer(async (req, res) => {
     if (req.url !== "/mcp") {
       res.writeHead(404);
       res.end();
@@ -20,9 +29,6 @@ export async function startMcpServer(port: number): Promise<void> {
       const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
       await server.connect(transport);
       await transport.handleRequest(req, res);
-    } else if (req.method === "GET") {
-      res.writeHead(405, { Allow: "POST" });
-      res.end();
     } else if (req.method === "OPTIONS") {
       res.writeHead(204, {
         Allow: "POST, OPTIONS",
@@ -32,10 +38,12 @@ export async function startMcpServer(port: number): Promise<void> {
       });
       res.end();
     } else {
-      res.writeHead(405);
+      res.writeHead(405, { Allow: "POST" });
       res.end();
     }
   });
+
+  setServer(httpServer);
 
   httpServer.listen(port, "0.0.0.0", () => {
     console.log(`[mcp] Server listening on port ${port}`);
@@ -47,20 +55,27 @@ export async function startMcpServer(port: number): Promise<void> {
     } else {
       console.error("[mcp] Server error:", err);
     }
-    httpServer = null;
+    setServer(null);
   });
 }
 
-export function stopMcpServer(): void {
-  if (httpServer) {
-    httpServer.close();
-    httpServer = null;
-    console.log("[mcp] Server stopped");
-  }
+export function stopMcpServer(): Promise<void> {
+  return new Promise((resolve) => {
+    const server = getServer();
+    if (!server) {
+      resolve();
+      return;
+    }
+    setServer(null);
+    server.close(() => {
+      console.log("[mcp] Server stopped");
+      resolve();
+    });
+  });
 }
 
 export function isMcpRunning(): boolean {
-  return httpServer !== null;
+  return getServer() !== null;
 }
 
 export function initMcpServer(): void {
