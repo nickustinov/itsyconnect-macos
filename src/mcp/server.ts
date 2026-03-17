@@ -1,13 +1,9 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { APP_VERSION } from "@/lib/version";
-import { registerListApps } from "./tools/list-apps";
-import { registerListVersions } from "./tools/list-versions";
-import { registerUpdateListing } from "./tools/update-listing";
-import { registerUpdateAppDetails } from "./tools/update-app-details";
-import { registerUpdateReviewInfo } from "./tools/update-review-info";
+import { registerGetApp } from "./tools/get-app";
+import { registerUpdateApp } from "./tools/update-app";
 import { registerTranslate } from "./tools/translate";
-import { registerAddLocale } from "./tools/add-locale";
-import { registerRemoveLocale } from "./tools/remove-locale";
+import { registerManageLocales } from "./tools/manage-locales";
 
 export function createMcpServer(): McpServer {
   const server = new McpServer({
@@ -15,14 +11,10 @@ export function createMcpServer(): McpServer {
     version: APP_VERSION,
   });
 
-  registerListApps(server);
-  registerListVersions(server);
-  registerUpdateListing(server);
-  registerUpdateAppDetails(server);
-  registerUpdateReviewInfo(server);
+  registerGetApp(server);
+  registerUpdateApp(server);
   registerTranslate(server);
-  registerAddLocale(server);
-  registerRemoveLocale(server);
+  registerManageLocales(server);
 
   return server;
 }

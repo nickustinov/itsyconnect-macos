@@ -53,49 +53,61 @@ Add to `opencode.json` under `mcp`:
 
 **Docker:** expose the MCP port with `-p 3100:3100`, then enable in Settings.
 
-## Available tools
+## Tools
+
+All tools accept **app names** (e.g. "Itsyconnect"), not numeric IDs. Version strings (e.g. "1.7.0") are optional – omit to use the editable version.
 
 | Tool | Description |
 |------|-------------|
-| `list_apps` | List apps with IDs, names, bundle IDs |
-| `list_versions` | List versions with states, locales |
-| `update_listing` | Update a store listing field for a locale |
-| `update_app_details` | Update app details field for a locale |
-| `update_review_info` | Update review notes, demo account, contact |
-| `translate` | Translate field(s) to target locale(s) via AI |
-| `add_locale` | Add a new locale to a version |
-| `remove_locale` | Remove a locale (destructive, requires confirm) |
+| `get_app` | Read app data – versions, locales, all field values |
+| `update_app` | Write any field for a locale |
+| `translate` | AI-translate field(s) from source to target locale(s) |
+| `manage_locales` | Add or remove locales |
 
-<details><summary>Tool parameters</summary>
+<details><summary>Tool details</summary>
 
-### update_listing
-`appId`, `versionId`, `field` (whatsNew, description, keywords, promotionalText, supportUrl, marketingUrl), `locale`, `value`
+### get_app
+- `app` – app name. Omit to list all apps.
+- `version` – version string. Omit for editable version.
+- `locale` – locale code. Omit for overview; provide for full field dump.
 
-### update_app_details
-`appId`, `field` (name, subtitle, privacyPolicyUrl, privacyChoicesUrl), `locale`, `value`
+### update_app
+- `app` – app name
+- `version` – version string (optional)
+- `field` – field name (see below)
+- `locale` – locale code (required for listing/details fields, not for review fields)
+- `value` – new value
 
-### update_review_info
-`appId`, `versionId`, `attributes` (notes, contactEmail, contactFirstName, contactLastName, contactPhone, demoAccountName, demoAccountPassword, demoAccountRequired)
+**Listing fields:** whatsNew, description, keywords, promotionalText, supportUrl, marketingUrl
+**Details fields:** name, subtitle, privacyPolicyUrl, privacyChoicesUrl
+**Review fields:** notes, contactEmail, contactFirstName, contactLastName, contactPhone, demoAccountName, demoAccountPassword, demoAccountRequired
 
 ### translate
-`appId`, `versionId` (for listing fields), `fields` (comma-separated: whatsNew, description, keywords, promotionalText, name, subtitle), `sourceLocale`, `targetLocales` (comma-separated, omit for all)
+- `app` – app name
+- `version` – version string (optional)
+- `fields` – comma-separated (e.g. "whatsNew,description,name,subtitle")
+- `sourceLocale` – source locale (e.g. "en-US")
+- `targetLocales` – comma-separated targets. Omit to translate to all.
 
-### add_locale
-`appId`, `versionId`, `locale`
-
-### remove_locale
-`appId`, `versionId`, `locale`, `confirm` (must be true)
+### manage_locales
+- `app` – app name
+- `version` – version string (optional)
+- `action` – "add" or "remove"
+- `locale` – locale code to add/remove
+- `confirm` – must be "true" for remove (destructive)
 
 </details>
 
 **Example prompts:**
-- *Update the what's new for my app and translate to all languages*
+- *Show me Itsyconnect's current store listing in English*
+- *Update the what's new and translate to all languages*
 - *Add German and French locales and translate everything*
-- *Translate the description from English to all languages*
+- *Write a promotional text based on the what's new*
 
 ## Architecture
 
-- Separate HTTP server on its own port (default 3100), Streamable HTTP transport (stateless)
-- Shares database and ASC client with the main app – no separate process
+- 4 tools covering the entire release workflow
+- Accepts human-readable names, resolves IDs internally
+- Separate HTTP server on port 3100, Streamable HTTP transport (stateless)
+- Shares database and ASC client with the main app
 - Mutations push SSE events to auto-refresh the UI
-- Configurable via Settings UI or `/api/settings/mcp` API
