@@ -4,8 +4,6 @@ services:
     # build: .  # uncomment to build locally
     ports:
       - "3000:3000"
-    environment:
-      - ENCRYPTION_MASTER_KEY=${ENCRYPTION_MASTER_KEY}
     volumes:
       - data:/app/data
     restart: unless-stopped

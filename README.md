@@ -88,18 +88,16 @@ The setup wizard will guide you through connecting your App Store Connect creden
 Run Itsyconnect as a web app on your local network or server.
 
 ```bash
+docker run -d -p 3000:3000 -v itsyconnect-data:/app/data ghcr.io/nickustinov/itsyconnect:latest
+```
+
+Or with docker compose:
+
+```bash
 docker compose up -d
 ```
 
 The app will be available at `http://localhost:3000`. A master encryption key is auto-generated and saved to the data volume on first run.
-
-To bring your own key instead, set it before starting:
-
-```bash
-export ENCRYPTION_MASTER_KEY=$(openssl rand -hex 32)
-docker compose up -d
-```
-
 ### Reverse proxy with authentication
 
 The Docker container has no built-in authentication. If you expose it beyond your local machine, put it behind a reverse proxy with basic auth.
