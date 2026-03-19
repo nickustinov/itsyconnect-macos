@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft } from "@phosphor-icons/react";
@@ -24,6 +25,10 @@ export default function SettingsLayout({
   const pathname = usePathname();
   const router = useRouter();
   const base = "/settings";
+
+  useEffect(() => {
+    document.body.style.removeProperty("pointer-events");
+  }, []);
 
   return (
     <LicenseProvider>
