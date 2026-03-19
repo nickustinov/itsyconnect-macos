@@ -54,6 +54,23 @@ export function createTestDb() {
       email TEXT NOT NULL,
       activated_at TEXT NOT NULL
     );
+
+    CREATE TABLE app_preferences (
+      key TEXT PRIMARY KEY NOT NULL,
+      value TEXT NOT NULL
+    );
+
+    CREATE TABLE pending_changes (
+      id TEXT PRIMARY KEY NOT NULL,
+      app_id TEXT NOT NULL,
+      section TEXT NOT NULL,
+      scope TEXT NOT NULL,
+      field TEXT NOT NULL,
+      value TEXT NOT NULL,
+      original_value TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
   `);
   return drizzle(sqlite, { schema });
 }

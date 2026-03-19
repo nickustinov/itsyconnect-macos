@@ -53,7 +53,7 @@ import { InsightsPanelProvider, useInsightsPanel } from "@/lib/insights-panel-co
 import { InsightsPanel } from "@/components/layout/insights-panel";
 import { LicenseProvider } from "@/lib/license-context";
 import { saveNavigation } from "@/lib/nav-state";
-import { useMcpEvents } from "@/lib/use-mcp-events";
+import { useMcpEvents } from "@/lib/hooks/use-mcp-events";
 
 declare global {
   interface Window {

@@ -42,6 +42,8 @@ import {
   clearFreeSelectedAppId,
   getFreeSelectedAppId,
   setFreeSelectedAppId,
+  getReviewBeforeSaving,
+  setReviewBeforeSaving,
 } from "@/lib/app-preferences";
 
 describe("app-preferences", () => {
@@ -77,6 +79,40 @@ describe("app-preferences", () => {
   describe("clearFreeSelectedAppId", () => {
     it("deletes the stored preference", () => {
       clearFreeSelectedAppId();
+      expect(mockRun).toHaveBeenCalled();
+    });
+  });
+
+  describe("getReviewBeforeSaving", () => {
+    it("returns false when no preference is set", () => {
+      mockGet.mockReturnValue(undefined);
+      expect(getReviewBeforeSaving()).toBe(false);
+    });
+
+    it("returns true when set to 'true'", () => {
+      mockGet.mockReturnValue({ value: "true" });
+      expect(getReviewBeforeSaving()).toBe(true);
+    });
+
+    it("returns false when set to anything other than 'true'", () => {
+      mockGet.mockReturnValue({ value: "false" });
+      expect(getReviewBeforeSaving()).toBe(false);
+    });
+
+    it("returns false when db throws", () => {
+      mockGet.mockImplementation(() => { throw new Error("DB error"); });
+      expect(getReviewBeforeSaving()).toBe(false);
+    });
+  });
+
+  describe("setReviewBeforeSaving", () => {
+    it("inserts or updates the preference", () => {
+      setReviewBeforeSaving(true);
+      expect(mockRun).toHaveBeenCalled();
+    });
+
+    it("stores false as a string", () => {
+      setReviewBeforeSaving(false);
       expect(mockRun).toHaveBeenCalled();
     });
   });

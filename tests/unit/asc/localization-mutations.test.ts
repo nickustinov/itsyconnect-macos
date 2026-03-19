@@ -81,6 +81,18 @@ describe("localization-mutations", () => {
       expect(body.data.attributes.marketingUrl).toBe("https://example.com");
       expect(body.data.attributes.whatsNew).toBe("Bug fixes");
     });
+
+    it("passes non-string values through unchanged", async () => {
+      mockAscFetch.mockResolvedValue({});
+
+      await updateVersionLocalization("loc-1", {
+        whatsNew: "Notes",
+        someFlag: true,
+      } as Record<string, unknown>);
+
+      const body = JSON.parse(mockAscFetch.mock.calls[0][1].body);
+      expect(body.data.attributes.someFlag).toBe(true);
+    });
   });
 
   describe("createVersionLocalization", () => {
