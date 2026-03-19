@@ -159,6 +159,15 @@
 .sidebar-scroll-fade--top { --_top: transparent; --_bottom: black; }
 .sidebar-scroll-fade--both { --_top: transparent; --_bottom: transparent; }
 
+/* Hide scrollbar but keep scroll functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* Electron window drag regions */
 .drag {
   -webkit-app-region: drag;

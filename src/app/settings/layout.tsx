@@ -41,7 +41,7 @@ export default function SettingsLayout({
             Back
           </Button>
         </div>
-        <div className="mb-0 flex items-center border-b">
+        <div className="mb-0 flex items-center border-b overflow-x-auto scrollbar-hide">
           <nav className="-mb-px flex">
             {TABS.map((tab) => {
               const href = `${base}${tab.segment}`;
