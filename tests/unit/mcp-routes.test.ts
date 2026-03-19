@@ -33,8 +33,8 @@ vi.mock("@/lib/api-helpers", () => ({
   },
 }));
 
-vi.mock("@/mcp/events", () => {
-  const { EventEmitter } = require("node:events");
+vi.mock("@/mcp/events", async () => {
+  const { EventEmitter } = await import("node:events");
   const emitter = new EventEmitter();
   return {
     mcpEvents: emitter,

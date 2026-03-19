@@ -169,7 +169,7 @@ describe("reviews route", () => {
 
     mockListCustomerReviews.mockRejectedValue(new Error("fetch failed"));
 
-    const response = await GET(new Request("http://localhost"), makeParams());
+    await GET(new Request("http://localhost"), makeParams());
 
     expect(mockErrorJson).toHaveBeenCalledWith(expect.any(Error));
   });
@@ -234,7 +234,7 @@ describe("reviews route", () => {
 
     mockCreateReviewResponse.mockRejectedValue(new Error("ASC error"));
 
-    const response = await POST(
+    await POST(
       new Request("http://localhost", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

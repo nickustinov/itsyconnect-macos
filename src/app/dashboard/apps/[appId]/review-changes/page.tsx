@@ -4,8 +4,6 @@ import { type ReactNode, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { Trash } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { useChangeBuffer } from "@/lib/change-buffer-context";
 import { useReviewChanges } from "@/lib/review-changes-context";
 import { EmptyState } from "@/components/empty-state";
@@ -215,7 +213,6 @@ function SectionDiff({
   mode,
   localeFilter,
   fieldFilter,
-  onDiscard,
 }: {
   appId: string;
   section: string;
@@ -225,7 +222,6 @@ function SectionDiff({
   mode: ViewMode;
   localeFilter: string;
   fieldFilter: string;
-  onDiscard: () => void;
 }) {
   const { discardField } = useChangeBuffer();
 
@@ -402,7 +398,6 @@ export default function ReviewChangesPage() {
               mode={mode}
               localeFilter={localeFilter}
               fieldFilter={fieldFilter}
-              onDiscard={() => handleDiscardGroup(group)}
             />
           ))}
         </div>

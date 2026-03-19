@@ -88,7 +88,7 @@ describe("nominations routes", () => {
 
     mockListNominations.mockRejectedValue(new Error("fetch failed"));
 
-    const response = await GET(new Request("http://localhost/api/nominations"));
+    await GET(new Request("http://localhost/api/nominations"));
 
     expect(mockErrorJson).toHaveBeenCalledWith(expect.any(Error));
   });
@@ -149,7 +149,7 @@ describe("nominations routes", () => {
 
     mockCreateNomination.mockRejectedValue(new Error("ASC error"));
 
-    const response = await POST(
+    await POST(
       makeJsonRequest("http://localhost/api/nominations", {
         action: "create",
         name: "Feature launch",
@@ -290,7 +290,7 @@ describe("nominations routes", () => {
 
     mockGetNomination.mockRejectedValue(new Error("not found"));
 
-    const response = await GET(new Request("http://localhost"), {
+    await GET(new Request("http://localhost"), {
       params: Promise.resolve({ nominationId: "nom-bad" }),
     });
 

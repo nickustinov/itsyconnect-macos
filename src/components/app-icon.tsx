@@ -47,7 +47,6 @@ export function AppIcon({ iconUrl, name, className = "size-8", iconSize = 16, ro
     }
 
     return (
-      /* eslint-disable-next-line @next/next/no-img-element */
       <img
         src={iconUrl}
         alt={name}

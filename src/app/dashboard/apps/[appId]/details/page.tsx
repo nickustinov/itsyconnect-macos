@@ -341,7 +341,7 @@ export default function AppDetailsPage() {
     if (bufferedData.secondaryCategoryId !== undefined) setSecondaryCategoryId(bufferedData.secondaryCategoryId as string);
     if (bufferedData.notifUrl !== undefined) setNotifUrl(bufferedData.notifUrl as string);
     if (bufferedData.notifSandboxUrl !== undefined) setNotifSandboxUrl(bufferedData.notifSandboxUrl as string);
-  }, [bufferEnabled, bufferedData]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [bufferEnabled, bufferedData]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   // Register save handler for the header Save button

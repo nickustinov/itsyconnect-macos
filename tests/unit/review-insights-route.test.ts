@@ -277,7 +277,7 @@ describe("review insights route", () => {
     const { POST } = await import("@/app/api/apps/[appId]/reviews/insights/route");
     mockListCustomerReviews.mockRejectedValue(new Error("ASC error"));
 
-    const response = await POST(new Request("http://localhost", { method: "POST" }), {
+    await POST(new Request("http://localhost", { method: "POST" }), {
       params: Promise.resolve({ appId: "app-1" }),
     });
 
