@@ -146,6 +146,7 @@ export function AppSidebar() {
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (!e.metaKey && !e.ctrlKey) return;
+      if (e.ctrlKey && !e.metaKey && !window.electron) return;
       if (e.key === "p") {
         e.preventDefault();
         guardNavigation(() => router.push("/dashboard"));
