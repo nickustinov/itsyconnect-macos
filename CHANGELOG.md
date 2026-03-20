@@ -3,6 +3,8 @@
 ## 1.8.1
 
 - Add `get_insights` MCP tool – ask your AI assistant how your app is doing (reviews, analytics, stability, overview)
+- Improve mobile experience for self-hosted version – sidebar navigation, scrollable settings tabs, chart layout fixes
+- Allow editing text fields on versions waiting for review
 
 ## 1.8.0
 
