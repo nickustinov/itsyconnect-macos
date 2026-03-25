@@ -3,6 +3,8 @@
 ## 1.8.2
 
 - Fix "what's new" field appearing on first-ever version for a new platform, causing ASC save errors
+- Fix TestFlight build "what's new" save failing on new builds with no existing localization
+- Fix crash on TestFlight beta app info page when editing fields on a new platform with no localizations
 - Fix update check failing with "Command disabled" when triggered while an auto-check is already running
 
 ## 1.8.1

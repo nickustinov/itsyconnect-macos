@@ -138,13 +138,14 @@ export default function BuildDetailPage() {
   // Register save for footer's "submit for review" auto-save
   useEffect(() => {
     registerBuildSave(async () => {
-      if (!build?.whatsNewLocalizationId) return;
+      if (!build) return;
       const res = await fetch(`/api/apps/${appId}/testflight/builds/${buildId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           whatsNew,
           localizationId: build.whatsNewLocalizationId,
+          locale: "en-US",
         }),
       });
       if (!res.ok) {
@@ -183,16 +184,14 @@ export default function BuildDetailPage() {
   // Register save handler for the header save button
   useEffect(() => {
     registerSave(async () => {
-      if (!build?.whatsNewLocalizationId) {
-        toast.error("Cannot save – no localization ID available");
-        return;
-      }
+      if (!build) return;
       const res = await fetch(`/api/apps/${appId}/testflight/builds/${buildId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           whatsNew,
           localizationId: build.whatsNewLocalizationId,
+          locale: "en-US",
         }),
       });
       if (!res.ok) {

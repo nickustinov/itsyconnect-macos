@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { errorJson } from "@/lib/api-helpers";
-import { listBuilds, updateBetaBuildLocalization } from "@/lib/asc/testflight";
+import { listBuilds, updateBetaBuildLocalization, createBetaBuildLocalization } from "@/lib/asc/testflight";
 import { hasCredentials } from "@/lib/asc/client";
 import { isDemoMode, getDemoBuildDetail } from "@/lib/demo";
 
@@ -37,14 +37,15 @@ export async function GET(
 
 const patchSchema = z.object({
   whatsNew: z.string().max(4000),
-  localizationId: z.string().min(1),
+  localizationId: z.string().min(1).nullable(),
+  locale: z.string().min(1).optional(),
 });
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ appId: string; buildId: string }> },
 ) {
-  await params;
+  const { buildId } = await params;
 
   if (isDemoMode()) {
     return NextResponse.json({ ok: true });
@@ -68,7 +69,12 @@ export async function PATCH(
   }
 
   try {
-    await updateBetaBuildLocalization(parsed.data.localizationId, parsed.data.whatsNew);
+    if (parsed.data.localizationId) {
+      await updateBetaBuildLocalization(parsed.data.localizationId, parsed.data.whatsNew);
+    } else {
+      const locale = parsed.data.locale ?? "en-US";
+      await createBetaBuildLocalization(buildId, locale, parsed.data.whatsNew);
+    }
     return NextResponse.json({ ok: true });
   } catch (err) {
     return errorJson(err);

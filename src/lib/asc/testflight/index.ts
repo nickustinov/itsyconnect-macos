@@ -20,6 +20,7 @@ export {
   listBuilds,
   fetchBuildMetrics,
   updateBetaBuildLocalization,
+  createBetaBuildLocalization,
   addBuildToGroups,
   removeBuildFromGroups,
   submitForBetaReview,

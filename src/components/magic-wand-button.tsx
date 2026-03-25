@@ -137,8 +137,8 @@ export function MagicWandButton({
   const isBaseLocale = locale === baseLocale;
   const isKeywords = field === "keywords";
   const isSingleLine = field === "keywords" || field === "name" || field === "subtitle";
-  const hasValue = value.trim().length > 0;
-  const hasBaseValue = baseValue.trim().length > 0;
+  const hasValue = (value ?? "").trim().length > 0;
+  const hasBaseValue = (baseValue ?? "").trim().length > 0;
   function requireAI(): boolean {
     if (!configured) {
       setShowRequired(true);

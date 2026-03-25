@@ -155,8 +155,11 @@ export default function TestFlightInfoPage() {
       const data = await res.json();
       const fetchedInfo: TFBetaAppInfo = data.info;
 
-      // Build locale data
+      // Build locale data – seed primary locale if no localizations exist
       const ld = buildLocaleData(fetchedInfo.localizations);
+      if (Object.keys(ld).length === 0 && primaryLocale) {
+        ld[primaryLocale] = emptyLocaleFields();
+      }
       setLocaleData(ld);
       fetchedLocalizationsRef.current = fetchedInfo.localizations;
 
@@ -204,7 +207,7 @@ export default function TestFlightInfoPage() {
     (field: keyof BetaLocaleFields, value: string) => {
       setLocaleData((prev) => ({
         ...prev,
-        [selectedLocale]: { ...prev[selectedLocale], [field]: value },
+        [selectedLocale]: { ...(prev[selectedLocale] ?? emptyLocaleFields()), [field]: value },
       }));
       setDirty(true);
     },

@@ -243,6 +243,27 @@ export async function updateBetaBuildLocalization(
   cacheInvalidatePrefix("tf-builds:");
 }
 
+export async function createBetaBuildLocalization(
+  buildId: string,
+  locale: string,
+  whatsNew: string,
+): Promise<string> {
+  const res = await ascFetch<{ data: { id: string } }>("/v1/betaBuildLocalizations", {
+    method: "POST",
+    body: JSON.stringify({
+      data: {
+        type: "betaBuildLocalizations",
+        attributes: { locale, whatsNew },
+        relationships: {
+          build: { data: { type: "builds", id: buildId } },
+        },
+      },
+    }),
+  });
+  cacheInvalidatePrefix("tf-builds:");
+  return res.data.id;
+}
+
 export async function addBuildToGroups(
   buildId: string,
   groupIds: string[],
