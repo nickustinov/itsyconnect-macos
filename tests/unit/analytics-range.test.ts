@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { parseRange, filterByDateRange, previousRange, pctChange, getStoredRange, setStoredRange } from "@/lib/analytics-range";
+import { parseRange, filterByDateRange, previousRange, pctChange, getStoredRange, setStoredRange, type DateRange } from "@/lib/analytics-range";
 
 const mockLocalStorage = {
   getItem: vi.fn(),
@@ -209,14 +209,13 @@ describe("filterByDateRange", () => {
   });
 
   it("does not autofill today with 0", () => {
-    const sparse = [
-      { date: "2026-02-26", value: 1 },
-      { date: "2026-02-27", value: 2 },
-    ];
-    const range = parseRange("2026-02-26..2026-02-28");
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+    const sparse = [{ date: yesterday, value: 1 }];
+    const range: DateRange = { from: yesterday, to: today };
     const result = filterByDateRange(sparse, range);
-    expect(result).toHaveLength(2);
-    expect(result.map((d) => d.date)).toEqual(["2026-02-26", "2026-02-27"]);
+    expect(result).toHaveLength(1);
+    expect(result[0].date).toBe(yesterday);
   });
 
   it("returns empty array when no data matches", () => {

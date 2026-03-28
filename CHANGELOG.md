@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.4
+
+- Fix proceeds chart not autofilling zero for days with no data while excluding today (data not yet available)
+
 ## 1.8.3
 
 - Add platform picker to reviews page – filter reviews by iOS, macOS, tvOS, or visionOS with persistent selection
