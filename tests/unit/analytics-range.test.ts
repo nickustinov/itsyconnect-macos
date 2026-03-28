@@ -208,6 +208,17 @@ describe("filterByDateRange", () => {
     expect(result.find((d) => d.date === "2026-01-20")!.value).toBe(0);
   });
 
+  it("does not autofill today with 0", () => {
+    const sparse = [
+      { date: "2026-02-26", value: 1 },
+      { date: "2026-02-27", value: 2 },
+    ];
+    const range = parseRange("2026-02-26..2026-02-28");
+    const result = filterByDateRange(sparse, range);
+    expect(result).toHaveLength(2);
+    expect(result.map((d) => d.date)).toEqual(["2026-02-26", "2026-02-27"]);
+  });
+
   it("returns empty array when no data matches", () => {
     const range = parseRange("2025-06");
     const result = filterByDateRange(data, range);
