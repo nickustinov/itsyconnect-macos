@@ -167,45 +167,45 @@ describe("filterByDateRange", () => {
     { date: "2026-03-01", value: 6 },
   ];
 
-  it("filters to 7d range", () => {
+  it("filters to 7d range and fills gaps with 0", () => {
     const range = parseRange("7d");
     const result = filterByDateRange(data, range);
-    expect(result).toHaveLength(1);
-    expect(result[0].date).toBe("2026-02-28");
+    expect(result).toHaveLength(7);
+    expect(result.find((d) => d.date === "2026-02-28")!.value).toBe(5);
+    expect(result.find((d) => d.date === "2026-02-25")!.value).toBe(0);
   });
 
-  it("filters to 30d range", () => {
+  it("filters to 30d range and fills gaps with 0", () => {
     const range = parseRange("30d");
     const result = filterByDateRange(data, range);
-    expect(result).toHaveLength(4);
-    expect(result.map((d) => d.date)).toEqual([
-      "2026-01-30",
-      "2026-02-01",
-      "2026-02-15",
-      "2026-02-28",
-    ]);
+    expect(result).toHaveLength(30);
+    expect(result.find((d) => d.date === "2026-01-30")!.value).toBe(2);
+    expect(result.find((d) => d.date === "2026-02-01")!.value).toBe(3);
+    expect(result.find((d) => d.date === "2026-02-15")!.value).toBe(4);
+    expect(result.find((d) => d.date === "2026-02-28")!.value).toBe(5);
+    expect(result.find((d) => d.date === "2026-02-10")!.value).toBe(0);
+    const dates = result.map((d) => d.date);
+    expect(dates).toEqual([...dates].sort());
   });
 
-  it("filters to month range", () => {
+  it("filters to month range and fills gaps with 0", () => {
     const range = parseRange("2026-02");
     const result = filterByDateRange(data, range);
-    expect(result).toHaveLength(3);
-    expect(result.map((d) => d.date)).toEqual([
-      "2026-02-01",
-      "2026-02-15",
-      "2026-02-28",
-    ]);
+    expect(result).toHaveLength(28);
+    expect(result.find((d) => d.date === "2026-02-01")!.value).toBe(3);
+    expect(result.find((d) => d.date === "2026-02-15")!.value).toBe(4);
+    expect(result.find((d) => d.date === "2026-02-28")!.value).toBe(5);
+    expect(result.find((d) => d.date === "2026-02-05")!.value).toBe(0);
   });
 
-  it("filters to custom range", () => {
+  it("filters to custom range and fills gaps with 0", () => {
     const range = parseRange("2026-01-15..2026-02-01");
     const result = filterByDateRange(data, range);
-    expect(result).toHaveLength(3);
-    expect(result.map((d) => d.date)).toEqual([
-      "2026-01-15",
-      "2026-01-30",
-      "2026-02-01",
-    ]);
+    expect(result).toHaveLength(18);
+    expect(result.find((d) => d.date === "2026-01-15")!.value).toBe(1);
+    expect(result.find((d) => d.date === "2026-01-30")!.value).toBe(2);
+    expect(result.find((d) => d.date === "2026-02-01")!.value).toBe(3);
+    expect(result.find((d) => d.date === "2026-01-20")!.value).toBe(0);
   });
 
   it("returns empty array when no data matches", () => {

@@ -132,7 +132,27 @@ export function filterByDateRange<T extends { date: string }>(
   data: T[],
   range: DateRange,
 ): T[] {
-  return data.filter((d) => d.date >= range.from && d.date <= range.to);
+  const filtered = data.filter((d) => d.date >= range.from && d.date <= range.to);
+  if (filtered.length === 0) return filtered;
+
+  const byDate = new Map<string, T>();
+  for (const d of filtered) byDate.set(d.date, d);
+
+  const template = {} as Record<string, unknown>;
+  for (const [key, val] of Object.entries(filtered[0])) {
+    template[key] = typeof val === "number" ? 0 : val;
+  }
+
+  const result: T[] = [];
+  const cur = new Date(range.from + "T00:00:00");
+  const end = new Date(range.to + "T00:00:00");
+  while (cur <= end) {
+    const dateStr = cur.toISOString().slice(0, 10);
+    result.push(byDate.get(dateStr) ?? ({ ...template, date: dateStr } as T));
+    cur.setDate(cur.getDate() + 1);
+  }
+
+  return result;
 }
 
 /**
