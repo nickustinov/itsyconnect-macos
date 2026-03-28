@@ -212,7 +212,7 @@ describe("filterByDateRange", () => {
     const today = new Date().toISOString().slice(0, 10);
     const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
     const sparse = [{ date: yesterday, value: 1 }];
-    const range: DateRange = { from: yesterday, to: today };
+    const range: DateRange = { from: yesterday, to: today, label: "test" };
     const result = filterByDateRange(sparse, range);
     expect(result).toHaveLength(1);
     expect(result[0].date).toBe(yesterday);
