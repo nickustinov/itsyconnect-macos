@@ -37,6 +37,8 @@ Everything runs locally. One SQLite database, no cloud, no accounts, no telemetr
 
 ## Features
 
+[![SafeSkill 53/100](https://img.shields.io/badge/SafeSkill-53%2F100_Use%20with%20Caution-orange)](https://safeskill.dev/scan/nickustinov-itsyconnect-macos)
+
 **Release management** – edit descriptions, keywords, what's new, promotional text, names, and subtitles for every locale. Pick builds, choose release method (manual, automatic, or scheduled), toggle phased rollout. Save everything in one click.
 
 **AI-powered localisation** – translate any field or all fields to one locale or every locale simultaneously. Generate optimised keywords. Draft professional review replies. Translate foreign reviews. Generate appeal text for unfair ratings. Bring your own API key from Anthropic, OpenAI, Google, xAI, Mistral, or DeepSeek.
