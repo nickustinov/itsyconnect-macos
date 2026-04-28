@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/nickustinov-itsyconnect-macos-badge.png)](https://mseep.ai/app/nickustinov-itsyconnect-macos)
+
 <h1>Itsyconnect</h1>
 
 <p>
