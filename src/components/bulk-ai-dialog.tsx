@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Check, Warning, CircleNotch, ArrowClockwise } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -13,7 +13,9 @@ import {
 } from "@/components/ui/dialog";
 import { localeName } from "@/lib/asc/locale-names";
 import { CharCount } from "@/components/char-count";
+import { GuidanceField } from "@/components/guidance-field";
 import { useBulkAI } from "@/lib/hooks/use-bulk-ai";
+import { useAiGuidance } from "@/lib/hooks/use-ai-guidance";
 
 // Re-export for backwards compatibility
 export type { BulkField } from "@/lib/hooks/use-bulk-ai";
@@ -57,25 +59,42 @@ export function BulkAIDialog({
   onApply,
 }: BulkAIDialogProps) {
   const [checked, setChecked] = useState<Record<string, boolean>>({});
+  // Configure step: translation/copy only starts once the user confirms.
+  const [started, setStarted] = useState(false);
+  const [runFields, setRunFields] = useState<import("@/lib/hooks/use-bulk-ai").BulkField[]>([]);
 
-  const initChecked = useCallback(() => {
+  // Reset configure state every time the dialog opens.
+  useEffect(() => {
+    if (!open) return;
     const initial: Record<string, boolean> = {};
     for (const f of fields) {
       initial[f.key] = true;
     }
     setChecked(initial);
-  }, [fields]);
+    setStarted(false);
+    setRunFields([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-init only on open transition
+  }, [open]);
+
+  const { guidance, setGuidance, saveGuidance } = useAiGuidance("translation");
 
   const { authError, getResult, retryField } = useBulkAI({
-    open,
+    open: open && started,
     mode,
     primaryLocale,
     targetLocales: [targetLocale],
     localeData,
-    fields,
+    fields: runFields,
     appName,
-    onInit: initChecked,
+    guidance,
   });
+
+  function handleStart() {
+    const selected = fields.filter((f) => checked[f.key]);
+    if (selected.length === 0) return;
+    setRunFields(selected);
+    setStarted(true);
+  }
 
   // --- Checkbox logic ---
 
@@ -96,7 +115,7 @@ export function BulkAIDialog({
 
   function handleApply() {
     const fieldUpdates: Record<string, string> = {};
-    for (const f of fields) {
+    for (const f of runFields) {
       if (!checked[f.key]) continue;
       const fr = getResult(targetLocale, f.key);
       if (fr?.status === "done") {
@@ -111,15 +130,18 @@ export function BulkAIDialog({
 
   // --- Derived state ---
 
-  const checkedCount = fields.filter((f) => checked[f.key]).length;
-  const allChecked = checkedCount === fields.length;
+  // Configure step
+  const configCheckedCount = fields.filter((f) => checked[f.key]).length;
+  const configAllChecked = configCheckedCount === fields.length;
 
-  const allFinished = fields.every((f) => {
+  // Run step
+  const runCheckedCount = runFields.filter((f) => checked[f.key]).length;
+  const allFinished = runFields.every((f) => {
     const s = getResult(targetLocale, f.key)?.status;
     return s === "done" || s === "error";
   });
 
-  const anyApplicable = fields.some(
+  const anyApplicable = runFields.some(
     (f) => checked[f.key] && getResult(targetLocale, f.key)?.status === "done",
   );
 
@@ -148,15 +170,66 @@ export function BulkAIDialog({
           </div>
         )}
 
+        {!started ? (
+          <>
+            <ScrollArea className="min-h-0 overflow-hidden">
+              <div className="space-y-1 pr-3">
+                <p className="mb-2 text-sm text-muted-foreground">
+                  {mode === "translate"
+                    ? `Choose which fields to translate to ${targetLabel}, then start.`
+                    : `Choose which fields to copy from ${baseLabel}.`}
+                </p>
+                {fields.map((field) => (
+                  <label
+                    key={field.key}
+                    className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50"
+                  >
+                    <Checkbox
+                      checked={checked[field.key] ?? false}
+                      onCheckedChange={() => toggleField(field.key)}
+                    />
+                    <span className="text-sm">{field.label}</span>
+                  </label>
+                ))}
+                {mode === "translate" && (
+                  <div className="px-2 pt-2">
+                    <GuidanceField
+                      value={guidance}
+                      onChange={setGuidance}
+                      onBlur={saveGuidance}
+                    />
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+
+            <div className="flex shrink-0 items-center justify-between pt-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox checked={configAllChecked} onCheckedChange={toggleAll} />
+                <span className="text-sm text-muted-foreground">Select all</span>
+              </label>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={() => onOpenChange(false)}>
+                  Cancel
+                </Button>
+                <Button disabled={configCheckedCount === 0} onClick={handleStart}>
+                  {mode === "translate" ? "Translate" : "Copy"}
+                </Button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
         <ScrollArea className="min-h-0 overflow-hidden">
           <div className="space-y-4 pr-3">
-            {fields.map((field) => {
+            {runFields.map((field) => {
               const fr = getResult(targetLocale, field.key);
               const before = String(currentFields[field.key] ?? "");
               const after = fr?.status === "done" ? fr.value : "";
               const isLoading = fr?.status === "loading";
               const isError = fr?.status === "error";
               const unchanged = fr?.status === "done" && before === after;
+              const overLimit = fr?.status === "done" && fr.overLimit === true;
 
               return (
                 <div key={field.key} className="space-y-2">
@@ -177,6 +250,12 @@ export function BulkAIDialog({
                       <span className="inline-flex items-center gap-1 text-xs text-destructive">
                         <Warning size={12} />
                         Failed
+                      </span>
+                    )}
+                    {overLimit && (
+                      <span className="inline-flex items-center gap-1 text-xs text-destructive">
+                        <Warning size={12} />
+                        Too long
                       </span>
                     )}
                     {unchanged && (
@@ -248,26 +327,22 @@ export function BulkAIDialog({
         </ScrollArea>
 
         <div className="flex shrink-0 items-center justify-between pt-4">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <Checkbox
-              checked={allChecked}
-              onCheckedChange={toggleAll}
-            />
-            <span className="text-sm text-muted-foreground">Select all</span>
-          </label>
+          <span className="text-sm text-muted-foreground">
+            {runCheckedCount} of {runFields.length} selected
+          </span>
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
             <Button disabled={!anyApplicable} onClick={handleApply}>
-              {allFinished
-                ? `Apply ${checkedCount} field${checkedCount !== 1 ? "s" : ""}`
-                : mode === "copy"
-                  ? `Apply ${checkedCount} field${checkedCount !== 1 ? "s" : ""}`
-                  : "Translating\u2026"}
+              {allFinished || mode === "copy"
+                ? `Apply ${runCheckedCount} field${runCheckedCount !== 1 ? "s" : ""}`
+                : "Translating\u2026"}
             </Button>
           </div>
         </div>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -71,6 +71,31 @@ ${text}`;
   return prompt;
 }
 
+/**
+ * Ask the model to shorten an over-limit result to fit a character budget,
+ * preserving meaning, tone, and language. Used as a one-shot recovery pass
+ * before the app reports a translation as too long.
+ */
+export function buildShortenPrompt(
+  text: string,
+  charLimit: number,
+  field: string,
+): string {
+  const desc = fieldDesc(field);
+
+  let prompt = `The following ${desc} is ${text.length} characters, but the hard limit is ${charLimit} characters.`;
+  prompt += `\nRewrite it to be ${charLimit} characters or fewer while preserving the meaning, language, tone, and formatting. Condense or drop the least important content. Do not add new information or translate it to another language.`;
+
+  prompt += OUTPUT_CONSTRAINT;
+
+  prompt += `
+
+Text to shorten:
+${text}`;
+
+  return prompt;
+}
+
 // --- Keyword-specific prompts ---
 
 export function buildFixKeywordsPrompt(

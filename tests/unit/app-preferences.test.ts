@@ -36,12 +36,38 @@ vi.mock("drizzle-orm", () => ({
 import {
   getReviewBeforeSaving,
   setReviewBeforeSaving,
+  getAIGuidance,
+  setAIGuidance,
 } from "@/lib/app-preferences";
 
 describe("app-preferences", () => {
   beforeEach(() => {
     mockGet.mockReset();
     mockRun.mockReset();
+  });
+
+  describe("getAIGuidance", () => {
+    it("returns an empty string when no guidance is set", () => {
+      mockGet.mockReturnValue(undefined);
+      expect(getAIGuidance("translation")).toBe("");
+    });
+
+    it("returns the stored guidance text for a scope", () => {
+      mockGet.mockReturnValue({ value: "use an informal tone" });
+      expect(getAIGuidance("translation")).toBe("use an informal tone");
+    });
+
+    it("returns an empty string when db throws", () => {
+      mockGet.mockImplementation(() => { throw new Error("DB error"); });
+      expect(getAIGuidance("reviews")).toBe("");
+    });
+  });
+
+  describe("setAIGuidance", () => {
+    it("inserts or updates the guidance for a scope", () => {
+      setAIGuidance("reviews", "always sign off as me, not us");
+      expect(mockRun).toHaveBeenCalled();
+    });
   });
 
   describe("getReviewBeforeSaving", () => {

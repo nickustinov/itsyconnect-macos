@@ -11,8 +11,29 @@ import {
   buildAppealPrompt,
   buildFixKeywordsPrompt,
   buildNominationPrompt,
+  buildShortenPrompt,
 } from "@/lib/ai/prompts";
 import { errorJson, parseBody } from "@/lib/api-helpers";
+import { getAIGuidance, type GuidanceScope } from "@/lib/app-preferences";
+
+/** Review replies/appeals use their own guidance bucket; everything else uses translation guidance. */
+function guidanceScopeForAction(action: string): GuidanceScope {
+  return action === "draft-reply" || action === "draft-appeal" ? "reviews" : "translation";
+}
+
+/** Base system message: enforce plain-text, non-conversational output for every action. */
+const BASE_SYSTEM =
+  "You are a text-processing tool. Output ONLY the final result as plain text with no preamble, explanation, or commentary. Never use markdown, HTML, or any formatting syntax. Never refuse or ask questions.";
+
+/**
+ * Append the user's standing guidance (tone/style instructions) to the system
+ * message. Guidance steers style only – the rules above remain authoritative,
+ * so guidance can never break the plain-text, non-conversational contract.
+ */
+function buildSystem(guidance: string): string {
+  if (!guidance) return BASE_SYSTEM;
+  return `${BASE_SYSTEM}\n\nThe user has provided standing instructions for tone and style. Follow them wherever they do not conflict with the rules above:\n${guidance}`;
+}
 
 /**
  * Provider-specific options to minimise reasoning/thinking overhead.
@@ -36,27 +57,18 @@ function noThinkingOptions(
   }
 }
 
-/** Truncate text to a character limit without breaking mid-word or mid-keyword. */
-function truncateToLimit(text: string, limit: number, field: string): string {
+/** Control / zero-width / BOM characters that LLMs sometimes emit into single-line fields. */
+const CONTROL_CHARS = /[\x00-\x1f\x7f\u200b-\u200f\ufeff]/g;
+
+/**
+ * Trim a comma-separated keyword string to a character limit by dropping
+ * trailing keywords at comma boundaries (never cuts a keyword mid-word).
+ */
+function trimKeywordsToLimit(text: string, limit: number): string {
   if (text.length <= limit) return text;
-
-  // Keywords: drop trailing keywords at comma boundaries
-  if (field === "keywords") {
-    let truncated = text.slice(0, limit);
-    const lastComma = truncated.lastIndexOf(",");
-    if (lastComma > 0) {
-      truncated = truncated.slice(0, lastComma);
-    }
-    return truncated;
-  }
-
-  // Text fields: break at last whitespace
-  let truncated = text.slice(0, limit);
-  const lastSpace = truncated.lastIndexOf(" ");
-  if (lastSpace > limit * 0.8) {
-    truncated = truncated.slice(0, lastSpace);
-  }
-  return truncated;
+  const truncated = text.slice(0, limit);
+  const lastComma = truncated.lastIndexOf(",");
+  return lastComma > 0 ? truncated.slice(0, lastComma) : truncated;
 }
 
 /** Heuristic check for conversational AI responses that aren't usable as App Store text. */
@@ -90,6 +102,7 @@ const requestSchema = z.object({
   locale: z.string().optional(),
   appName: z.string().optional(),
   charLimit: z.number().optional(),
+  guidance: z.string().optional(),
   description: z.string().optional(),
   subtitle: z.string().optional(),
   forbiddenWords: z.array(z.string()).optional(),
@@ -106,7 +119,7 @@ export async function POST(request: Request) {
 
   const {
     action, text, field, reviewTitle, rating, fromLocale, toLocale, locale,
-    appName, charLimit, description, subtitle, forbiddenWords,
+    appName, charLimit, guidance, description, subtitle, forbiddenWords,
     versionString, whatsNew, promotionalText, isLaunch,
   } = parsed;
 
@@ -114,6 +127,11 @@ export async function POST(request: Request) {
   if (action === "copy") {
     return NextResponse.json({ result: text });
   }
+
+  // Per-run guidance (from a dialog) overrides the saved setting; when absent
+  // (e.g. magic wand) fall back to the saved guidance for this action's scope.
+  const effectiveGuidance = (guidance ?? getAIGuidance(guidanceScopeForAction(action))).trim();
+  const system = buildSystem(effectiveGuidance);
 
   let model;
   let providerId = "";
@@ -208,6 +226,13 @@ export async function POST(request: Request) {
     }
   }
 
+  // Append the user's guidance as a hard directive at the very end of the prompt
+  // (recency + explicit framing) so specific rules like "use 'me', not 'us'" are
+  // actually obeyed, not just nudged via the system message.
+  if (effectiveGuidance) {
+    prompt += `\n\nADDITIONAL INSTRUCTIONS FROM THE USER – follow these exactly, they override the defaults above:\n${effectiveGuidance}`;
+  }
+
   try {
     const needsVariety = action === "draft-reply" || action === "draft-appeal";
     console.log("[ai] generateText: action=%s field=%s provider=%s model=%s", action, field, providerId, modelId);
@@ -215,7 +240,7 @@ export async function POST(request: Request) {
 
     const { text: result } = await generateText({
       model,
-      system: "You are a text-processing tool. Output ONLY the final result as plain text with no preamble, explanation, or commentary. Never use markdown, HTML, or any formatting syntax. Never refuse or ask questions.",
+      system,
       prompt,
       temperature: needsVariety ? 0.9 : 0,
       providerOptions: noThinkingOptions(providerId, modelId),
@@ -235,7 +260,7 @@ export async function POST(request: Request) {
     // LLMs (especially local models) sometimes output newlines or invisible chars.
     const singleLineField = field === "keywords" || field === "name" || field === "subtitle";
     let cleaned = singleLineField
-      ? result.replace(/[\x00-\x1f\x7f\u200b-\u200f\ufeff]/g, "").trim()
+      ? result.replace(CONTROL_CHARS, "").trim()
       : result;
 
     // For fix-keywords: split multi-word keywords first (Apple indexes words
@@ -268,7 +293,7 @@ export async function POST(request: Request) {
             cleaned, locale!, forbiddenWords, { field: "keywords", appName, charLimit, subtitle },
           );
           const { text: retry } = await generateText({
-            model, system: "You are a text-processing tool. Output ONLY the final result as plain text with no preamble, explanation, or commentary. Never use markdown, HTML, or any formatting syntax. Never refuse or ask questions.",
+            model, system,
             prompt: retryPrompt, temperature: 0,
             providerOptions: noThinkingOptions(providerId, modelId),
           });
@@ -279,11 +304,41 @@ export async function POST(request: Request) {
       }
     }
 
-    // Enforce character limit as a safety net – LLMs don't always respect prompt constraints
-    const finalResult = charLimit ? truncateToLimit(cleaned, charLimit, field ?? "") : cleaned;
-    console.log("[ai] returning result: action=%s length=%d total=%dms", action, finalResult.length, Date.now() - t0);
+    // Character-limit handling.
+    let finalResult = cleaned;
+    let overLimit = false;
 
-    return NextResponse.json({ result: finalResult });
+    if (charLimit && cleaned.length > charLimit) {
+      if (field === "keywords") {
+        // Keywords: dropping trailing keywords at comma boundaries keeps the
+        // rest usable, so this is a safe silent trim.
+        finalResult = trimKeywordsToLimit(cleaned, charLimit);
+      } else {
+        // Text fields: try once to shorten via the model, then surface the
+        // result honestly instead of silently cutting it off mid-sentence.
+        try {
+          const { text: retry } = await generateText({
+            model, system,
+            prompt: buildShortenPrompt(cleaned, charLimit, field ?? ""),
+            temperature: 0,
+            providerOptions: noThinkingOptions(providerId, modelId),
+          });
+          const retryClean = singleLineField
+            ? retry.replace(CONTROL_CHARS, "").trim()
+            : retry;
+          if (!looksConversational(retryClean) && retryClean.length < finalResult.length) {
+            finalResult = retryClean;
+          }
+        } catch {
+          // Keep the original over-limit result; it's reported below.
+        }
+        overLimit = finalResult.length > charLimit;
+      }
+    }
+
+    console.log("[ai] returning result: action=%s length=%d overLimit=%s total=%dms", action, finalResult.length, overLimit, Date.now() - t0);
+
+    return NextResponse.json({ result: finalResult, length: finalResult.length, overLimit });
   } catch (err) {
     console.error("[ai] error: action=%s field=%s", action, field, err);
     const category = classifyAIError(err);

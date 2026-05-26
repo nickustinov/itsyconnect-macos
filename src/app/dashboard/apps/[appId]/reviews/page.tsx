@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useApps } from "@/lib/apps-context";
 import { useRegisterRefresh } from "@/lib/refresh-context";
 import { useAIStatus } from "@/lib/hooks/use-ai-status";
+import { useAiGuidance } from "@/lib/hooks/use-ai-guidance";
 import { AIRequiredDialog } from "@/components/ai-required-dialog";
 import type { AscCustomerReview } from "@/lib/asc/reviews";
 import { EmptyState } from "@/components/empty-state";
@@ -37,6 +38,7 @@ export default function ReviewsPage() {
   const { apps } = useApps();
   const app = apps.find((a) => a.id === appId);
   const { configured: aiConfigured } = useAIStatus();
+  const { guidance: reviewGuidance, setGuidance: setReviewGuidance, saveGuidance: saveReviewGuidance } = useAiGuidance("reviews");
   const { versions, loading: versionsLoading } = useVersions();
   const platforms = useMemo(() => getVersionPlatforms(versions), [versions]);
 
@@ -340,6 +342,7 @@ export default function ReviewsPage() {
           reviewTitle: replyTarget.title,
           rating: replyTarget.rating,
           appName: app?.name,
+          guidance: reviewGuidance,
         }),
       });
 
@@ -421,6 +424,7 @@ export default function ReviewsPage() {
           reviewTitle: review.title,
           rating: review.rating,
           appName: app?.name,
+          guidance: reviewGuidance,
         }),
       });
 
@@ -597,6 +601,9 @@ export default function ReviewsPage() {
         editingResponseId={editingResponseId}
         onDraftReply={handleDraftReply}
         draftingReply={draftingReply}
+        guidance={reviewGuidance}
+        onGuidanceChange={setReviewGuidance}
+        onGuidanceBlur={saveReviewGuidance}
         onTranslateReply={handleTranslateReply}
         translatingReply={translatingReply}
         translations={translations}

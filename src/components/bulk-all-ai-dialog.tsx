@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { CaretRight, Check, Warning, CircleNotch, ArrowClockwise } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -18,8 +18,10 @@ import {
 } from "@/components/ui/dialog";
 import { localeName } from "@/lib/asc/locale-names";
 import { CharCount } from "@/components/char-count";
+import { GuidanceField } from "@/components/guidance-field";
 import { useBulkAI, resultKey } from "@/lib/hooks/use-bulk-ai";
 import type { BulkField } from "@/lib/hooks/use-bulk-ai";
+import { useAiGuidance } from "@/lib/hooks/use-ai-guidance";
 
 interface BulkAllAIDialogProps {
   open: boolean;
@@ -64,26 +66,43 @@ export function BulkAllAIDialog({
 
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  // Configure step: translation/copy only starts once the user confirms.
+  const [started, setStarted] = useState(false);
+  const [runLocales, setRunLocales] = useState<string[]>([]);
 
-  const initChecked = useCallback(() => {
+  // Reset configure state every time the dialog opens.
+  useEffect(() => {
+    if (!open) return;
     const initial: Record<string, boolean> = {};
     for (const loc of targetLocales) {
       initial[loc] = true;
     }
     setChecked(initial);
     setExpanded({});
-  }, [targetLocales]);
+    setStarted(false);
+    setRunLocales([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-init only on open transition
+  }, [open]);
+
+  const { guidance, setGuidance, saveGuidance } = useAiGuidance("translation");
 
   const { results, authError, getResult, retryField, retryLocale } = useBulkAI({
-    open,
+    open: open && started,
     mode,
     primaryLocale,
-    targetLocales,
+    targetLocales: runLocales,
     localeData,
     fields,
     appName,
-    onInit: initChecked,
+    guidance,
   });
+
+  function handleStart() {
+    const selected = targetLocales.filter((l) => checked[l]);
+    if (selected.length === 0) return;
+    setRunLocales(selected);
+    setStarted(true);
+  }
 
   // --- Checkbox logic ---
 
@@ -108,7 +127,7 @@ export function BulkAllAIDialog({
 
   function handleApply() {
     const updates: Record<string, Record<string, string>> = {};
-    for (const loc of targetLocales) {
+    for (const loc of runLocales) {
       if (!checked[loc]) continue;
       const fieldUpdates: Record<string, string> = {};
       for (const f of fields) {
@@ -129,15 +148,18 @@ export function BulkAllAIDialog({
 
   // --- Derived state ---
 
-  const checkedCount = targetLocales.filter((l) => checked[l]).length;
-  const allChecked = checkedCount === targetLocales.length;
+  // Configure step
+  const configCheckedCount = targetLocales.filter((l) => checked[l]).length;
+  const configAllChecked = configCheckedCount === targetLocales.length;
 
-  const allFinished = targetLocales.every((loc) => {
+  // Run step
+  const runCheckedCount = runLocales.filter((l) => checked[l]).length;
+  const allFinished = runLocales.every((loc) => {
     const s = localeStatus(loc, fields, results);
     return s === "done" || s === "error" || s === "partial";
   });
 
-  const anyApplicable = targetLocales.some((loc) => {
+  const anyApplicable = runLocales.some((loc) => {
     if (!checked[loc]) return false;
     return fields.some((f) => getResult(loc, f.key)?.status === "done");
   });
@@ -164,9 +186,60 @@ export function BulkAllAIDialog({
           </div>
         )}
 
+        {!started ? (
+          <>
+            <ScrollArea className="min-h-0 overflow-hidden">
+              <div className="space-y-1 pr-3">
+                <p className="mb-2 px-2 text-sm text-muted-foreground">
+                  {mode === "translate"
+                    ? `Choose which languages to translate ${baseLabel} into, then start.`
+                    : `Choose which languages to copy ${baseLabel} into.`}
+                </p>
+                {targetLocales.map((loc) => (
+                  <label
+                    key={loc}
+                    className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50"
+                  >
+                    <Checkbox
+                      checked={checked[loc] ?? false}
+                      onCheckedChange={() => toggleLocale(loc)}
+                    />
+                    <span className="text-sm font-medium">{localeName(loc)}</span>
+                    <span className="text-xs text-muted-foreground">{loc}</span>
+                  </label>
+                ))}
+                {mode === "translate" && (
+                  <div className="px-2 pt-2">
+                    <GuidanceField
+                      value={guidance}
+                      onChange={setGuidance}
+                      onBlur={saveGuidance}
+                    />
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+
+            <div className="flex shrink-0 items-center justify-between pt-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox checked={configAllChecked} onCheckedChange={toggleAll} />
+                <span className="text-sm text-muted-foreground">Select all</span>
+              </label>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={() => onOpenChange(false)}>
+                  Cancel
+                </Button>
+                <Button disabled={configCheckedCount === 0} onClick={handleStart}>
+                  {mode === "translate" ? "Translate" : "Copy"}
+                </Button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
         <ScrollArea className="min-h-0 overflow-hidden">
           <div className="space-y-1 pr-3">
-            {targetLocales.map((loc) => {
+            {runLocales.map((loc) => {
               const status = localeStatus(loc, fields, results);
               const isOpen = expanded[loc] ?? false;
 
@@ -192,6 +265,12 @@ export function BulkAllAIDialog({
                         )}
                         {isError && (
                           <Warning size={14} className="text-destructive" />
+                        )}
+                        {fr?.status === "done" && fr.overLimit && (
+                          <span className="inline-flex items-center gap-1 text-xs text-destructive">
+                            <Warning size={12} />
+                            Too long
+                          </span>
                         )}
                         {mode === "translate" && (
                           <button
@@ -297,6 +376,12 @@ export function BulkAllAIDialog({
                               {isError && (
                                 <span className="text-xs text-destructive">Failed</span>
                               )}
+                              {fr?.status === "done" && fr.overLimit && (
+                                <span className="inline-flex items-center gap-1 text-xs text-destructive">
+                                  <Warning size={10} />
+                                  Too long
+                                </span>
+                              )}
                               {mode === "translate" && (
                                 <button
                                   type="button"
@@ -342,26 +427,22 @@ export function BulkAllAIDialog({
         </ScrollArea>
 
         <div className="flex shrink-0 items-center justify-between pt-4">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <Checkbox
-              checked={allChecked}
-              onCheckedChange={toggleAll}
-            />
-            <span className="text-sm text-muted-foreground">Select all</span>
-          </label>
+          <span className="text-sm text-muted-foreground">
+            {runCheckedCount} of {runLocales.length} selected
+          </span>
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
             <Button disabled={!anyApplicable} onClick={handleApply}>
-              {allFinished
-                ? `Apply ${checkedCount} language${checkedCount !== 1 ? "s" : ""}`
-                : mode === "copy"
-                  ? `Apply ${checkedCount} language${checkedCount !== 1 ? "s" : ""}`
-                  : "Translating\u2026"}
+              {allFinished || mode === "copy"
+                ? `Apply ${runCheckedCount} language${runCheckedCount !== 1 ? "s" : ""}`
+                : "Translating\u2026"}
             </Button>
           </div>
         </div>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

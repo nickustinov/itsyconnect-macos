@@ -13,6 +13,7 @@ import {
   CircleNotch,
   MagicWand,
 } from "@phosphor-icons/react";
+import { GuidanceField } from "@/components/guidance-field";
 import { Stars } from "./review-summary";
 import { NON_ENGLISH_TERRITORIES } from "./territory-helpers";
 import type { Review } from "./territory-helpers";
@@ -29,6 +30,9 @@ interface ReplyDialogProps {
   editingResponseId: string | null;
   onDraftReply: () => void;
   draftingReply: boolean;
+  guidance: string;
+  onGuidanceChange: (value: string) => void;
+  onGuidanceBlur: () => void;
   onTranslateReply: () => void;
   translatingReply: boolean;
   translations: Record<string, { title: string; body: string }>;
@@ -47,6 +51,9 @@ export function ReplyDialog({
   editingResponseId,
   onDraftReply,
   draftingReply,
+  guidance,
+  onGuidanceChange,
+  onGuidanceBlur,
   onTranslateReply,
   translatingReply,
   translations,
@@ -141,6 +148,11 @@ export function ReplyDialog({
               {replyBody.length} / {MAX_RESPONSE_LENGTH}
             </p>
           </div>
+          <GuidanceField
+            value={guidance}
+            onChange={onGuidanceChange}
+            onBlur={onGuidanceBlur}
+          />
         </div>
         <DialogFooter className="flex w-full items-center sm:justify-between">
           <Button

@@ -12,10 +12,16 @@ const mockBuildReplyPrompt = vi.fn();
 const mockBuildAppealPrompt = vi.fn();
 const mockBuildFixKeywordsPrompt = vi.fn();
 const mockBuildNominationPrompt = vi.fn();
+const mockBuildShortenPrompt = vi.fn();
+const mockGetAIGuidance = vi.fn();
 const mockErrorJson = vi.fn();
 
 vi.mock("ai", () => ({
   generateText: (...args: unknown[]) => mockGenerateText(...args),
+}));
+
+vi.mock("@/lib/app-preferences", () => ({
+  getAIGuidance: () => mockGetAIGuidance(),
 }));
 
 vi.mock("@/lib/ai/provider-factory", () => ({
@@ -39,6 +45,7 @@ vi.mock("@/lib/ai/prompts", () => ({
   buildAppealPrompt: (...args: unknown[]) => mockBuildAppealPrompt(...args),
   buildFixKeywordsPrompt: (...args: unknown[]) => mockBuildFixKeywordsPrompt(...args),
   buildNominationPrompt: (...args: unknown[]) => mockBuildNominationPrompt(...args),
+  buildShortenPrompt: (...args: unknown[]) => mockBuildShortenPrompt(...args),
 }));
 
 vi.mock("@/lib/api-helpers", async (importOriginal) => {
@@ -79,6 +86,10 @@ describe("AI route", () => {
     mockBuildFixKeywordsPrompt.mockReturnValue("keywords-prompt");
     mockBuildNominationPrompt.mockReset();
     mockBuildNominationPrompt.mockReturnValue("nomination-prompt");
+    mockBuildShortenPrompt.mockReset();
+    mockBuildShortenPrompt.mockReturnValue("shorten-prompt");
+    mockGetAIGuidance.mockReset();
+    mockGetAIGuidance.mockReturnValue("");
     mockErrorJson.mockReset();
     mockErrorJson.mockImplementation(
       (_err, status = 500, fallback = "mapped") =>
@@ -182,7 +193,7 @@ describe("AI route", () => {
       "fr-FR",
       { field: "description", appName: "Itsy", charLimit: 30 },
     );
-    expect(await translate.json()).toEqual({ result: "Generated output" });
+    expect((await translate.json()).result).toBe("Generated output");
 
     const appeal = await POST(
       new Request("http://localhost", {
@@ -203,7 +214,7 @@ describe("AI route", () => {
       2,
       "Itsy",
     );
-    expect(await appeal.json()).toEqual({ result: "Generated output" });
+    expect((await appeal.json()).result).toBe("Generated output");
   });
 
   it("validates locale for improve and fix-keywords", async () => {
@@ -283,7 +294,7 @@ describe("AI route", () => {
       ["forbidden"],
       expect.objectContaining({ field: "keywords" }),
     );
-    expect(await response.json()).toEqual({ result: "clipboard,history,safe,extra" });
+    expect((await response.json()).result).toBe("clipboard,history,safe,extra");
   });
 
   it("truncates keyword results to the last full comma boundary", async () => {
@@ -304,7 +315,7 @@ describe("AI route", () => {
       }),
     );
 
-    expect(await response.json()).toEqual({ result: "alpha,beta" });
+    expect((await response.json()).result).toBe("alpha,beta");
   });
 
   it("uses the reply and nomination prompts for their respective actions", async () => {
@@ -324,7 +335,7 @@ describe("AI route", () => {
       }),
     );
     expect(mockBuildReplyPrompt).toHaveBeenCalledWith("Bad", "Needs work", 1, "Itsy");
-    expect(await reply.json()).toEqual({ result: "Generated output" });
+    expect((await reply.json()).result).toBe("Generated output");
 
     const nomination = await POST(
       new Request("http://localhost", {
@@ -350,7 +361,7 @@ describe("AI route", () => {
       description: "Desc",
       isLaunch: true,
     });
-    expect(await nomination.json()).toEqual({ result: "Generated output" });
+    expect((await nomination.json()).result).toBe("Generated output");
   });
 
   it("maps auth failures to ai_auth_error", async () => {
@@ -456,16 +467,103 @@ describe("AI route", () => {
     );
   });
 
-  it("truncates text fields at last whitespace within the limit", async () => {
+  it("uses the base system prompt with no guidance set", async () => {
     const { POST } = await import("@/app/api/ai/route");
-    // "abcdefghij klmnopqrst" is 21 chars. With limit 20, slice(0,20) = "abcdefghij klmnopqrs"
-    // lastSpace at index 10, 10 > 20*0.8=16? No. So returns "abcdefghij klmnopqrs" (hard cut).
-    // We need lastSpace > limit*0.8 to trigger the word-break branch.
-    // "abcdefghijklmnop qrstu" is 22 chars. limit=20, slice(0,20) = "abcdefghijklmnop qrs"
-    // lastSpace at 16, 16 > 20*0.8=16? No (not strictly greater). Need > 16.
-    // "abcdefghijklmnopq rstuv" is 23 chars. limit=20, slice(0,20) = "abcdefghijklmnopq rs"
-    // lastSpace at 18, 18 > 20*0.8=16? Yes! Returns "abcdefghijklmnopq" (trimmed at space).
-    mockGenerateText.mockResolvedValue({ text: "abcdefghijklmnopq rstuv" });
+
+    await POST(
+      new Request("http://localhost", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "improve", text: "hello", locale: "en-US" }),
+      }),
+    );
+
+    const call = mockGenerateText.mock.calls[0][0] as { system: string; prompt: string };
+    expect(call.system).toContain("You are a text-processing tool.");
+    expect(call.system).not.toContain("standing instructions");
+    expect(call.prompt).not.toContain("ADDITIONAL INSTRUCTIONS");
+  });
+
+  it("appends per-request guidance to the system and the prompt", async () => {
+    const { POST } = await import("@/app/api/ai/route");
+
+    await POST(
+      new Request("http://localhost", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "translate",
+          text: "hello",
+          fromLocale: "en-US",
+          toLocale: "de-DE",
+          field: "description",
+          guidance: "use an informal tone (du)",
+        }),
+      }),
+    );
+
+    const call = mockGenerateText.mock.calls[0][0] as { system: string; prompt: string };
+    expect(call.system).toContain("standing instructions");
+    expect(call.system).toContain("use an informal tone (du)");
+    expect(call.prompt).toContain("ADDITIONAL INSTRUCTIONS");
+    expect(call.prompt).toContain("use an informal tone (du)");
+    expect(mockGetAIGuidance).not.toHaveBeenCalled();
+  });
+
+  it("falls back to the global guidance when none is in the request", async () => {
+    mockGetAIGuidance.mockReturnValue("write in British English");
+    const { POST } = await import("@/app/api/ai/route");
+
+    await POST(
+      new Request("http://localhost", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "draft-reply",
+          text: "Needs work",
+          reviewTitle: "Bad",
+          rating: 1,
+        }),
+      }),
+    );
+
+    const call = mockGenerateText.mock.calls[0][0] as { system: string; prompt: string };
+    expect(call.system).toContain("write in British English");
+    expect(call.prompt).toContain("write in British English");
+  });
+
+  it("reshortens an over-limit text field when the retry fits", async () => {
+    const { POST } = await import("@/app/api/ai/route");
+    // First call: 23 chars (over the 20 limit). Reshorten retry: 12 chars (fits).
+    mockGenerateText
+      .mockResolvedValueOnce({ text: "way too long subtitle!!" })
+      .mockResolvedValueOnce({ text: "short enough" });
+
+    const response = await POST(
+      new Request("http://localhost", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "improve",
+          text: "hello",
+          locale: "en-US",
+          charLimit: 20,
+          field: "subtitle",
+        }),
+      }),
+    );
+
+    expect(mockBuildShortenPrompt).toHaveBeenCalled();
+    const data = await response.json();
+    expect(data.result).toBe("short enough");
+    expect(data.length).toBe(12);
+    expect(data.overLimit).toBe(false);
+  });
+
+  it("reports an over-limit text field instead of silently truncating", async () => {
+    const { POST } = await import("@/app/api/ai/route");
+    // Both the initial generation and the reshorten retry stay over the limit.
+    mockGenerateText.mockResolvedValue({ text: "this subtitle is still way too long" });
 
     const response = await POST(
       new Request("http://localhost", {
@@ -482,6 +580,32 @@ describe("AI route", () => {
     );
 
     const data = await response.json();
-    expect(data.result).toBe("abcdefghijklmnopq");
+    // Returned in full (not cut off), but flagged as over the limit.
+    expect(data.result).toBe("this subtitle is still way too long");
+    expect(data.length).toBe(35);
+    expect(data.overLimit).toBe(true);
+  });
+
+  it("includes length and overLimit:false for within-limit results", async () => {
+    const { POST } = await import("@/app/api/ai/route");
+    mockGenerateText.mockResolvedValue({ text: "Short" });
+
+    const response = await POST(
+      new Request("http://localhost", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "translate",
+          text: "hello",
+          fromLocale: "en-US",
+          toLocale: "fr-FR",
+          field: "subtitle",
+          charLimit: 30,
+        }),
+      }),
+    );
+
+    const data = await response.json();
+    expect(data).toEqual({ result: "Short", length: 5, overLimit: false });
   });
 });

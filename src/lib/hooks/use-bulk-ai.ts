@@ -11,6 +11,8 @@ export type FieldStatus = "pending" | "loading" | "done" | "error";
 export interface FieldResult {
   status: FieldStatus;
   value: string;
+  /** True when the translated value exceeds the field's character limit. */
+  overLimit?: boolean;
 }
 
 /** Composite key for results: `locale:fieldKey` */
@@ -27,8 +29,8 @@ interface UseBulkAIOptions {
   localeData: Record<string, Record<string, any>>;
   fields: BulkField[];
   appName?: string;
-  /** Called at the start of each run (inside requestAnimationFrame). */
-  onInit?: () => void;
+  /** Per-run AI guidance sent with each translate request. */
+  guidance?: string;
 }
 
 interface UseBulkAIReturn {
@@ -54,14 +56,13 @@ export function useBulkAI({
   localeData,
   fields,
   appName,
-  onInit,
+  guidance,
 }: UseBulkAIOptions): UseBulkAIReturn {
   const [results, setResults] = useState<Record<string, FieldResult>>({});
   const [authError, setAuthError] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   function runCopy() {
-    onInit?.();
     setAuthError(false);
     const baseFields = localeData[primaryLocale] ?? {};
     const newResults: Record<string, FieldResult> = {};
@@ -104,6 +105,7 @@ export function useBulkAI({
         toLocale: locale,
         appName,
         charLimit: field.charLimit,
+        guidance,
       }),
       signal: controller.signal,
     })
@@ -126,7 +128,7 @@ export function useBulkAI({
         setResults((prev) => ({
           ...prev,
           [key]: res.ok
-            ? { status: "done", value: data.result }
+            ? { status: "done", value: data.result, overLimit: data.overLimit === true }
             : { status: "error", value: "" },
         }));
       })
@@ -140,7 +142,6 @@ export function useBulkAI({
   }
 
   function runTranslate() {
-    onInit?.();
     setAuthError(false);
     const controller = new AbortController();
     abortRef.current = controller;
@@ -177,7 +178,7 @@ export function useBulkAI({
       fireTranslate(locale, field, controller);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [fields, primaryLocale, appName, localeData],
+    [fields, primaryLocale, appName, localeData, guidance],
   );
 
   const retryLocale = useCallback(
@@ -200,7 +201,7 @@ export function useBulkAI({
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [fields, primaryLocale, appName, localeData],
+    [fields, primaryLocale, appName, localeData, guidance],
   );
 
   // Run on open
@@ -225,6 +226,7 @@ export function useBulkAI({
       abortRef.current?.abort();
       abortRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fire only when open transitions
   }, [open]);
 
   function getResult(locale: string, fieldKey: string): FieldResult | undefined {
