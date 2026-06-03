@@ -45,7 +45,7 @@ export function ReviewCard({
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
             <Stars rating={review.rating} size={12} />
-            <p className="text-sm font-semibold">
+            <p className="text-sm font-semibold select-text">
               {translated
                 ? translated.title
                 : review.title}
@@ -64,7 +64,7 @@ export function ReviewCard({
         </div>
 
         {/* Body */}
-        <p className="text-sm">
+        <p className="text-sm select-text">
           {translated
             ? translated.body
             : review.body}
@@ -175,7 +175,7 @@ export function ReviewCard({
                 </span>
               </div>
             </div>
-            <p className="text-sm">
+            <p className="text-sm select-text">
               {review.response.responseBody}
             </p>
           </div>
