@@ -115,6 +115,11 @@ export default function AISettingsPage() {
   }
 
   function handleProviderChange(id: string) {
+    if (id === "__none__") {
+      setProviderId("__none__");
+      handleRemove();
+      return;
+    }
     setProviderId(id);
     const newProvider = AI_PROVIDERS.find((p) => p.id === id)!;
     setModelId(newProvider.models[0].id);
@@ -265,6 +270,7 @@ export default function AISettingsPage() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="__none__">None (off)</SelectItem>
             {AI_PROVIDERS.map((p) => (
               <SelectItem key={p.id} value={p.id}>
                 {p.name}
@@ -284,7 +290,7 @@ export default function AISettingsPage() {
         />
       )}
 
-      {!isLocalProvider && (
+      {!isLocalProvider && provider && (
         <section className="space-y-2">
           <h3 className="section-title">Model</h3>
           <Select value={modelId} onValueChange={setModelId}>
@@ -323,7 +329,7 @@ export default function AISettingsPage() {
           </div>
         ) : (
           <div className="space-y-1.5 max-w-md">
-            {providerChanged && (
+            {providerChanged && provider && (
               <p className="text-sm text-muted-foreground">
                 {isLocalProvider
                   ? "Switching to a local OpenAI-compatible server does not require a key unless auth is enabled."
