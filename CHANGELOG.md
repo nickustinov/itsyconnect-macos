@@ -2,6 +2,7 @@
 
 ## 1.12.0
 
+- Portfolio: replace the "Proceeds last 7 days" box with "Proceeds in selected range" so it follows the chart's date range, and make the chart legend clickable to hide apps – hidden apps drop out of the chart and all KPI totals update automatically
 - Add Review center – one aggregated feed of reviews from every app and platform, with reply, translate, and appeal in place; defaults to reviews needing a reply, with filters for app, platform, rating, territory, and date, plus a needs-reply count in the sidebar
 - Fix app details showing no name or subtitle and new version submission failing with "name and privacy missing" after Apple removed the `kidsAgeBand` field from the App Store Connect app info API
 - Add Google Translate fallback for review translation when no AI provider is configured, so the Translate button works without setting up AI (thanks @ViscousPot)

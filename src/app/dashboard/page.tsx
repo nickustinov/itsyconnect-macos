@@ -22,7 +22,6 @@ import {
   ChartTooltip,
   ChartTooltipContent,
   ChartLegend,
-  ChartLegendContent,
   type ChartConfig,
 } from "@/components/ui/chart";
 import { Spinner } from "@/components/ui/spinner";
@@ -68,6 +67,16 @@ export default function DashboardPage() {
   const [analytics, setAnalytics] = useState<Record<string, AppAnalytics>>({});
   const [appVersions, setAppVersions] = useState<Record<string, AscVersion[]>>({});
   const [range, setRange] = usePersistedRange("range:portfolio-proceeds");
+  // App names (and "Total") toggled off in the chart legend – excluded from the chart and KPIs.
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const toggleLine = useCallback((key: string) => {
+    setHidden((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
 
   // entry=1 means proxy redirected here on app launch – restore last URL
   const isEntry = searchParams.get("entry") === "1";
@@ -187,16 +196,20 @@ export default function DashboardPage() {
     busy: refreshing || hasPending,
   });
 
-  // Aggregated KPIs
-  const { totalDownloads, totalProceeds, proceeds7d, proceedsYesterday } = useMemo(() => {
+  const parsed = useMemo(() => parseRange(range), [range]);
+
+  // Aggregated KPIs over the currently visible apps (legend toggles exclude apps).
+  const { totalDownloads, totalProceeds, rangeProceeds, proceedsYesterday } = useMemo(() => {
     let downloads = 0;
     let proceeds = 0;
-    let p7d = 0;
+    let rangeProc = 0;
     let latestDate = "";
     const sortedRevByApp: { date: string; proceeds: number }[][] = [];
 
-    for (const entry of Object.values(analytics)) {
-      if (!entry.data) continue;
+    for (const app of apps) {
+      if (hidden.has(app.name)) continue;
+      const entry = analytics[app.id];
+      if (!entry?.data) continue;
       for (const d of entry.data.dailyDownloads) {
         downloads += d.firstTime + d.redownload;
       }
@@ -204,26 +217,23 @@ export default function DashboardPage() {
       for (const r of rev) {
         proceeds += r.proceeds;
       }
-      // Yesterday = most recent complete day across all apps
+      for (const r of filterByDateRange(rev, parsed)) {
+        rangeProc += r.proceeds;
+      }
+      // Yesterday = most recent complete day across visible apps
       const sorted = [...rev].sort((a, b) => a.date.localeCompare(b.date));
       if (sorted.length > 0 && sorted[sorted.length - 1].date > latestDate) {
         latestDate = sorted[sorted.length - 1].date;
       }
       sortedRevByApp.push(sorted);
-      const last7 = sorted.slice(-7);
-      for (const r of last7) {
-        p7d += r.proceeds;
-      }
     }
     let pYesterday = 0;
     for (const sorted of sortedRevByApp) {
       const entry = sorted.find((r) => r.date === latestDate);
       if (entry) pYesterday += entry.proceeds;
     }
-    return { totalDownloads: downloads, totalProceeds: proceeds, proceeds7d: p7d, proceedsYesterday: pYesterday };
-  }, [analytics]);
-
-  const parsed = useMemo(() => parseRange(range), [range]);
+    return { totalDownloads: downloads, totalProceeds: proceeds, rangeProceeds: rangeProc, proceedsYesterday: pYesterday };
+  }, [apps, analytics, parsed, hidden]);
 
   // Proceeds chart data: merge all apps' dailyRevenue by date
   const { chartData, chartConfig } = useMemo(() => {
@@ -248,7 +258,7 @@ export default function DashboardPage() {
       for (const name of appNames) {
         const val = dateMap[date][name] ?? 0;
         row[name] = val;
-        total += val;
+        if (!hidden.has(name)) total += val;
       }
       row["Total"] = total;
       return row;
@@ -267,7 +277,7 @@ export default function DashboardPage() {
     };
 
     return { chartData: data, chartConfig: config };
-  }, [apps, analytics, parsed]);
+  }, [apps, analytics, parsed, hidden]);
 
   const appNames = useMemo(
     () => Object.keys(chartConfig).filter((k) => k !== "Total"),
@@ -340,8 +350,8 @@ export default function DashboardPage() {
           icon={CurrencyDollar}
         />
         <KpiCard
-          title="Proceeds last 7 days"
-          value={anyLoaded ? `$${proceeds7d.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "–"}
+          title="Proceeds in selected range"
+          value={anyLoaded ? `$${rangeProceeds.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "–"}
           icon={CurrencyDollar}
         />
         <KpiCard
@@ -407,7 +417,7 @@ export default function DashboardPage() {
                       />
                     }
                   />
-                  <ChartLegend content={<ChartLegendContent />} />
+                  <ChartLegend content={<InteractiveLegend hidden={hidden} onToggle={toggleLine} />} />
                   {appNames.map((name, i) => (
                     <Line
                       key={name}
@@ -416,6 +426,7 @@ export default function DashboardPage() {
                       stroke={CHART_COLORS[i % CHART_COLORS.length]}
                       strokeWidth={2}
                       dot={false}
+                      hide={hidden.has(name)}
                     />
                   ))}
                   <Line
@@ -425,6 +436,7 @@ export default function DashboardPage() {
                     strokeWidth={2}
                     strokeDasharray="4 4"
                     dot={false}
+                    hide={hidden.has("Total")}
                   />
                 </LineChart>
               </ChartContainer>
@@ -483,6 +495,48 @@ export default function DashboardPage() {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+interface LegendItem {
+  value: string;
+  color?: string;
+  type?: string;
+}
+
+/** Clickable chart legend – toggling an entry hides its line and updates the KPIs above. */
+function InteractiveLegend({
+  payload,
+  hidden,
+  onToggle,
+}: {
+  payload?: LegendItem[];
+  hidden: Set<string>;
+  onToggle: (key: string) => void;
+}) {
+  if (!payload?.length) return null;
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-3 pt-3">
+      {payload
+        .filter((item) => item.type !== "none")
+        .map((item) => {
+          const off = hidden.has(item.value);
+          return (
+            <button
+              key={item.value}
+              type="button"
+              onClick={() => onToggle(item.value)}
+              className={`flex items-center gap-1.5 text-xs transition-opacity hover:opacity-80 ${off ? "opacity-40" : ""}`}
+            >
+              <span
+                className="h-2 w-2 shrink-0 rounded-[2px]"
+                style={{ backgroundColor: item.color }}
+              />
+              <span className={off ? "line-through" : ""}>{item.value}</span>
+            </button>
+          );
+        })}
     </div>
   );
 }
