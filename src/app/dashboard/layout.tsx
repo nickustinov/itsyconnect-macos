@@ -91,7 +91,7 @@ const INSIGHTS_PANEL_WIDTH = "18rem";
 function ScrollableContent({ children }: { children: React.ReactNode }) {
   const { open } = useInsightsPanel();
   const pathname = usePathname();
-  const hasPanel = pathname.match(/\/reviews$/) || pathname.match(/\/analytics(\/|$)/);
+  const hasPanel = /\/apps\/[^/]+\/reviews$/.test(pathname) || pathname.match(/\/analytics(\/|$)/);
   return (
     <div
       className="flex flex-1 flex-col overflow-y-auto pt-6 pb-8"

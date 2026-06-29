@@ -12,6 +12,7 @@ import {
 import { Stars } from "./review-summary";
 import { territoryName } from "./territory-helpers";
 import type { Review } from "./territory-helpers";
+import { AppIcon } from "@/components/app-icon";
 
 interface ReviewCardProps {
   review: Review;
@@ -22,8 +23,12 @@ interface ReviewCardProps {
   onReply: (review: Review) => void;
   onEdit: (review: Review) => void;
   onAppeal: (review: Review) => void;
-  onDeleteResponse: (reviewId: string, responseId: string) => void;
+  onDeleteResponse: (review: Review, responseId: string) => void;
   deletingResponseId: string | null;
+  /** Show which app the review belongs to (review center only). */
+  app?: { name: string; iconUrl: string | null };
+  /** Platform label to show next to the app (review center only). */
+  platform?: string;
 }
 
 export function ReviewCard({
@@ -37,10 +42,23 @@ export function ReviewCard({
   onAppeal,
   onDeleteResponse,
   deletingResponseId,
+  app,
+  platform,
 }: ReviewCardProps) {
   return (
     <Card key={review.id}>
       <CardContent className="space-y-2 py-0">
+        {app && (
+          <div className="flex items-center gap-2 border-b pb-2">
+            <AppIcon iconUrl={app.iconUrl} name={app.name} className="size-5" iconSize={11} rounded="rounded-[5px]" />
+            <span className="text-xs font-medium truncate">{app.name}</span>
+            {platform && (
+              <Badge variant="secondary" className="shrink-0 text-[10px] px-1.5 py-0">
+                {platform}
+              </Badge>
+            )}
+          </div>
+        )}
         {/* Header: stars + title + date */}
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
@@ -155,7 +173,7 @@ export function ReviewCard({
                   variant="ghost"
                   size="icon"
                   className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                  onClick={() => onDeleteResponse(review.id, review.response!.id)}
+                  onClick={() => onDeleteResponse(review, review.response!.id)}
                   disabled={deletingResponseId === review.response!.id}
                 >
                   {deletingResponseId === review.response!.id ? (

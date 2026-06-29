@@ -42,6 +42,7 @@ export function DashboardBreadcrumb() {
   const app = appId ? apps.find((a) => a.id === appId) : undefined;
   const dynamicTitle = useBreadcrumbTitle();
   const isSettings = pathname.startsWith("/settings");
+  const isReviewCenter = pathname === "/dashboard/reviews";
 
   // Extract all segments after /dashboard/apps/[appId]/
   const segments = appId
@@ -144,6 +145,10 @@ export function DashboardBreadcrumb() {
         {isSettings ? (
           <BreadcrumbItem>
             <BreadcrumbPage>Settings</BreadcrumbPage>
+          </BreadcrumbItem>
+        ) : isReviewCenter ? (
+          <BreadcrumbItem>
+            <BreadcrumbPage>Review center</BreadcrumbPage>
           </BreadcrumbItem>
         ) : app ? (
           <>

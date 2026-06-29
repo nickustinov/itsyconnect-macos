@@ -42,6 +42,34 @@ function notifyBadgeChange(appId: string, hasUnread: boolean) {
   for (const listener of listeners) listener();
 }
 
+// External store for the global "needs reply" count (sum of unanswered across apps)
+let unansweredListeners: Array<() => void> = [];
+let unansweredByApp: Record<string, number> = {};
+let unansweredTotal = 0;
+
+function subscribeUnanswered(listener: () => void) {
+  unansweredListeners = [...unansweredListeners, listener];
+  return () => {
+    unansweredListeners = unansweredListeners.filter((l) => l !== listener);
+  };
+}
+
+function getUnansweredSnapshot() {
+  return unansweredTotal;
+}
+
+function setUnansweredCount(appId: string, count: number) {
+  if (unansweredByApp[appId] === count) return;
+  unansweredByApp = { ...unansweredByApp, [appId]: count };
+  unansweredTotal = Object.values(unansweredByApp).reduce((a, b) => a + b, 0);
+  for (const listener of unansweredListeners) listener();
+}
+
+/** Total reviews awaiting a developer reply across all apps. */
+export function useGlobalUnansweredCount(): number {
+  return useSyncExternalStore(subscribeUnanswered, getUnansweredSnapshot, getUnansweredSnapshot);
+}
+
 /**
  * Hook to poll review counts and track unread state.
  * Call this from the dashboard layout so it polls in the background.
@@ -56,9 +84,14 @@ export function useUnreadReviewsPoller(appIds: string[]) {
         const res = await fetch(`/api/apps/${appId}/reviews?${params}`);
         if (!res.ok) continue;
         const data = await res.json();
-        const total = data.reviews?.length ?? 0;
+        const reviews = data.reviews ?? [];
+        const total = reviews.length;
         const seen = getSeenCount(appId);
         notifyBadgeChange(appId, total > seen);
+        setUnansweredCount(
+          appId,
+          reviews.filter((r: { response?: unknown }) => !r.response).length,
+        );
       } catch {
         // Silently fail – don't block the UI
       }

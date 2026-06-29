@@ -2,6 +2,7 @@
 
 ## 1.12.0
 
+- Add Review center – one aggregated feed of reviews from every app and platform, with reply, translate, and appeal in place; defaults to reviews needing a reply, with filters for app, platform, rating, territory, and date, plus a needs-reply count in the sidebar
 - Fix app details showing no name or subtitle and new version submission failing with "name and privacy missing" after Apple removed the `kidsAgeBand` field from the App Store Connect app info API
 - Add Google Translate fallback for review translation when no AI provider is configured, so the Translate button works without setting up AI (thanks @ViscousPot)
 - Add a "None (off)" option to the AI provider setting so AI can be turned off without leaving stale provider settings (thanks @ViscousPot)

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
-import { SquaresFour } from "@phosphor-icons/react";
+import { SquaresFour, ChatsCircle } from "@phosphor-icons/react";
 import { getLastAppId, getAppState } from "@/lib/nav-state";
 import {
   Sidebar,
@@ -18,7 +18,7 @@ import { useFormDirty } from "@/lib/form-dirty-context";
 import { AppSwitcher } from "./app-switcher";
 import { NavMain } from "./nav-main";
 import { NavFooter } from "./nav-footer";
-import { useUnreadReviewsPoller } from "@/lib/hooks/use-unread-reviews";
+import { useUnreadReviewsPoller, useGlobalUnansweredCount } from "@/lib/hooks/use-unread-reviews";
 import { useApps } from "@/lib/apps-context";
 
 function PortfolioButton() {
@@ -42,6 +42,41 @@ function PortfolioButton() {
             <SquaresFour size={16} />
             <span>Portfolio</span>
             <kbd className="ml-auto text-[13px] text-muted-foreground/50">⌘P</kbd>
+          </Link>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    </SidebarMenu>
+  );
+}
+
+function ReviewCenterButton() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const { isDirty, guardNavigation } = useFormDirty();
+  const isActive = pathname === "/dashboard/reviews";
+  const unanswered = useGlobalUnansweredCount();
+
+  return (
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <SidebarMenuButton asChild tooltip="Review center ⌘⇧R" isActive={isActive}>
+          <Link
+            href="/dashboard/reviews"
+            onNavigate={(e) => {
+              if (!isDirty) return;
+              e.preventDefault();
+              guardNavigation(() => router.push("/dashboard/reviews"));
+            }}
+          >
+            <ChatsCircle size={16} />
+            <span>Review center</span>
+            {unanswered > 0 ? (
+              <span className="ml-auto inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-500 px-1 text-[10px] font-medium text-white">
+                {unanswered}
+              </span>
+            ) : (
+              <kbd className="ml-auto text-[13px] text-muted-foreground/50">⌘⇧R</kbd>
+            )}
           </Link>
         </SidebarMenuButton>
       </SidebarMenuItem>
@@ -119,6 +154,11 @@ export function AppSidebar() {
         guardNavigation(() => router.push("/dashboard"));
         return;
       }
+      if (e.shiftKey && e.key.toLowerCase() === "r") {
+        e.preventDefault();
+        guardNavigation(() => router.push("/dashboard/reviews"));
+        return;
+      }
       const n = parseInt(e.key, 10);
       if (n >= 1 && n <= 9 && n <= apps.length) {
         e.preventDefault();
@@ -157,6 +197,7 @@ export function AppSidebar() {
       </ScrollFadeSidebarContent>
       <SidebarFooter>
         <PortfolioButton />
+        <ReviewCenterButton />
         <NavFooter />
       </SidebarFooter>
     </Sidebar>

@@ -9,8 +9,8 @@ export function HeaderInsightsButton() {
   const pathname = usePathname();
   const { open, toggle } = useInsightsPanel();
 
-  // Only show on reviews and analytics pages
-  if (!pathname.match(/\/reviews$/) && !pathname.match(/\/analytics(\/|$)/)) return null;
+  // Only show on per-app reviews and analytics pages (not the cross-app review center)
+  if (!/\/apps\/[^/]+\/reviews$/.test(pathname) && !pathname.match(/\/analytics(\/|$)/)) return null;
 
   return (
     <Button
