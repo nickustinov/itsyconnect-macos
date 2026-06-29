@@ -18,7 +18,8 @@ import { useFormDirty } from "@/lib/form-dirty-context";
 import { AppSwitcher } from "./app-switcher";
 import { NavMain } from "./nav-main";
 import { NavFooter } from "./nav-footer";
-import { useUnreadReviewsPoller, useGlobalUnansweredCount } from "@/lib/hooks/use-unread-reviews";
+import { useUnreadReviewsPoller } from "@/lib/hooks/use-unread-reviews";
+import { useGlobalUnseenCount } from "@/lib/hooks/use-seen-reviews";
 import { useApps } from "@/lib/apps-context";
 
 function PortfolioButton() {
@@ -54,7 +55,7 @@ function ReviewCenterButton() {
   const router = useRouter();
   const { isDirty, guardNavigation } = useFormDirty();
   const isActive = pathname === "/dashboard/reviews";
-  const unanswered = useGlobalUnansweredCount();
+  const unseen = useGlobalUnseenCount();
 
   return (
     <SidebarMenu>
@@ -70,9 +71,9 @@ function ReviewCenterButton() {
           >
             <ChatsCircle size={16} />
             <span>Review center</span>
-            {unanswered > 0 ? (
-              <span className="ml-auto inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-500 px-1 text-[10px] font-medium text-white">
-                {unanswered}
+            {unseen > 0 ? (
+              <span className="ml-auto inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-medium text-white">
+                {unseen}
               </span>
             ) : (
               <kbd className="ml-auto text-[13px] text-muted-foreground/50">⌘⇧R</kbd>

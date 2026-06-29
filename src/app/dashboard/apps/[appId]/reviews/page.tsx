@@ -12,6 +12,7 @@ import type { AscCustomerReview } from "@/lib/asc/reviews";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 import { useMarkReviewsRead } from "@/lib/hooks/use-unread-reviews";
+import { useSeenReviews } from "@/lib/hooks/use-seen-reviews";
 import { usePersistedState, usePersistedBool } from "@/lib/hooks/use-persisted-range";
 
 import {
@@ -38,6 +39,7 @@ export default function ReviewsPage() {
   const { guidance: reviewGuidance, setGuidance: setReviewGuidance, saveGuidance: saveReviewGuidance } = useAiGuidance("reviews");
   const { versions, loading: versionsLoading } = useVersions();
   const platforms = useMemo(() => getVersionPlatforms(versions), [versions]);
+  const { seen, markSeen, markUnseen } = useSeenReviews();
 
   // Data fetching
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -252,6 +254,10 @@ export default function ReviewsPage() {
                     onAppeal={actions.onAppeal}
                     onDeleteResponse={actions.onDeleteResponse}
                     deletingResponseId={actions.deletingResponseId}
+                    seen={seen.has(review.id)}
+                    onToggleSeen={(r) =>
+                      seen.has(r.id) ? markUnseen([r.id]) : markSeen([r.id])
+                    }
                   />
                 );
               })}

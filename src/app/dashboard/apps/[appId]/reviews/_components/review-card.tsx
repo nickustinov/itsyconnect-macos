@@ -8,6 +8,8 @@ import {
   CircleNotch,
   PencilSimple,
   Trash,
+  Check,
+  ArrowCounterClockwise,
 } from "@phosphor-icons/react";
 import { Stars } from "./review-summary";
 import { territoryName } from "./territory-helpers";
@@ -29,6 +31,9 @@ interface ReviewCardProps {
   app?: { name: string; iconUrl: string | null };
   /** Platform label to show next to the app (review center only). */
   platform?: string;
+  /** Whether this review is marked seen; when set, a seen toggle is shown. */
+  seen?: boolean;
+  onToggleSeen?: (review: Review) => void;
 }
 
 export function ReviewCard({
@@ -44,6 +49,8 @@ export function ReviewCard({
   deletingResponseId,
   app,
   platform,
+  seen,
+  onToggleSeen,
 }: ReviewCardProps) {
   return (
     <Card key={review.id}>
@@ -119,6 +126,26 @@ export function ReviewCard({
             {territoryName(review.territory)}
           </span>
           <div className="flex items-center gap-2">
+            {onToggleSeen && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground"
+                onClick={() => onToggleSeen(review)}
+              >
+                {seen ? (
+                  <>
+                    <ArrowCounterClockwise size={14} className="mr-1.5" />
+                    Mark as unseen
+                  </>
+                ) : (
+                  <>
+                    <Check size={14} className="mr-1.5" />
+                    Mark as seen
+                  </>
+                )}
+              </Button>
+            )}
             {review.rating <= 2 && (
               <Button
                 variant="ghost"

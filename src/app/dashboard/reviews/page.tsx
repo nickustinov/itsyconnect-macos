@@ -2,7 +2,8 @@
 
 import { useState, useMemo, useEffect, useCallback, type Dispatch, type SetStateAction } from "react";
 import { PaginatedList } from "@/components/paginated-list";
-import { CircleNotch, AppWindow } from "@phosphor-icons/react";
+import { CircleNotch, AppWindow, Check } from "@phosphor-icons/react";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -16,6 +17,7 @@ import { useAIStatus } from "@/lib/hooks/use-ai-status";
 import { useAiGuidance } from "@/lib/hooks/use-ai-guidance";
 import { EmptyState } from "@/components/empty-state";
 import { usePersistedState, usePersistedBool } from "@/lib/hooks/use-persisted-range";
+import { useSeenReviews, registerKnownReviews } from "@/lib/hooks/use-seen-reviews";
 import type { AscCustomerReview } from "@/lib/asc/reviews";
 
 import {
@@ -59,6 +61,7 @@ export default function ReviewCenterPage() {
   const { apps, loading: appsLoading } = useApps();
   const { configured: aiConfigured } = useAIStatus();
   const { guidance: reviewGuidance, setGuidance: setReviewGuidance, saveGuidance: saveReviewGuidance } = useAiGuidance("reviews");
+  const { seen, markSeen } = useSeenReviews();
 
   // Reviews keyed by app so re-fetching replaces a slice instead of appending
   // (idempotent – avoids duplicate keys when the effect runs twice in dev).
@@ -96,7 +99,7 @@ export default function ReviewCenterPage() {
   const [ratingFilter, setRatingFilter] = usePersistedState("review-center:rating", "all");
   const [territoryFilter, setTerritoryFilter] = usePersistedState("review-center:territory", "all");
   const [dateFilter, setDateFilter] = usePersistedState("review-center:date", "all");
-  const [hideResponded, setHideResponded] = usePersistedBool("review-center:hide-responded", true);
+  const [hideResponded, setHideResponded] = usePersistedBool("review-center:hide-responded", false);
 
   const [currentPage, setCurrentPage] = useState(1);
   const perPage = 20;
@@ -168,6 +171,13 @@ export default function ReviewCenterPage() {
   const handleRefresh = useCallback(() => fetchAll(true), [fetchAll]);
   useRegisterRefresh({ onRefresh: handleRefresh, busy: pending > 0 });
 
+  // Keep the unseen badge accurate: register the full id set per app.
+  useEffect(() => {
+    const idsByApp: Record<string, string[]> = {};
+    for (const r of reviews) (idsByApp[r.appId] ??= []).push(r.id);
+    for (const [appId, ids] of Object.entries(idsByApp)) registerKnownReviews(appId, ids);
+  }, [reviews]);
+
   const territories = useMemo(
     () => [...new Set(reviews.map((r) => r.territory))].sort(),
     [reviews],
@@ -179,7 +189,8 @@ export default function ReviewCenterPage() {
   );
 
   const filtered = useMemo(() => {
-    let result = [...reviews];
+    // The review center is an inbox of unseen reviews.
+    let result = reviews.filter((r) => !seen.has(r.id));
 
     if (appFilter !== "all") {
       result = result.filter((r) => r.appId === appFilter);
@@ -226,7 +237,7 @@ export default function ReviewCenterPage() {
     }
 
     return sortReviews(result, sortBy);
-  }, [reviews, appFilter, platformFilter, dateFilter, ratingFilter, territoryFilter, hideResponded, sortBy]);
+  }, [reviews, seen, appFilter, platformFilter, dateFilter, ratingFilter, territoryFilter, hideResponded, sortBy]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -292,13 +303,23 @@ export default function ReviewCenterPage() {
           hideResponded={hideResponded}
           onHideRespondedChange={setHideResponded}
         />
+
+        {filtered.length > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="ml-auto"
+            onClick={() => markSeen(reviews.map((r) => r.id))}
+          >
+            <Check size={14} className="mr-1.5" />
+            Mark all as seen
+          </Button>
+        )}
       </div>
 
       {filtered.length === 0 ? (
         <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-          {hideResponded
-            ? "Nothing needs a reply – you're all caught up."
-            : "No reviews match the current filters."}
+          No unseen reviews – you&apos;re all caught up.
         </div>
       ) : (
         <PaginatedList
@@ -329,6 +350,8 @@ export default function ReviewCenterPage() {
                     onAppeal={actions.onAppeal}
                     onDeleteResponse={actions.onDeleteResponse}
                     deletingResponseId={actions.deletingResponseId}
+                    seen={false}
+                    onToggleSeen={(r) => markSeen([r.id])}
                   />
                 );
               })}
