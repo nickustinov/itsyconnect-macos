@@ -204,11 +204,6 @@ export default function ReviewsPage() {
   // ── Handlers ───────────────────────────────────────────────────
 
   async function handleTranslate(review: Review) {
-    if (!aiConfigured) {
-      setShowAIRequired(true);
-      return;
-    }
-
     // Already translated – just toggle visibility
     if (translations[review.id]) {
       setShowTranslation((prev) => ({
@@ -224,16 +219,15 @@ export default function ReviewsPage() {
       const fromLocale = territoryToLocale(review.territory);
       const text = `${review.title}\n\n${review.body}`;
 
-      const res = await fetch("/api/ai", {
+      const url = aiConfigured ? "/api/ai" : "/api/translate/google";
+      const fetchBody = aiConfigured
+        ? { action: "translate", text, field: "review", fromLocale, toLocale: "en-US" }
+        : { text };
+
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "translate",
-          text,
-          field: "review",
-          fromLocale,
-          toLocale: "en-US",
-        }),
+        body: JSON.stringify(fetchBody),
       });
 
       if (!res.ok) {
