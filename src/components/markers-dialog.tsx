@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { useAppMarkers } from "@/lib/hooks/use-app-markers";
 import { formatDateShort } from "@/lib/format";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 interface MarkersDialogProps {
   appId: string;
@@ -41,6 +42,7 @@ function fromIso(iso: string): Date {
 }
 
 export function MarkersDialog({ appId, open, onOpenChange }: MarkersDialogProps) {
+  const t = useTranslations();
   const { markers, loading, addMarker, deleteMarker } = useAppMarkers(appId);
   const [date, setDate] = useState(() => toIso(new Date()));
   const [dateOpen, setDateOpen] = useState(false);
@@ -53,9 +55,9 @@ export function MarkersDialog({ appId, open, onOpenChange }: MarkersDialogProps)
     try {
       await addMarker({ date, label: label.trim() });
       setLabel("");
-      toast.success("Marker added");
+      toast.success(t("markers.added"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to add marker");
+      toast.error(err instanceof Error ? err.message : t("markers.addFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -65,7 +67,7 @@ export function MarkersDialog({ appId, open, onOpenChange }: MarkersDialogProps)
     try {
       await deleteMarker(id);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete marker");
+      toast.error(err instanceof Error ? err.message : t("markers.deleteFailed"));
     }
   }
 
@@ -73,16 +75,15 @@ export function MarkersDialog({ appId, open, onOpenChange }: MarkersDialogProps)
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[80vh] !grid grid-rows-[auto_auto_1fr] gap-0">
         <DialogHeader className="pb-4">
-          <DialogTitle>Timeline markers</DialogTitle>
+          <DialogTitle>{t("markers.title")}</DialogTitle>
           <DialogDescription>
-            Mark events like price changes, promotions, or features so you can
-            see their impact across every chart.
+            {t("markers.description")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-[auto_1fr_auto] items-end gap-2 pb-4">
           <div className="space-y-1">
-            <Label className="text-xs">Date</Label>
+            <Label className="text-xs">{t("markers.date")}</Label>
             <Popover open={dateOpen} onOpenChange={setDateOpen}>
               <PopoverTrigger asChild>
                 <Button
@@ -110,12 +111,12 @@ export function MarkersDialog({ appId, open, onOpenChange }: MarkersDialogProps)
             </Popover>
           </div>
           <div className="space-y-1">
-            <Label htmlFor="marker-label" className="text-xs">Label</Label>
+            <Label htmlFor="marker-label" className="text-xs">{t("markers.label")}</Label>
             <Input
               id="marker-label"
               value={label}
               onChange={(e) => setLabel(e.target.value)}
-              placeholder="e.g. Price change"
+              placeholder={t("markers.labelPlaceholder")}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
@@ -130,18 +131,18 @@ export function MarkersDialog({ appId, open, onOpenChange }: MarkersDialogProps)
             disabled={!label.trim() || !date || submitting}
           >
             <Plus size={14} />
-            Add
+            {t("markers.add")}
           </Button>
         </div>
 
         <ScrollArea className="min-h-0 overflow-hidden">
           {loading ? (
             <p className="py-6 text-center text-sm text-muted-foreground">
-              Loading markers…
+              {t("markers.loading")}
             </p>
           ) : markers.length === 0 ? (
             <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
-              No markers yet. Add one above to start annotating your charts.
+              {t("markers.empty")}
             </div>
           ) : (
             <ul className="space-y-1 pr-2">
@@ -160,7 +161,7 @@ export function MarkersDialog({ appId, open, onOpenChange }: MarkersDialogProps)
                     size="icon"
                     className="h-7 w-7 text-muted-foreground hover:text-destructive"
                     onClick={() => handleDelete(m.id)}
-                    title="Delete marker"
+                    title={t("markers.deleteTitle")}
                   >
                     <Trash size={14} />
                   </Button>

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { usePathname } from "next/navigation";
 
 type PanelMode = "reviews" | "analytics";
@@ -17,6 +17,7 @@ function detectMode(pathname: string): PanelMode | null {
 }
 
 function readPersisted(mode: PanelMode): boolean {
+  if (typeof window === "undefined") return false;
   try {
     return localStorage.getItem(STORAGE_KEYS[mode]) === "1";
   } catch {
@@ -46,10 +47,18 @@ export function InsightsPanelProvider({ children }: { children: React.ReactNode 
   const pathname = usePathname();
   const mode = detectMode(pathname);
 
-  const [state, setState] = useState<Record<PanelMode, boolean>>(() => ({
-    reviews: readPersisted("reviews"),
-    analytics: readPersisted("analytics"),
-  }));
+  const [state, setState] = useState<Record<PanelMode, boolean>>({
+    reviews: false,
+    analytics: false,
+  });
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- client-only localStorage read
+    setState({
+      reviews: readPersisted("reviews"),
+      analytics: readPersisted("analytics"),
+    });
+  }, []);
 
   const open = mode ? state[mode] : false;
 

@@ -28,16 +28,18 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { useHasUnreadReviews } from "@/lib/hooks/use-unread-reviews";
+import { useTranslations } from "@/lib/i18n/locale-context";
+import type { MessageKey } from "@/lib/i18n/messages";
 
 interface NavItem {
-  title: string;
+  titleKey: MessageKey;
   href: string;
   icon: Icon;
   shortcut?: string;
 }
 
 interface NavGroup {
-  label: string;
+  labelKey: MessageKey;
   items: NavItem[];
 }
 
@@ -46,36 +48,36 @@ function getNavGroups(appId: string): NavGroup[] {
 
   return [
     {
-      label: "Release",
+      labelKey: "nav.groups.release",
       items: [
-        { title: "Overview", href: base, icon: Gauge, shortcut: "⌘O" },
-        { title: "Store listing", href: `${base}/store-listing`, icon: Storefront, shortcut: "⌘L" },
-        { title: "Screenshots", href: `${base}/screenshots`, icon: Images },
-        { title: "App details", href: `${base}/details`, icon: Info },
-        { title: "App review", href: `${base}/review`, icon: Stamp },
+        { titleKey: "nav.items.overview", href: base, icon: Gauge, shortcut: "⌘O" },
+        { titleKey: "nav.items.storeListing", href: `${base}/store-listing`, icon: Storefront, shortcut: "⌘L" },
+        { titleKey: "nav.items.screenshots", href: `${base}/screenshots`, icon: Images },
+        { titleKey: "nav.items.appDetails", href: `${base}/details`, icon: Info },
+        { titleKey: "nav.items.appReview", href: `${base}/review`, icon: Stamp },
       ],
     },
     {
-      label: "Insights",
+      labelKey: "nav.groups.insights",
       items: [
-        { title: "Reviews", href: `${base}/reviews`, icon: ChatsCircle, shortcut: "⌘R" },
-        { title: "Analytics", href: `${base}/analytics`, icon: ChartLineUp, shortcut: "⌘I" },
-        { title: "Keywords", href: `${base}/aso/keywords`, icon: MagnifyingGlass },
+        { titleKey: "nav.items.reviews", href: `${base}/reviews`, icon: ChatsCircle, shortcut: "⌘R" },
+        { titleKey: "nav.items.analytics", href: `${base}/analytics`, icon: ChartLineUp, shortcut: "⌘I" },
+        { titleKey: "nav.items.keywords", href: `${base}/aso/keywords`, icon: MagnifyingGlass },
       ],
     },
     {
-      label: "TestFlight",
+      labelKey: "nav.groups.testflight",
       items: [
-        { title: "Builds", href: `${base}/testflight`, icon: Truck, shortcut: "⌘B" },
-        { title: "Groups", href: `${base}/testflight/groups`, icon: UsersThree },
-        { title: "Beta app info", href: `${base}/testflight/info`, icon: Info },
-        { title: "Feedback", href: `${base}/testflight/feedback`, icon: ChatDots },
+        { titleKey: "nav.items.builds", href: `${base}/testflight`, icon: Truck, shortcut: "⌘B" },
+        { titleKey: "nav.items.groups", href: `${base}/testflight/groups`, icon: UsersThree },
+        { titleKey: "nav.items.betaAppInfo", href: `${base}/testflight/info`, icon: Info },
+        { titleKey: "nav.items.feedback", href: `${base}/testflight/feedback`, icon: ChatDots },
       ],
     },
     {
-      label: "Growth",
+      labelKey: "nav.groups.growth",
       items: [
-        { title: "Nominations", href: `${base}/nominations`, icon: Trophy },
+        { titleKey: "nav.items.nominations", href: `${base}/nominations`, icon: Trophy },
       ],
     },
   ];
@@ -90,6 +92,7 @@ export function NavMain({ appId }: { appId: string }) {
   const router = useRouter();
   const { isDirty, guardNavigation } = useFormDirty();
   const { changes, bufferEnabled } = useChangeBuffer();
+  const t = useTranslations();
   const appChanges = changes.filter((c) => c.appId === appId);
   const appChangeCount = appChanges.reduce((sum, c) => {
     let count = 0;
@@ -137,14 +140,16 @@ export function NavMain({ appId }: { appId: string }) {
   return (
     <>
       {groups.map((group, groupIdx) => (
-        <SidebarGroup key={group.label}>
-          <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+        <SidebarGroup key={group.labelKey}>
+          <SidebarGroupLabel>{t(group.labelKey)}</SidebarGroupLabel>
           <SidebarMenu>
-            {group.items.map((item) => (
+            {group.items.map((item) => {
+              const title = t(item.titleKey);
+              return (
               <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton
                   asChild
-                  tooltip={item.shortcut ? `${item.title} ${item.shortcut}` : item.title}
+                  tooltip={item.shortcut ? `${title} ${item.shortcut}` : title}
                   isActive={isActive(item.href)}
                 >
                   <Link
@@ -156,7 +161,7 @@ export function NavMain({ appId }: { appId: string }) {
                     }}
                   >
                     <item.icon size={16} />
-                    <span>{item.title}</span>
+                    <span>{title}</span>
                     {item.href === `${base}/reviews` && <ReviewsBadge appId={appId} />}
                     {item.shortcut && (
                       <kbd className="ml-auto text-[13px] text-muted-foreground/50">{item.shortcut}</kbd>
@@ -164,19 +169,20 @@ export function NavMain({ appId }: { appId: string }) {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-            ))}
+              );
+            })}
           </SidebarMenu>
           {groupIdx === 0 && bufferEnabled && appChangeCount > 0 && (
             <SidebarMenu className="mt-2 border-t pt-2">
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
-                  tooltip="Diff"
+                  tooltip={t("nav.diff")}
                   isActive={isActive(`${base}/review-changes`)}
                 >
                   <Link href={`${base}/review-changes${suffix}`}>
                     <GitDiff size={16} />
-                    <span>Diff</span>
+                    <span>{t("nav.diff")}</span>
                     <span className="ml-auto inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-medium text-white">
                       {appChangeCount}
                     </span>

@@ -28,10 +28,12 @@ import { ReviewActionDialogs } from "./_components/review-action-dialogs";
 import { readReviewsPlatform, REVIEWS_PLATFORM_CHANGE } from "@/components/layout/header-version-picker";
 import { useVersions } from "@/lib/versions-context";
 import { getVersionPlatforms } from "@/lib/asc/version-types";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 // ── Main page ──────────────────────────────────────────────────────
 
 export default function ReviewsPage() {
+  const t = useTranslations();
   const { appId } = useParams<{ appId: string }>();
   const { apps } = useApps();
   const app = apps.find((a) => a.id === appId);
@@ -86,7 +88,7 @@ export default function ReviewsPage() {
       );
       setReviews(normalised);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch reviews");
+      setError(err instanceof Error ? err.message : t("reviews.fetchFailed"));
     } finally {
       setLoading(false);
     }
@@ -183,7 +185,7 @@ export default function ReviewsPage() {
   // ── Render ─────────────────────────────────────────────────────
 
   if (!app) {
-    return <EmptyState title="App not found" />;
+    return <EmptyState title={t("app.notFound")} />;
   }
 
   if (loading) {
@@ -224,8 +226,8 @@ export default function ReviewsPage() {
       {filtered.length === 0 ? (
         <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
           {total === 0
-            ? "No reviews yet."
-            : "No reviews match the current filters."}
+            ? t("reviews.emptyNone")
+            : t("reviews.emptyNoMatch")}
         </div>
       ) : (
         <PaginatedList

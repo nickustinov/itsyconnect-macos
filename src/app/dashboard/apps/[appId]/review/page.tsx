@@ -19,8 +19,10 @@ import { FIELD_LIMITS } from "@/lib/asc/locale-names";
 import { CharCount } from "@/components/char-count";
 import { EmptyState } from "@/components/empty-state";
 import { useTabNavigation } from "@/lib/hooks/use-tab-navigation";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 export default function AppReviewPage() {
+  const t = useTranslations();
   const tabRef = useTabNavigation();
   const { appId } = useParams<{ appId: string }>();
   const searchParams = useSearchParams();
@@ -106,11 +108,11 @@ export default function AppReviewPage() {
   useEffect(() => {
     const limit = FIELD_LIMITS.reviewNotes;
     if (notes.length > limit) {
-      setValidationErrors([`Review notes exceeds ${limit} character limit`]);
+      setValidationErrors([t("appReview.validationNotesLimit", { limit })]);
     } else {
       setValidationErrors([]);
     }
-  }, [notes, setValidationErrors]);
+  }, [notes, setValidationErrors, t]);
 
   // Overlay buffered changes on initial load
   const bufferAppliedRef = useRef(false);
@@ -178,7 +180,7 @@ export default function AppReviewPage() {
 
         bufferAppliedRef.current = true;
         saveToBuffer(data, origData);
-        toast.success("Changes saved locally");
+        toast.success(t("common.savedLocally"));
         setDirty(false);
         return;
       }
@@ -210,18 +212,18 @@ export default function AppReviewPage() {
       if (!res.ok) {
         if (data.ascErrors?.length) {
           showAscError({
-            message: data.error ?? "Save failed",
+            message: data.error ?? t("common.saveFailed"),
             ascErrors: data.ascErrors,
             ascMethod: data.ascMethod,
             ascPath: data.ascPath,
           });
         } else {
-          toast.error(data.error ?? "Save failed");
+          toast.error(data.error ?? t("common.saveFailed"));
         }
         return;
       }
 
-      toast.success("Review info saved");
+      toast.success(t("appReview.toastSaved"));
 
       if (selectedVersion) {
         updateVersion(selectedVersion.id, (v) => ({
@@ -245,7 +247,7 @@ export default function AppReviewPage() {
     });
   }, [
     appId, selectedVersion, notes, signInRequired, demoName, demoPassword,
-    firstName, lastName, phone, email, bufferEnabled, registerSave, setDirty, updateVersion, showAscError, saveToBuffer, discardBuffer,
+    firstName, lastName, phone, email, bufferEnabled, registerSave, setDirty, updateVersion, showAscError, saveToBuffer, discardBuffer, t,
   ]);
 
   // Register discard handler for the header Discard button
@@ -267,7 +269,7 @@ export default function AppReviewPage() {
   }, [reviewDetail, bufferEnabled, registerDiscard, discardBuffer]);
 
   if (!app) {
-    return <EmptyState title="App not found" />;
+    return <EmptyState title={t("app.notFound")} />;
   }
 
   if (versionsLoading) {
@@ -282,11 +284,11 @@ export default function AppReviewPage() {
     <div ref={tabRef} className="space-y-6">
       {/* Review notes */}
       <section className="space-y-2">
-        <h3 className="section-title">Notes for App Review</h3>
+        <h3 className="section-title">{t("appReview.notesTitle")}</h3>
         <Card className="gap-0 py-0">
           <CardContent className="px-5 py-4">
             <Textarea
-              placeholder="Provide any additional information the App Review team might need..."
+              placeholder={t("appReview.notesPlaceholder")}
               className="border-0 p-0 shadow-none focus-visible:ring-0 resize-none text-sm min-h-0 dark:bg-transparent"
               value={notes}
               onChange={(e) => { setNotes(e.target.value); setDirty(true); }}
@@ -300,7 +302,7 @@ export default function AppReviewPage() {
 
       {/* Demo account */}
       <section className="space-y-4">
-        <h3 className="section-title">Demo account</h3>
+        <h3 className="section-title">{t("appReview.demoAccount")}</h3>
         <div className="flex items-center gap-3">
           <Switch
             id="sign-in-required"
@@ -308,27 +310,27 @@ export default function AppReviewPage() {
             onCheckedChange={(v) => { setSignInRequired(v); setDirty(true); }}
           />
           <Label htmlFor="sign-in-required" className="text-sm">
-            Sign-in required
+            {t("appReview.signInRequired")}
           </Label>
         </div>
         {signInRequired && (
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <label className="text-sm text-muted-foreground">Username</label>
+              <label className="text-sm text-muted-foreground">{t("appReview.username")}</label>
               <Input
                 dir="ltr"
-                placeholder="demo@example.com"
+                placeholder={t("appReview.usernamePlaceholder")}
                 className="text-sm"
                 value={demoName}
                 onChange={(e) => { setDemoName(e.target.value); setDirty(true); }}
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm text-muted-foreground">Password</label>
+              <label className="text-sm text-muted-foreground">{t("appReview.password")}</label>
               <Input
                 dir="ltr"
                 type="password"
-                placeholder="Password"
+                placeholder={t("appReview.password")}
                 className="text-sm"
                 value={demoPassword}
                 onChange={(e) => { setDemoPassword(e.target.value); setDirty(true); }}
@@ -340,13 +342,13 @@ export default function AppReviewPage() {
 
       {/* Contact information */}
       <section className="space-y-2 pb-8">
-        <h3 className="section-title">Contact details</h3>
+        <h3 className="section-title">{t("appReview.contactDetails")}</h3>
         <p className="text-sm text-muted-foreground">
-          How the App Review team can reach you if they have questions.
+          {t("appReview.contactHint")}
         </p>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">First name</label>
+            <label className="text-sm text-muted-foreground">{t("appReview.firstName")}</label>
             <Input
               className="text-sm"
               value={firstName}
@@ -354,7 +356,7 @@ export default function AppReviewPage() {
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">Last name</label>
+            <label className="text-sm text-muted-foreground">{t("appReview.lastName")}</label>
             <Input
               className="text-sm"
               value={lastName}
@@ -362,7 +364,7 @@ export default function AppReviewPage() {
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">Phone</label>
+            <label className="text-sm text-muted-foreground">{t("appReview.phone")}</label>
             <Input
               dir="ltr"
               className="text-sm"
@@ -371,7 +373,7 @@ export default function AppReviewPage() {
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">Email</label>
+            <label className="text-sm text-muted-foreground">{t("appReview.email")}</label>
             <Input
               dir="ltr"
               type="email"

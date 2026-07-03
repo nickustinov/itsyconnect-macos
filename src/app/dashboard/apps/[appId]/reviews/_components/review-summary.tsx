@@ -1,5 +1,8 @@
+"use client";
+
 import { Star } from "@phosphor-icons/react";
 import { Card, CardContent } from "@/components/ui/card";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 // ── Stars ──────────────────────────────────────────────────────────
 
@@ -59,6 +62,8 @@ interface ReviewSummaryProps {
 }
 
 export function ReviewSummary({ avgRating, total, distribution }: ReviewSummaryProps) {
+  const t = useTranslations();
+
   return (
     <Card>
       <CardContent className="flex items-center gap-8 py-0">
@@ -68,7 +73,7 @@ export function ReviewSummary({ avgRating, total, distribution }: ReviewSummaryP
           </div>
           <Stars rating={Math.round(avgRating)} />
           <p className="mt-1 text-xs text-muted-foreground">
-            {total} review{total !== 1 ? "s" : ""}
+            {total} {total === 1 ? t("reviews.summaryReview") : t("reviews.summaryReviews")}
           </p>
         </div>
         <div className="flex-1 space-y-1.5">

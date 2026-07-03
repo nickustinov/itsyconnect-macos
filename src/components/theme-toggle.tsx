@@ -10,20 +10,22 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-const THEME_OPTIONS = [
-  { value: "system", label: "System", icon: Monitor },
-  { value: "light", label: "Light", icon: Sun },
-  { value: "dark", label: "Dark", icon: Moon },
-] as const;
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 export function ThemeToggle() {
+  const t = useTranslations();
   const { theme, setTheme, resolvedTheme } = useTheme();
   const mounted = useSyncExternalStore(
     () => () => {},
     () => true,
     () => false,
   );
+
+  const themeOptions = [
+    { value: "system", label: t("settings.appearance.themeSystem"), icon: Monitor },
+    { value: "light", label: t("settings.appearance.themeLight"), icon: Sun },
+    { value: "dark", label: t("settings.appearance.themeDark"), icon: Moon },
+  ] as const;
 
   const ActiveIcon = mounted && resolvedTheme === "dark" ? Moon : Sun;
 
@@ -35,7 +37,7 @@ export function ThemeToggle() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
+        {themeOptions.map(({ value, label, icon: Icon }) => (
           <DropdownMenuItem
             key={value}
             onClick={() => setTheme(value)}

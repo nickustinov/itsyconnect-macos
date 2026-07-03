@@ -9,8 +9,10 @@ import { localeName } from "@/lib/asc/locale-names";
 import { useKeywords } from "./_components/keywords-context";
 import { OverviewCard } from "./_components/overview-card";
 import { LocaleCard } from "./_components/locale-card";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 export default function KeywordsLocalesPage() {
+  const t = useTranslations();
   const {
     app, localeAnalysis, readOnly, loading, noVersions,
     handleKeywordsChange, getTitle, getSubtitle, getDescription,
@@ -27,8 +29,8 @@ export default function KeywordsLocalesPage() {
   if (noVersions) {
     return (
       <EmptyState
-        title="No versions"
-        description="Create a version to start analysing keywords."
+        title={t("storeListing.noVersions")}
+        description={t("keywords.noVersionsDescription")}
       />
     );
   }
@@ -36,8 +38,8 @@ export default function KeywordsLocalesPage() {
   if (!localeAnalysis || localeAnalysis.localeData.length === 0) {
     return (
       <EmptyState
-        title="No localizations"
-        description="Add localizations in store listing to manage keywords."
+        title={t("storeListing.noLocalizations")}
+        description={t("keywords.noLocalizationsDescription")}
       />
     );
   }
@@ -59,7 +61,9 @@ export default function KeywordsLocalesPage() {
         }}
       >
         <p className="text-sm text-muted-foreground">
-          {localeAnalysis.localeData.length} locale{localeAnalysis.localeData.length > 1 ? "s" : ""} with keywords.
+          {localeAnalysis.localeData.length === 1
+            ? t("keywords.localesWithKeywords", { count: localeAnalysis.localeData.length })
+            : t("keywords.localesWithKeywordsPlural", { count: localeAnalysis.localeData.length })}
         </p>
       </OverviewCard>
 
@@ -82,13 +86,11 @@ export default function KeywordsLocalesPage() {
 
       {localeAnalysis.crossLocaleDuplicates.size > 0 && (
         <section className="space-y-3">
-          <h3 className="section-title">Cross-locale duplicates</h3>
+          <h3 className="section-title">{t("keywords.crossLocaleDuplicates")}</h3>
           <Card className="gap-0 py-0">
             <CardContent className="py-4">
               <p className="text-sm text-muted-foreground mb-3">
-                These keywords appear in multiple locales. If those locales are
-                co-indexed in a storefront, repetition wastes budget &ndash; check the
-                storefront view for details.
+                {t("keywords.crossLocaleDuplicatesHint")}
               </p>
               <div className="space-y-2">
                 {[...localeAnalysis.crossLocaleDuplicates.entries()].map(

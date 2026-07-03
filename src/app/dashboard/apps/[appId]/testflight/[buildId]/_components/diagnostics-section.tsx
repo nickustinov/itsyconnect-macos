@@ -5,7 +5,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { CircleNotch, CaretRight } from "@phosphor-icons/react";
 import type { TFDiagnosticSignature, TFDiagnosticLog, TFDiagnosticType, TFCallStackFrame } from "@/lib/asc/testflight";
 import { DIAGNOSTIC_TYPE_DOTS } from "@/lib/asc/display-types";
-import { DIAGNOSTIC_TYPE_LABELS } from "@/lib/asc/testflight/types";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 function renderCallStack(frames: TFCallStackFrame[], depth: number): React.ReactNode {
   return frames.map((frame, i) => (
@@ -24,7 +24,10 @@ function renderCallStack(frames: TFCallStackFrame[], depth: number): React.React
   ));
 }
 
+const DIAGNOSTIC_TABS = ["all", "DISK_WRITES", "HANGS", "LAUNCHES"] as const;
+
 export function DiagnosticsSection({ appId, buildId }: { appId: string; buildId: string }) {
+  const t = useTranslations();
   const [signatures, setSignatures] = useState<TFDiagnosticSignature[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -50,6 +53,22 @@ export function DiagnosticsSection({ appId, buildId }: { appId: string; buildId:
     () => Math.max(...filtered.map((s) => s.weight), 1),
     [filtered],
   );
+
+  function diagnosticTypeLabel(type: TFDiagnosticType): string {
+    const labels: Record<TFDiagnosticType, string> = {
+      DISK_WRITES: t("testflight.diagnosticTypes.DISK_WRITES"),
+      HANGS: t("testflight.diagnosticTypes.HANGS"),
+      LAUNCHES: t("testflight.diagnosticTypes.LAUNCHES"),
+    };
+    return labels[type];
+  }
+
+  function emptyMessage(tab: string): string {
+    if (tab === "all") return t("testflight.noDiagnosticSignaturesGeneric");
+    return t("testflight.noDiagnosticSignaturesType", {
+      type: diagnosticTypeLabel(tab as TFDiagnosticType).toLowerCase(),
+    });
+  }
 
   async function toggleExpand(signatureId: string) {
     if (expandedId === signatureId) {
@@ -79,7 +98,7 @@ export function DiagnosticsSection({ appId, buildId }: { appId: string; buildId:
   if (loading) {
     return (
       <section className="space-y-3">
-        <h3 className="section-title">Diagnostics</h3>
+        <h3 className="section-title">{t("testflight.diagnostics")}</h3>
         <div className="flex items-center justify-center py-8">
           <CircleNotch size={20} className="animate-spin text-muted-foreground" />
         </div>
@@ -89,26 +108,26 @@ export function DiagnosticsSection({ appId, buildId }: { appId: string; buildId:
 
   return (
     <section className="space-y-3">
-      <h3 className="section-title">Diagnostics</h3>
+      <h3 className="section-title">{t("testflight.diagnostics")}</h3>
 
       {signatures.length === 0 ? (
         <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-          No diagnostic signatures for this build.
+          {t("testflight.noDiagnosticSignatures")}
         </div>
       ) : (
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList variant="line">
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="DISK_WRITES">Disk writes</TabsTrigger>
-            <TabsTrigger value="HANGS">Hangs</TabsTrigger>
-            <TabsTrigger value="LAUNCHES">Launches</TabsTrigger>
+            <TabsTrigger value="all">{t("testflight.allSignatures")}</TabsTrigger>
+            <TabsTrigger value="DISK_WRITES">{t("testflight.diagnosticTypes.DISK_WRITES")}</TabsTrigger>
+            <TabsTrigger value="HANGS">{t("testflight.diagnosticTypes.HANGS")}</TabsTrigger>
+            <TabsTrigger value="LAUNCHES">{t("testflight.diagnosticTypes.LAUNCHES")}</TabsTrigger>
           </TabsList>
 
-          {["all", "DISK_WRITES", "HANGS", "LAUNCHES"].map((tab) => (
+          {DIAGNOSTIC_TABS.map((tab) => (
             <TabsContent key={tab} value={tab}>
               {filtered.length === 0 ? (
                 <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-                  No {tab === "all" ? "diagnostic" : DIAGNOSTIC_TYPE_LABELS[tab as TFDiagnosticType]?.toLowerCase()} signatures.
+                  {emptyMessage(tab)}
                 </div>
               ) : (
                 <div className="space-y-1">
@@ -146,11 +165,11 @@ export function DiagnosticsSection({ appId, buildId }: { appId: string; buildId:
                           {logsLoading === sig.id ? (
                             <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
                               <CircleNotch size={14} className="animate-spin" />
-                              Loading logs…
+                              {t("testflight.loadingLogs")}
                             </div>
                           ) : (logs[sig.id] ?? []).length === 0 ? (
                             <p className="py-4 text-sm text-muted-foreground">
-                              No logs available for this signature.
+                              {t("testflight.noLogsForSignature")}
                             </p>
                           ) : (
                             <div className="space-y-4">
@@ -186,7 +205,7 @@ export function DiagnosticsSection({ appId, buildId }: { appId: string; buildId:
                                               rel="noopener noreferrer"
                                               className="text-blue-600 hover:underline dark:text-blue-400"
                                             >
-                                              Learn more
+                                              {t("testflight.learnMore")}
                                             </a>
                                           )}
                                         </div>

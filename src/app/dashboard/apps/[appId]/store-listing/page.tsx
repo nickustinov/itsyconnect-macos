@@ -43,6 +43,7 @@ import { ReleaseSettings } from "./_components/release-settings";
 import { EmptyState } from "@/components/empty-state";
 import { useTabNavigation } from "@/lib/hooks/use-tab-navigation";
 import { isValidUrl } from "@/lib/format";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 function deriveReleaseSettings(version: AscVersion | undefined) {
   if (!version) return { releaseType: "automatically" as const, scheduledDate: undefined as Date | undefined, phasedRelease: false };
@@ -78,6 +79,7 @@ function buildLocaleData(
 }
 
 export default function StoreListingPage() {
+  const t = useTranslations();
   const tabRef = useTabNavigation();
   const { appId } = useParams<{ appId: string }>();
   const searchParams = useSearchParams();
@@ -161,14 +163,13 @@ export default function StoreListingPage() {
         `/api/apps/${appId}/versions/${sourceVersionId}/localizations`,
       );
       if (!res.ok) {
-        toast.error("Failed to fetch version localizations");
+        toast.error(t("storeListing.toast.fetchLocalesFailed"));
         return;
       }
       const data = await res.json();
       const locs: { attributes: { locale: string; [key: string]: string } }[] =
         data.localizations ?? [];
 
-      // For whatsNew, copy to all matching locales (not just current)
       if (field === "whatsNew") {
         const sourceMap = new Map(locs.map((l) => [l.attributes.locale, l.attributes[field] ?? ""]));
         let count = 0;
@@ -184,20 +185,20 @@ export default function StoreListingPage() {
           return next;
         });
         setDirty(true);
-        toast.success(`Copied what's new to ${count} locale${count !== 1 ? "s" : ""}`);
+        toast.success(t("storeListing.toast.copiedWhatsNew", { count }));
         return;
       }
 
       const match = locs.find((l) => l.attributes.locale === selectedLocale);
       if (!match) {
-        toast.error("Locale not available in that version");
+        toast.error(t("storeListing.toast.localeUnavailable"));
         return;
       }
       const value = match.attributes[field] ?? "";
       updateField(field as keyof LocaleFields, value);
-      toast.success("Copied from version");
+      toast.success(t("storeListing.toast.copiedFromVersion"));
     } catch {
-      toast.error("Failed to fetch version localizations");
+      toast.error(t("storeListing.toast.fetchLocalesFailed"));
     }
   }
 
@@ -217,12 +218,12 @@ export default function StoreListingPage() {
   const { bufferEnabled } = useChangeBuffer();
   const { bufferedData, save: saveToBuffer, discard: discardBuffer } = useSectionBuffer(appId, "store-listing", versionId);
 
-  const bulkFields: BulkField[] = [
-    { key: "description", label: "Description", charLimit: FIELD_LIMITS.description },
-    { key: "keywords", label: "Keywords", charLimit: FIELD_LIMITS.keywords },
-    ...(!isFirstVersion ? [{ key: "whatsNew", label: "What's new", charLimit: FIELD_LIMITS.whatsNew }] : []),
-    { key: "promotionalText", label: "Promotional text", charLimit: FIELD_LIMITS.promotionalText },
-  ];
+  const bulkFields: BulkField[] = useMemo(() => [
+    { key: "description", label: t("storeListing.fields.description"), charLimit: FIELD_LIMITS.description },
+    { key: "keywords", label: t("storeListing.fields.keywords"), charLimit: FIELD_LIMITS.keywords },
+    ...(!isFirstVersion ? [{ key: "whatsNew", label: t("storeListing.fields.whatsNew"), charLimit: FIELD_LIMITS.whatsNew }] : []),
+    { key: "promotionalText", label: t("storeListing.fields.promotionalText"), charLimit: FIELD_LIMITS.promotionalText },
+  ], [t, isFirstVersion]);
 
   const [bulkMode, setBulkMode] = useState<"translate" | "copy" | null>(null);
   const [bulkAllMode, setBulkAllMode] = useState<{ mode: "translate" | "copy"; field?: string } | null>(null);
@@ -240,8 +241,8 @@ export default function StoreListingPage() {
     setDirty(true);
     toast.success(
       bulkMode === "translate"
-        ? "Translations applied to all locales"
-        : "Copied to all locales",
+        ? t("storeListing.toast.translationsApplied")
+        : t("storeListing.toast.copiedToAll"),
     );
   }
   // Copyright (version-level, not per-locale)
@@ -372,10 +373,10 @@ export default function StoreListingPage() {
       ["promotionalText", FIELD_LIMITS.promotionalText],
     ];
     const fieldLabels: Record<string, string> = {
-      description: "Description",
-      keywords: "Keywords",
-      whatsNew: "What's new",
-      promotionalText: "Promotional text",
+      description: t("storeListing.fields.description"),
+      keywords: t("storeListing.fields.keywords"),
+      whatsNew: t("storeListing.fields.whatsNew"),
+      promotionalText: t("storeListing.fields.promotionalText"),
     };
     for (const [locale, fields] of Object.entries(localeData)) {
       const name = localeName(locale);
@@ -393,12 +394,16 @@ export default function StoreListingPage() {
       for (const urlField of ["supportUrl", "marketingUrl"] as const) {
         const val = fields[urlField];
         if (val && !isValidUrl(val)) {
-          errors.push(`${urlField === "supportUrl" ? "Support URL" : "Marketing URL"} is invalid in ${name}`);
+          errors.push(
+            urlField === "supportUrl"
+              ? t("storeListing.toast.supportUrlInvalid", { locale: name })
+              : t("storeListing.toast.marketingUrlInvalid", { locale: name }),
+          );
         }
       }
     }
     setValidationErrors(errors);
-  }, [localeData, isFirstVersion, setValidationErrors]);
+  }, [localeData, isFirstVersion, setValidationErrors, t]);
 
   // Report submission checklist flags across all locales
   useEffect(() => {
@@ -503,7 +508,7 @@ export default function StoreListingPage() {
 
         bufferAppliedRef.current = true;
         saveToBuffer(data, originalData);
-        toast.success("Changes saved locally");
+        toast.success(t("storeListing.toast.savedLocally"));
         setDirty(false);
         return;
       }
@@ -551,7 +556,7 @@ export default function StoreListingPage() {
             }),
           }).then(async (res) => {
             const data = await res.json();
-            if (!res.ok && !data.errors) throw new Error(data.error ?? "Save failed");
+            if (!res.ok && !data.errors) throw new Error(data.error ?? t("storeListing.toast.saveFailed"));
             if (data.errors?.length > 0) {
               allSyncErrors.push(...(data.errors as SyncError[]));
             }
@@ -582,7 +587,7 @@ export default function StoreListingPage() {
             }),
           }).then(async (res) => {
             const data = await res.json();
-            if (!res.ok && !data.errors) throw new Error(data.error ?? "Failed to save release settings");
+            if (!res.ok && !data.errors) throw new Error(data.error ?? t("storeListing.toast.releaseSettingsFailed"));
             if (data.errors?.length > 0) {
               allSyncErrors.push(...(data.errors as SyncError[]));
             }
@@ -621,7 +626,7 @@ export default function StoreListingPage() {
             ascPath: err.ascPath,
           });
         } else {
-          toast.error(err instanceof Error ? err.message : "Save failed");
+          toast.error(err instanceof Error ? err.message : t("storeListing.toast.saveFailed"));
         }
         return;
       }
@@ -631,7 +636,7 @@ export default function StoreListingPage() {
         return;
       }
 
-      toast.success(readOnly ? "Promotional text saved" : "Store listing saved");
+      toast.success(readOnly ? t("storeListing.toast.promoSaved") : t("storeListing.toast.saved"));
 
       const ids = { ...originalLocaleIdsRef.current };
       for (const [locale, id] of Object.entries(locCreatedIds)) {
@@ -768,7 +773,7 @@ export default function StoreListingPage() {
   });
 
   if (!app) {
-    return <EmptyState title="App not found" />;
+    return <EmptyState title={t("app.notFound")} />;
   }
 
   if (versionsLoading || locLoading) {
@@ -782,8 +787,8 @@ export default function StoreListingPage() {
   if (versions.length === 0) {
     return (
       <EmptyState
-        title="No versions"
-        description="Create a version to start editing your store listing."
+        title={t("storeListing.noVersions")}
+        description={t("storeListing.noVersionsDescription")}
       />
     );
   }
@@ -798,7 +803,7 @@ export default function StoreListingPage() {
         {readOnly && selectedVersion && (
           <ReadOnlyBanner
             state={selectedVersion.attributes.appVersionState}
-            liveMessage="This version is live – only promotional text can be updated without a new review."
+            liveMessage={t("storeListing.readOnlyPromoOnly")}
           />
         )}
 
@@ -818,7 +823,7 @@ export default function StoreListingPage() {
 
         {locales.length === 0 ? (
           <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-            No localizations for this version.
+            {t("storeListing.noLocalizations")}
           </div>
         ) : (
           <LocaleFieldsSection
@@ -835,12 +840,12 @@ export default function StoreListingPage() {
 
         {/* Copyright (version-level, not per-locale) */}
         <section className="space-y-2">
-          <h3 className="section-title">Copyright</h3>
+          <h3 className="section-title">{t("storeListing.copyright")}</h3>
           <Input
             value={copyright}
             onChange={(e) => { setCopyright(e.target.value); setDirty(true); }}
             readOnly={readOnly}
-            placeholder={`© ${new Date().getFullYear()} Your Company Name`}
+            placeholder={t("storeListing.copyrightPlaceholder", { year: new Date().getFullYear() })}
             className="text-sm"
           />
         </section>

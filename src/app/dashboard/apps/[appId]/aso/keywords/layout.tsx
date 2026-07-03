@@ -6,10 +6,11 @@ import { cn } from "@/lib/utils";
 import { useFormDirty } from "@/lib/form-dirty-context";
 import { ReadOnlyBanner } from "@/components/read-only-banner";
 import { KeywordsProvider, useKeywords } from "./_components/keywords-context";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
-const TABS = [
-  { label: "My locales", segment: "" },
-  { label: "Storefronts", segment: "/storefront" },
+const TAB_KEYS = [
+  { key: "keywords.myLocales" as const, segment: "" },
+  { key: "keywords.storefronts" as const, segment: "/storefront" },
 ];
 
 export default function KeywordsLayout({
@@ -25,6 +26,7 @@ export default function KeywordsLayout({
 }
 
 function KeywordsLayoutInner({ children }: { children: React.ReactNode }) {
+  const t = useTranslations();
   const { appId } = useParams<{ appId: string }>();
   const pathname = usePathname();
   const router = useRouter();
@@ -39,7 +41,7 @@ function KeywordsLayoutInner({ children }: { children: React.ReactNode }) {
       )}
       <div className="flex items-center border-b">
         <nav className="-mb-px flex">
-          {TABS.map((tab) => {
+          {TAB_KEYS.map((tab) => {
             const href = `${base}${tab.segment}`;
             const active =
               tab.segment === ""
@@ -61,7 +63,7 @@ function KeywordsLayoutInner({ children }: { children: React.ReactNode }) {
                     : "border-transparent text-muted-foreground hover:text-foreground",
                 )}
               >
-                {tab.label}
+                {t(tab.key)}
               </Link>
             );
           })}

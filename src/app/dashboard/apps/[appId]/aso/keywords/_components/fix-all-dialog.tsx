@@ -15,6 +15,7 @@ import { localeName, FIELD_LIMITS } from "@/lib/asc/locale-names";
 import { buildForbiddenKeywords } from "@/lib/asc/keyword-utils";
 import { CharCount } from "@/components/char-count";
 import type { LocaleKeywordData, StorefrontAnalysis } from "./keyword-analysis";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 interface FixAllDialogProps {
   open: boolean;
@@ -90,6 +91,7 @@ export function FixAllDialog({
   description,
   onApply,
 }: FixAllDialogProps) {
+  const t = useTranslations();
   // Sort: primary locale first (treated as master), then others
   const fixableLocales = analysis.localeData
     .filter((ld) => localeHasIssues(ld, analysis, ld.resolvedLocale === primaryLocale))
@@ -267,14 +269,14 @@ export function FixAllDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-4xl max-h-[85vh] !grid grid-rows-[auto_1fr_auto] gap-0">
         <DialogHeader className="pb-4">
-          <DialogTitle>Improve all keywords with AI</DialogTitle>
+          <DialogTitle>{t("keywords.improveAllTitle")}</DialogTitle>
         </DialogHeader>
 
         {authError && (
           <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 mb-3 text-sm text-destructive">
-            Your API key is invalid or revoked.{" "}
+            {t("keywords.authErrorPrefix")}{" "}
             <a href="/settings/ai" className="underline font-medium">
-              Update it in AI settings
+              {t("keywords.updateAiSettings")}
             </a>.
           </div>
         )}
@@ -318,21 +320,21 @@ export function FixAllDialog({
                     </div>
                   ) : isError ? (
                     <div className="ml-8 flex h-8 items-center justify-center rounded border border-destructive/30 bg-muted/40 text-xs text-destructive">
-                      Failed
+                      {t("keywords.failed")}
                     </div>
                   ) : fr?.status === "done" ? (
                     <div className="ml-8">
                       <div className="grid grid-cols-2 gap-x-3 gap-y-0">
-                        <p className="text-[11px] font-medium text-muted-foreground mb-1">Before</p>
-                        <p className="text-[11px] font-medium text-muted-foreground mb-1">After</p>
+                        <p className="text-[11px] font-medium text-muted-foreground mb-1">{t("keywords.before")}</p>
+                        <p className="text-[11px] font-medium text-muted-foreground mb-1">{t("keywords.after")}</p>
                         <div className="max-h-20 overflow-y-auto rounded border bg-muted/40 px-2 py-1.5 text-xs whitespace-pre-wrap">
                           {ld.keywordsRaw || (
-                            <span className="italic text-muted-foreground">Empty</span>
+                            <span className="italic text-muted-foreground">{t("storeListing.keywords.empty")}</span>
                           )}
                         </div>
                         <div className="max-h-20 overflow-y-auto rounded border bg-muted/40 px-2 py-1.5 text-xs whitespace-pre-wrap">
                           {after || (
-                            <span className="italic text-muted-foreground">Empty</span>
+                            <span className="italic text-muted-foreground">{t("storeListing.keywords.empty")}</span>
                           )}
                         </div>
                       </div>
@@ -350,16 +352,18 @@ export function FixAllDialog({
               checked={allChecked}
               onCheckedChange={toggleAll}
             />
-            <span className="text-sm text-muted-foreground">Select all</span>
+            <span className="text-sm text-muted-foreground">{t("keywords.selectAll")}</span>
           </label>
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button disabled={!anyApplicable} onClick={handleApply}>
               {allFinished
-                ? `Apply ${checkedCount} locale${checkedCount !== 1 ? "s" : ""}`
-                : "Fixing\u2026"}
+                ? (checkedCount === 1
+                  ? t("keywords.applyLocales", { count: checkedCount })
+                  : t("keywords.applyLocalesPlural", { count: checkedCount }))
+                : t("keywords.fixing")}
             </Button>
           </div>
         </div>

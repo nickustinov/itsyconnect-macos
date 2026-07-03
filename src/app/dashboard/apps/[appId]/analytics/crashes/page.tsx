@@ -17,10 +17,12 @@ import {
 import { useAnalytics } from "@/lib/analytics-context";
 import { KpiCard } from "@/components/kpi-card";
 import { AnalyticsStateGuard } from "@/components/analytics-state-guard";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 // ---------- Page ----------
 
 export default function CrashesPage() {
+  const t = useTranslations();
   const { data } = useAnalytics();
 
   const crashesByVersion = data?.crashesByVersion ?? [];
@@ -35,21 +37,23 @@ export default function CrashesPage() {
       {/* KPI cards */}
       <div className="grid gap-4 sm:grid-cols-3">
         <KpiCard
-          title="Total crashes"
+          title={t("analytics.totalCrashes")}
           value={totalCrashes.toLocaleString()}
-          subtitle={`Across ${crashesByVersion.length} version${crashesByVersion.length !== 1 ? "s" : ""}`}
+          subtitle={crashesByVersion.length === 1
+            ? t("analytics.acrossVersions", { count: crashesByVersion.length })
+            : t("analytics.acrossVersionsPlural", { count: crashesByVersion.length })}
           icon={Bug}
         />
         <KpiCard
-          title="Affected devices"
+          title={t("analytics.affectedDevices")}
           value={totalAffected.toLocaleString()}
-          subtitle="Unique devices with crashes"
+          subtitle={t("analytics.uniqueDevicesWithCrashes")}
           icon={DeviceMobile}
         />
         <KpiCard
-          title="Device models"
+          title={t("analytics.deviceModels")}
           value={crashesByDevice.length.toLocaleString()}
-          subtitle="Distinct models affected"
+          subtitle={t("analytics.distinctModelsAffected")}
           icon={Desktop}
         />
       </div>
@@ -60,17 +64,17 @@ export default function CrashesPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium">
-              Crashes by version
+              {t("analytics.crashesByVersion")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Version</TableHead>
-                  <TableHead>Platform</TableHead>
-                  <TableHead className="text-right">Crashes</TableHead>
-                  <TableHead className="text-right">Unique devices</TableHead>
+                  <TableHead>{t("analytics.version")}</TableHead>
+                  <TableHead>{t("analytics.platform")}</TableHead>
+                  <TableHead className="text-right">{t("analytics.crashes")}</TableHead>
+                  <TableHead className="text-right">{t("analytics.uniqueDevices")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -99,16 +103,16 @@ export default function CrashesPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium">
-              Crashes by device
+              {t("analytics.crashesByDevice")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Device</TableHead>
-                  <TableHead className="text-right">Crashes</TableHead>
-                  <TableHead className="text-right">Unique devices</TableHead>
+                  <TableHead>{t("analytics.device")}</TableHead>
+                  <TableHead className="text-right">{t("analytics.crashes")}</TableHead>
+                  <TableHead className="text-right">{t("analytics.uniqueDevices")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

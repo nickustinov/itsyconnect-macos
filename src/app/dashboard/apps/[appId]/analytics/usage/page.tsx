@@ -28,27 +28,7 @@ import { formatDateShort, formatDuration } from "@/lib/format";
 import { useAnalytics } from "@/lib/analytics-context";
 import { parseRange, filterByDateRange, getStoredRange } from "@/lib/analytics-range";
 import { AnalyticsStateGuard } from "@/components/analytics-state-guard";
-
-// ---------- Chart configs ----------
-
-const sessionsConfig = {
-  sessions: { label: "Sessions", color: "var(--color-chart-1)" },
-  uniqueDevices: { label: "Active devices", color: "var(--color-chart-2)" },
-} satisfies ChartConfig;
-
-const durationConfig = {
-  avgDuration: { label: "Avg duration", color: "var(--color-chart-3)" },
-} satisfies ChartConfig;
-
-const installDeleteConfig = {
-  installs: { label: "Installations", color: "var(--color-chart-1)" },
-  deletes: { label: "Deletions", color: "var(--color-chart-5)" },
-} satisfies ChartConfig;
-
-const optInConfig = {
-  downloading: { label: "Downloading users", color: "var(--color-chart-2)" },
-  optingIn: { label: "Users opting in", color: "var(--color-chart-1)" },
-} satisfies ChartConfig;
+import { useAnalyticsLabels } from "@/lib/i18n/use-analytics-labels";
 
 // Chart colour palette for dynamic version keys
 const VERSION_COLORS = [
@@ -62,6 +42,13 @@ const VERSION_COLORS = [
 // ---------- Page ----------
 
 export default function UsagePage() {
+  const {
+    sessionsConfig,
+    durationConfig,
+    installDeleteConfig,
+    optInConfig,
+    t,
+  } = useAnalyticsLabels();
   const searchParams = useSearchParams();
   const { appId } = useParams<{ appId: string }>();
   const { markers } = useAppMarkers(appId);
@@ -126,7 +113,7 @@ export default function UsagePage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium">
-              Sessions and active devices
+              {t("analytics.sessionsAndDevices")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -180,7 +167,7 @@ export default function UsagePage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium">
-              Average session duration
+              {t("analytics.avgSessionDuration")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -238,7 +225,7 @@ export default function UsagePage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium">
-              Sessions by app version
+              {t("analytics.sessionsByVersion")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -292,7 +279,7 @@ export default function UsagePage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium">
-              Installations and deletions
+              {t("analytics.installationsAndDeletions")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -342,7 +329,7 @@ export default function UsagePage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium">
-              Analytics opt-in
+              {t("analytics.analyticsOptIn")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -350,7 +337,7 @@ export default function UsagePage() {
               <span className="text-2xl font-bold tabular-nums">
                 {optInRate}%
               </span>
-              <span className="text-sm text-muted-foreground">opt-in rate</span>
+              <span className="text-sm text-muted-foreground">{t("analytics.optInRate")}</span>
             </div>
             <ChartContainer
               config={optInConfig}

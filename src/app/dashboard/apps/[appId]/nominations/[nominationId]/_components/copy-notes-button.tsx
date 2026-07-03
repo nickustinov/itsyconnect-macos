@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MagicWand } from "@phosphor-icons/react";
 import type { AscNomination } from "@/lib/asc/nominations";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 export function CopyNotesButton({
   appId,
@@ -25,6 +26,7 @@ export function CopyNotesButton({
   onCopy: (notes: string) => void;
   disabled?: boolean;
 }) {
+  const t = useTranslations();
   const [nominations, setNominations] = useState<AscNomination[]>([]);
   const [loaded, setLoaded] = useState(false);
 
@@ -63,12 +65,12 @@ export function CopyNotesButton({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuSub>
-          <DropdownMenuSubTrigger>Copy from</DropdownMenuSubTrigger>
+          <DropdownMenuSubTrigger>{t("nominations.copyFrom")}</DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
             {!loaded ? (
-              <DropdownMenuItem disabled>Loading...</DropdownMenuItem>
+              <DropdownMenuItem disabled>{t("common.loading")}</DropdownMenuItem>
             ) : nominations.length === 0 ? (
-              <DropdownMenuItem disabled>No previous notes</DropdownMenuItem>
+              <DropdownMenuItem disabled>{t("nominations.noPreviousNotes")}</DropdownMenuItem>
             ) : (
               nominations.map((n) => (
                 <DropdownMenuItem

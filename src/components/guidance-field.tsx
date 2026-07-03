@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CaretRight } from "@phosphor-icons/react";
 import { Textarea } from "@/components/ui/textarea";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 interface GuidanceFieldProps {
   value: string;
@@ -17,6 +18,7 @@ interface GuidanceFieldProps {
  * and applies to every AI action, so it only needs to be set once.
  */
 export function GuidanceField({ value, onChange, onBlur }: GuidanceFieldProps) {
+  const t = useTranslations();
   const [open, setOpen] = useState(false);
 
   return (
@@ -30,10 +32,10 @@ export function GuidanceField({ value, onChange, onBlur }: GuidanceFieldProps) {
           size={12}
           className={`shrink-0 text-muted-foreground transition-transform ${open ? "rotate-90" : ""}`}
         />
-        <span className="text-sm font-medium">AI guidance</span>
+        <span className="text-sm font-medium">{t("guidanceField.title")}</span>
         {!open && (
           <span className="truncate text-xs text-muted-foreground">
-            {value ? value : "optional – e.g. use an informal tone"}
+            {value ? value : t("guidanceField.collapsedPlaceholder")}
           </span>
         )}
       </button>
@@ -43,13 +45,13 @@ export function GuidanceField({ value, onChange, onBlur }: GuidanceFieldProps) {
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onBlur={onBlur}
-            placeholder="Standing instructions for the AI, e.g. use an informal tone (du), write in British English. Applies to every AI action and is remembered."
+            placeholder={t("guidanceField.placeholder")}
             className="min-h-20 text-sm"
             maxLength={2000}
             autoFocus
           />
           <p className="mt-1 text-xs text-muted-foreground">
-            Applies to all AI actions and is saved automatically.
+            {t("guidanceField.hint")}
           </p>
         </div>
       )}

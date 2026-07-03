@@ -20,6 +20,7 @@ import type { TFFeedbackItem } from "@/lib/asc/testflight";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 import { formatDate } from "@/lib/format";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 function isWithinDays(iso: string, days: number): boolean {
   const now = Date.now();
@@ -28,6 +29,7 @@ function isWithinDays(iso: string, days: number): boolean {
 }
 
 export default function FeedbackPage() {
+  const t = useTranslations();
   const { appId } = useParams<{ appId: string }>();
   const router = useRouter();
   const { apps } = useApps();
@@ -45,17 +47,17 @@ export default function FeedbackPage() {
       const res = await fetch(`/api/apps/${appId}/testflight/feedback`);
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? `Failed to fetch feedback (${res.status})`);
+        throw new Error(data.error ?? t("testflight.fetchFeedbackFailed"));
       }
       const data = await res.json();
       setAllFeedback(data.feedback);
       setCompletedIds(new Set(data.completedIds ?? []));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch feedback");
+      setError(err instanceof Error ? err.message : t("testflight.fetchFeedbackFailed"));
     } finally {
       setLoading(false);
     }
-  }, [appId]);
+  }, [appId, t]);
 
   useEffect(() => {
     fetchData();
@@ -121,7 +123,7 @@ export default function FeedbackPage() {
   }, [allFeedback]);
 
   if (!app) {
-    return <EmptyState title="App not found" />;
+    return <EmptyState title={t("app.notFound")} />;
   }
 
   if (loading) {
@@ -143,14 +145,14 @@ export default function FeedbackPage() {
         <CardContent className="flex items-center gap-8 py-0">
           <div>
             <div className="text-4xl font-bold tabular-nums">{stats.total}</div>
-            <p className="text-xs text-muted-foreground">total feedback</p>
+            <p className="text-xs text-muted-foreground">{t("testflight.totalFeedback")}</p>
           </div>
           <div className="h-10 border-l" />
           <div className="flex items-center gap-2">
             <Camera size={16} className="text-muted-foreground" />
             <div>
               <div className="text-lg font-semibold tabular-nums">{stats.screenshots}</div>
-              <p className="text-xs text-muted-foreground">screenshots</p>
+              <p className="text-xs text-muted-foreground">{t("testflight.screenshotsLabel")}</p>
             </div>
           </div>
           <div className="h-10 border-l" />
@@ -158,7 +160,7 @@ export default function FeedbackPage() {
             <WarningCircle size={16} className="text-destructive" />
             <div>
               <div className="text-lg font-semibold tabular-nums">{stats.crashes}</div>
-              <p className="text-xs text-muted-foreground">crashes</p>
+              <p className="text-xs text-muted-foreground">{t("testflight.crashesLabel")}</p>
             </div>
           </div>
         </CardContent>
@@ -171,9 +173,9 @@ export default function FeedbackPage() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All types</SelectItem>
-            <SelectItem value="screenshot">Screenshots</SelectItem>
-            <SelectItem value="crash">Crashes</SelectItem>
+            <SelectItem value="all">{t("testflight.allTypes")}</SelectItem>
+            <SelectItem value="screenshot">{t("testflight.screenshotsType")}</SelectItem>
+            <SelectItem value="crash">{t("testflight.crashesType")}</SelectItem>
           </SelectContent>
         </Select>
 
@@ -182,10 +184,10 @@ export default function FeedbackPage() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All time</SelectItem>
-            <SelectItem value="7">Last 7 days</SelectItem>
-            <SelectItem value="30">Last 30 days</SelectItem>
-            <SelectItem value="90">Last 90 days</SelectItem>
+            <SelectItem value="all">{t("reviews.filters.allTime")}</SelectItem>
+            <SelectItem value="7">{t("reviews.filters.last7Days")}</SelectItem>
+            <SelectItem value="30">{t("reviews.filters.last30Days")}</SelectItem>
+            <SelectItem value="90">{t("reviews.filters.last90Days")}</SelectItem>
           </SelectContent>
         </Select>
 
@@ -194,10 +196,10 @@ export default function FeedbackPage() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All builds</SelectItem>
+            <SelectItem value="all">{t("testflight.allBuilds")}</SelectItem>
             {buildNumbers.map((b) => (
               <SelectItem key={b} value={b}>
-                Build {b}
+                {t("testflight.buildNumber", { number: b })}
               </SelectItem>
             ))}
           </SelectContent>
@@ -208,7 +210,7 @@ export default function FeedbackPage() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All platforms</SelectItem>
+            <SelectItem value="all">{t("reviewCenter.allPlatforms")}</SelectItem>
             {platforms.map((p) => (
               <SelectItem key={p} value={p}>
                 {p}
@@ -231,7 +233,7 @@ export default function FeedbackPage() {
             }}
           />
           <Label htmlFor="hide-completed" className="text-sm">
-            Hide completed
+            {t("testflight.hideCompleted")}
           </Label>
         </div>
       </div>
@@ -239,7 +241,7 @@ export default function FeedbackPage() {
       {/* Feedback list */}
       {filtered.length === 0 ? (
         <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-          No feedback matches the current filters.
+          {t("testflight.noFeedbackMatch")}
         </div>
       ) : (
         <div className="space-y-4">
@@ -265,7 +267,7 @@ export default function FeedbackPage() {
                     ) : (
                       <WarningCircle size={12} />
                     )}
-                    {item.type === "screenshot" ? "Screenshot" : "Crash"}
+                    {item.type === "screenshot" ? t("testflight.screenshot") : t("testflight.crash")}
                   </Badge>
                   <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     {completedIds.has(item.id) && (
@@ -281,7 +283,7 @@ export default function FeedbackPage() {
                   {item.screenshots.length > 0 && (
                     <img
                       src={item.screenshots[0].url}
-                      alt="Screenshot thumbnail"
+                      alt={t("testflight.screenshotThumbnail")}
                       className="h-14 w-14 shrink-0 rounded border object-cover"
                     />
                   )}
@@ -290,12 +292,12 @@ export default function FeedbackPage() {
                 {/* Footer: metadata */}
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">
-                    {item.testerName ?? item.email ?? "Anonymous"}
+                    {item.testerName ?? item.email ?? t("testflight.anonymous")}
                     {item.deviceModel ? ` · ${item.deviceModel}` : ""}
                   </span>
                   {item.buildNumber && (
                     <span className="text-xs text-muted-foreground">
-                      Build {item.buildNumber}
+                      {t("testflight.buildNumber", { number: item.buildNumber })}
                     </span>
                   )}
                 </div>

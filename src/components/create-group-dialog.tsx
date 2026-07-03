@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/api-fetch";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 export function CreateGroupDialog({
   open,
@@ -21,6 +22,7 @@ export function CreateGroupDialog({
   appId: string;
   onCreated: () => void;
 }) {
+  const t = useTranslations();
   const [name, setName] = useState("");
   const [isInternal, setIsInternal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -43,11 +45,11 @@ export function CreateGroupDialog({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: name.trim(), isInternal }),
       });
-      toast.success(`Group "${name.trim()}" created`);
+      toast.success(t("testflight.groupCreated", { name: name.trim() }));
       onOpenChange(false);
       onCreated();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to create group");
+      toast.error(err instanceof Error ? err.message : t("testflight.createGroupFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -57,7 +59,7 @@ export function CreateGroupDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
-          <DialogTitle>New group</DialogTitle>
+          <DialogTitle>{t("testflight.newGroup")}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <RadioGroup
@@ -67,15 +69,15 @@ export function CreateGroupDialog({
           >
             <div className="flex items-center gap-2">
               <RadioGroupItem value="external" id="type-external" />
-              <Label htmlFor="type-external">External</Label>
+              <Label htmlFor="type-external">{t("testflight.groupTypeExternal")}</Label>
             </div>
             <div className="flex items-center gap-2">
               <RadioGroupItem value="internal" id="type-internal" />
-              <Label htmlFor="type-internal">Internal</Label>
+              <Label htmlFor="type-internal">{t("testflight.groupTypeInternal")}</Label>
             </div>
           </RadioGroup>
           <Input
-            placeholder="Group name"
+            placeholder={t("testflight.groupNamePlaceholder")}
             value={name}
             onChange={(e) => setName(e.target.value)}
             autoFocus
@@ -83,7 +85,7 @@ export function CreateGroupDialog({
           <DialogFooter>
             <Button type="submit" disabled={!name.trim() || submitting}>
               {submitting && <Spinner className="mr-1.5" />}
-              Create
+              {t("common.create")}
             </Button>
           </DialogFooter>
         </form>

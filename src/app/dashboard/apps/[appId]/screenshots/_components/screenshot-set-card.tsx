@@ -33,6 +33,7 @@ import {
   type AscScreenshotSet,
 } from "@/lib/asc/display-types";
 import { SortableScreenshot, UploadingPlaceholder } from "./sortable-screenshot";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 // ---------------------------------------------------------------------------
 // Screenshot set card
@@ -59,6 +60,7 @@ export function ScreenshotSetCard({
   onDeleteSet: (setId: string) => void;
   onDragEnd: (setId: string, event: DragEndEvent) => void;
 }) {
+  const t = useTranslations();
   const inputRef = useRef<HTMLInputElement>(null);
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -112,8 +114,9 @@ export function ScreenshotSetCard({
             </span>
           )}
           <span className="ml-2 text-xs font-normal text-muted-foreground">
-            · {set.screenshots.length} screenshot
-            {set.screenshots.length !== 1 ? "s" : ""}
+            · {set.screenshots.length === 1
+              ? t("screenshots.screenshotCount", { count: set.screenshots.length })
+              : t("screenshots.screenshotCountPlural", { count: set.screenshots.length })}
           </span>
         </CardTitle>
       </CardHeader>
@@ -157,7 +160,7 @@ export function ScreenshotSetCard({
           )}>
             <CloudArrowUp size={32} className={dragOver ? "text-primary" : "text-muted-foreground/40"} />
             <p className="mt-2 text-sm text-muted-foreground">
-              {dragOver ? "Drop to upload" : "No screenshots uploaded"}
+              {dragOver ? t("screenshots.dropToUpload") : t("screenshots.noScreenshotsUploaded")}
             </p>
             {!readOnly && !dragOver && (
               <div className="mt-3 flex items-center gap-2">
@@ -167,7 +170,7 @@ export function ScreenshotSetCard({
                   onClick={() => inputRef.current?.click()}
                 >
                   <Plus size={14} className="mr-1.5" />
-                  Add screenshot
+                  {t("screenshots.addScreenshot")}
                 </Button>
                 <Button
                   variant="ghost"
@@ -175,7 +178,7 @@ export function ScreenshotSetCard({
                   className="text-muted-foreground"
                   onClick={() => onDeleteSet(set.id)}
                 >
-                  Remove variant
+                  {t("screenshots.removeVariant")}
                 </Button>
               </div>
             )}
@@ -216,7 +219,7 @@ export function ScreenshotSetCard({
                     className="flex h-[232px] w-[80px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed text-muted-foreground hover:border-foreground/30 hover:text-foreground/70"
                   >
                     <Plus size={20} />
-                    <span className="text-xs">Add</span>
+                    <span className="text-xs">{t("common.add")}</span>
                   </button>
                 )}
               </div>
@@ -257,7 +260,7 @@ export function ScreenshotSetCard({
             className="fixed inset-0 z-50 flex items-center justify-center"
             onClick={() => setPreviewIndex(null)}
           >
-            <DialogTitle className="sr-only">Screenshot preview</DialogTitle>
+            <DialogTitle className="sr-only">{t("screenshots.screenshotPreview")}</DialogTitle>
             {previewScreenshot && (
               <div className="flex items-center gap-3">
                 <button

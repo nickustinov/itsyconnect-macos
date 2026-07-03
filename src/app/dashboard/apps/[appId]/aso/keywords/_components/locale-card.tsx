@@ -19,6 +19,7 @@ import { AICompareDialog } from "@/components/ai-compare-dialog";
 import { useAIStatus } from "@/lib/hooks/use-ai-status";
 import { AIRequiredDialog } from "@/components/ai-required-dialog";
 import type { LocaleKeywordData, StorefrontAnalysis } from "./keyword-analysis";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 interface LocaleCardProps {
   data: LocaleKeywordData;
@@ -43,6 +44,7 @@ export function LocaleCard({
   isPrimary,
   onKeywordsChange,
 }: LocaleCardProps) {
+  const t = useTranslations();
   const [expanded, setExpanded] = useState(false);
   const { configured } = useAIStatus();
   const [showAIRequired, setShowAIRequired] = useState(false);
@@ -107,7 +109,7 @@ export function LocaleCard({
     });
 
     setCompareState({
-      title: `Improve keywords – ${localeName(data.locale)}`,
+      title: t("keywords.improveKeywords", { locale: localeName(data.locale) }),
       apiBody: {
         action: "fix-keywords",
         text: cleanedKeywords,
@@ -145,7 +147,7 @@ export function LocaleCard({
                 <span className="text-sm font-medium">{localeName(data.locale)}</span>
                 <span className="text-xs text-muted-foreground">{data.locale}</span>
                 {data.resolvedLocale !== data.locale && (
-                  <span className="text-xs text-muted-foreground">via {localeName(data.resolvedLocale)}</span>
+                  <span className="text-xs text-muted-foreground">{t("keywords.via")} {localeName(data.resolvedLocale)}</span>
                 )}
               </div>
             </div>
@@ -172,7 +174,7 @@ export function LocaleCard({
               {/* Editable keywords */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Keywords</span>
+                  <span className="text-sm text-muted-foreground">{t("keywords.title")}</span>
                   <CharCount value={data.keywordsRaw} limit={FIELD_LIMITS.keywords} />
                 </div>
                 <Card className="gap-0 py-0">
@@ -194,9 +196,12 @@ export function LocaleCard({
                       <div className="flex items-start gap-2 rounded-md bg-amber-500/10 px-3 py-2">
                         <Warning size={14} className="mt-0.5 shrink-0 text-amber-500" weight="fill" />
                         <p className="text-sm text-amber-700 dark:text-amber-400">
-                          {data.overlapsWithMetadata.map((kw) => `"${kw}"`).join(", ")}{" "}
-                          {data.overlapsWithMetadata.length === 1 ? "overlaps" : "overlap"} with your
-                          app name or subtitle &ndash; Apple auto-indexes those, wasting keyword space.
+                          {t("keywords.overlapWithMetadata", {
+                            words: data.overlapsWithMetadata.map((kw) => `"${kw}"`).join(", "),
+                            verb: data.overlapsWithMetadata.length === 1
+                              ? t("keywords.overlapVerbSingular")
+                              : t("keywords.overlapVerbPlural"),
+                          })}
                         </p>
                       </div>
                     )}
@@ -204,9 +209,12 @@ export function LocaleCard({
                       <div className="flex items-start gap-2 rounded-md bg-blue-500/10 px-3 py-2">
                         <Warning size={14} className="mt-0.5 shrink-0 text-blue-500" weight="fill" />
                         <p className="text-sm text-blue-700 dark:text-blue-400">
-                          {duplicatesInOtherLocales.map((kw) => `"${kw}"`).join(", ")}{" "}
-                          also {duplicatesInOtherLocales.length === 1 ? "appears" : "appear"} in other
-                          locales for this storefront &ndash; no ranking boost from repetition.
+                          {t("keywords.duplicateInLocales", {
+                            words: duplicatesInOtherLocales.map((kw) => `"${kw}"`).join(", "),
+                            verb: duplicatesInOtherLocales.length === 1
+                              ? t("keywords.appears")
+                              : t("keywords.appear"),
+                          })}
                         </p>
                       </div>
                     )}
@@ -214,7 +222,7 @@ export function LocaleCard({
                       <div className="flex items-start gap-2 rounded-md bg-muted px-3 py-2">
                         <Info size={14} className="mt-0.5 shrink-0 text-muted-foreground" />
                         <p className="text-sm text-muted-foreground">
-                          {data.charsFree} characters unused &ndash; room for more keywords.
+                          {t("keywords.unusedBudget", { count: data.charsFree })}
                         </p>
                       </div>
                     )}
@@ -223,7 +231,7 @@ export function LocaleCard({
                   {!readOnly && (
                     <Button variant="outline" size="sm" onClick={handleFixWithAI}>
                       <MagicWand size={14} className="mr-1.5" />
-                      Fix issues
+                      {t("keywords.fixIssues")}
                     </Button>
                   )}
                 </div>
@@ -234,7 +242,7 @@ export function LocaleCard({
                 <div className="flex items-center gap-2 rounded-md bg-green-500/10 px-3 py-2">
                   <CheckCircle size={14} className="shrink-0 text-green-600 dark:text-green-400" weight="fill" />
                   <p className="text-sm text-green-700 dark:text-green-400">
-                    No issues &ndash; budget well used, no overlaps or duplicates.
+                    {t("keywords.noIssues")}
                   </p>
                 </div>
               )}

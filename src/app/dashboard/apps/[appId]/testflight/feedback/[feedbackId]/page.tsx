@@ -42,6 +42,7 @@ import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 import { apiFetch } from "@/lib/api-fetch";
 import { formatDateTimeLong } from "@/lib/format";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 function formatBytes(bytes: number): string {
   const gb = bytes / 1_000_000_000;
@@ -59,6 +60,7 @@ function formatUptime(ms: number): string {
 }
 
 export default function FeedbackDetailPage() {
+  const t = useTranslations();
   const { appId, feedbackId } = useParams<{
     appId: string;
     feedbackId: string;
@@ -81,7 +83,7 @@ export default function FeedbackDetailPage() {
       const res = await fetch(`/api/apps/${appId}/testflight/feedback`);
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? `Failed to fetch feedback (${res.status})`);
+        throw new Error(data.error ?? t("testflight.fetchFeedbackFailed"));
       }
       const data = await res.json();
       const found = (data.feedback as TFFeedbackItem[]).find(
@@ -91,11 +93,11 @@ export default function FeedbackDetailPage() {
       const completedIds: string[] = data.completedIds ?? [];
       setCompleted(completedIds.includes(feedbackId));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch feedback");
+      setError(err instanceof Error ? err.message : t("testflight.fetchFeedbackFailed"));
     } finally {
       setLoading(false);
     }
-  }, [appId, feedbackId]);
+  }, [appId, feedbackId, t]);
 
   useEffect(() => {
     fetchData();
@@ -109,7 +111,7 @@ export default function FeedbackDetailPage() {
       );
       setCrashLog(data.logText);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to load crash log");
+      toast.error(err instanceof Error ? err.message : t("testflight.loadCrashLogFailed"));
     } finally {
       setCrashLogLoading(false);
     }
@@ -126,7 +128,7 @@ export default function FeedbackDetailPage() {
       });
     } catch (err) {
       setCompleted(!next);
-      toast.error(err instanceof Error ? err.message : "Failed to update");
+      toast.error(err instanceof Error ? err.message : t("testflight.updateFailed"));
     }
   }
 
@@ -139,10 +141,10 @@ export default function FeedbackDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: item.id, type: item.type }),
       });
-      toast.success("Feedback deleted");
+      toast.success(t("testflight.feedbackDeleted"));
       router.push(`/dashboard/apps/${appId}/testflight/feedback`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete");
+      toast.error(err instanceof Error ? err.message : t("testflight.deleteFeedbackFailed"));
       setDeleting(false);
       setDeleteOpen(false);
     }
@@ -161,78 +163,88 @@ export default function FeedbackDetailPage() {
   }
 
   if (!item) {
-    return <EmptyState title="Feedback not found" />;
+    return <EmptyState title={t("testflight.feedbackNotFound")} />;
   }
+
+  const feedbackTypeLabel = item.type === "screenshot"
+    ? t("testflight.screenshot")
+    : t("testflight.crash");
 
   const specs = [
     item.buildNumber && {
       icon: Package,
-      label: "Build",
+      label: t("testflight.build"),
       value: item.buildNumber,
     },
     item.buildBundleId && {
       icon: GlobeSimple,
-      label: "Bundle ID",
+      label: t("testflight.bundleId"),
       value: item.buildBundleId,
     },
     item.appPlatform && {
       icon: Desktop,
-      label: "Platform",
+      label: t("analytics.platform"),
       value: item.appPlatform,
     },
     item.deviceModel && {
       icon: DeviceMobile,
-      label: "Device",
+      label: t("testflight.device"),
       value: item.deviceModel,
     },
     item.osVersion && {
       icon: Desktop,
-      label: "OS version",
+      label: t("testflight.osVersion"),
       value: item.osVersion,
     },
     item.architecture && {
       icon: Cpu,
-      label: "Architecture",
+      label: t("testflight.architecture"),
       value: item.architecture,
     },
     item.locale && {
       icon: Globe,
-      label: "Locale",
+      label: t("testflight.locale"),
       value: item.locale,
     },
     item.connectionType && {
       icon: WifiHigh,
-      label: "Connection",
+      label: t("testflight.connection"),
       value: item.connectionType,
     },
     item.batteryPercentage != null && {
       icon: BatteryHigh,
-      label: "Battery",
+      label: t("testflight.battery"),
       value: `${item.batteryPercentage}%`,
     },
     item.timeZone && {
       icon: Clock,
-      label: "Time zone",
+      label: t("testflight.timeZone"),
       value: item.timeZone,
     },
     (item.diskBytesAvailable != null && item.diskBytesTotal != null) && {
       icon: HardDrives,
-      label: "Disk space",
-      value: `${formatBytes(item.diskBytesAvailable)} free / ${formatBytes(item.diskBytesTotal)}`,
+      label: t("testflight.diskSpace"),
+      value: t("testflight.diskSpaceValue", {
+        free: formatBytes(item.diskBytesAvailable),
+        total: formatBytes(item.diskBytesTotal),
+      }),
     },
     (item.screenWidth != null && item.screenHeight != null) && {
       icon: Monitor,
-      label: "Screen",
-      value: `${item.screenWidth} × ${item.screenHeight} pt`,
+      label: t("testflight.screen"),
+      value: t("testflight.screenValue", {
+        width: item.screenWidth,
+        height: item.screenHeight,
+      }),
     },
     item.appUptimeMs != null && {
       icon: Clock,
-      label: "App uptime",
+      label: t("testflight.appUptime"),
       value: formatUptime(item.appUptimeMs),
     },
     item.pairedAppleWatch && {
       icon: DeviceMobile,
-      label: "Apple Watch",
+      label: t("testflight.appleWatch"),
       value: item.pairedAppleWatch,
     },
   ].filter(Boolean) as Array<{ icon: React.ComponentType<{ size?: number; className?: string }>; label: string; value: string }>;
@@ -251,7 +263,7 @@ export default function FeedbackDetailPage() {
             ) : (
               <WarningCircle size={12} />
             )}
-            {item.type === "screenshot" ? "Screenshot" : "Crash"}
+            {feedbackTypeLabel}
           </Badge>
           {item.testerName && (
             <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -268,7 +280,7 @@ export default function FeedbackDetailPage() {
             onClick={handleToggleCompleted}
           >
             <CheckCircle size={14} weight={completed ? "fill" : "regular"} />
-            {completed ? "Completed" : "Mark as completed"}
+            {completed ? t("testflight.completed") : t("testflight.markAsCompleted")}
           </Button>
           <Button
             variant="ghost"
@@ -277,7 +289,7 @@ export default function FeedbackDetailPage() {
             onClick={() => setDeleteOpen(true)}
           >
             <Trash size={14} />
-            Delete
+            {t("testflight.delete")}
           </Button>
         </div>
       </div>
@@ -285,7 +297,7 @@ export default function FeedbackDetailPage() {
       {/* Date */}
       <section className="space-y-1">
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          Date
+          {t("testflight.date")}
         </p>
         <p className="text-lg font-semibold">{formatDateTimeLong(item.createdDate)}</p>
       </section>
@@ -295,7 +307,7 @@ export default function FeedbackDetailPage() {
         <Card className="bg-muted/50">
           <CardContent className="space-y-1 py-0">
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Comment
+              {t("testflight.comment")}
             </p>
             <p className="text-sm leading-relaxed">{item.comment}</p>
           </CardContent>
@@ -307,7 +319,7 @@ export default function FeedbackDetailPage() {
         <Card className="bg-muted/50">
           <CardContent className="space-y-3 py-0">
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Screenshots
+              {t("testflight.screenshots")}
             </p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {item.screenshots.map((s, i) => (
@@ -320,7 +332,7 @@ export default function FeedbackDetailPage() {
                 >
                   <img
                     src={s.url}
-                    alt={`Screenshot ${i + 1}`}
+                    alt={t("testflight.screenshotIndex", { index: i + 1 })}
                     className="h-auto w-full object-contain"
                   />
                 </a>
@@ -335,7 +347,7 @@ export default function FeedbackDetailPage() {
         <Card className="bg-muted/50">
           <CardContent className="space-y-3 py-0">
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Crash log
+              {t("testflight.crashLog")}
             </p>
             {crashLog == null ? (
               <Button
@@ -345,7 +357,7 @@ export default function FeedbackDetailPage() {
                 disabled={crashLogLoading}
               >
                 {crashLogLoading && <Spinner className="mr-1.5" />}
-                View crash log
+                {t("testflight.viewCrashLog")}
               </Button>
             ) : (
               <div className="space-y-2">
@@ -356,11 +368,11 @@ export default function FeedbackDetailPage() {
                     className="h-auto gap-1.5 px-2 py-1 text-xs text-muted-foreground"
                     onClick={() => {
                       navigator.clipboard.writeText(crashLog);
-                      toast.success("Crash log copied to clipboard");
+                      toast.success(t("testflight.crashLogCopied"));
                     }}
                   >
                     <Copy size={12} />
-                    Copy
+                    {t("common.copy")}
                   </Button>
                 </div>
                 <pre className="max-h-96 overflow-auto rounded-lg bg-background p-3 font-mono text-xs leading-relaxed">
@@ -377,7 +389,7 @@ export default function FeedbackDetailPage() {
         <Card className="bg-muted/50">
           <CardContent className="space-y-0 py-0">
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">
-              Specs
+              {t("testflight.specs")}
             </p>
             <div className="divide-y divide-dotted">
               {specs.map((spec) => (
@@ -408,7 +420,7 @@ export default function FeedbackDetailPage() {
           <CardContent className="space-y-2 py-0">
             <div className="flex items-center justify-between">
               <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                Email
+                {t("appReview.email")}
               </p>
               <Button
                 variant="ghost"
@@ -416,11 +428,11 @@ export default function FeedbackDetailPage() {
                 className="h-auto gap-1.5 px-2 py-1 text-xs text-muted-foreground"
                 onClick={() => {
                   navigator.clipboard.writeText(item.email!);
-                  toast.success("Email copied to clipboard");
+                  toast.success(t("testflight.emailCopied"));
                 }}
               >
                 <Copy size={12} />
-                Copy
+                {t("common.copy")}
               </Button>
             </div>
             <p className="text-sm text-blue-600">{item.email}</p>
@@ -432,16 +444,16 @@ export default function FeedbackDetailPage() {
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent size="sm">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this feedback?</AlertDialogTitle>
+            <AlertDialogTitle>{t("testflight.deleteFeedbackTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently remove this {item.type} feedback submission. This action cannot be undone.
+              {t("testflight.deleteFeedbackDescription", { type: feedbackTypeLabel })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction variant="destructive" onClick={handleDelete} disabled={deleting}>
               {deleting && <Spinner className="mr-1.5" />}
-              Delete
+              {t("testflight.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

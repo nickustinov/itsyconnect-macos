@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { Calendar } from "@/components/ui/calendar";
 import { parseRange, getStoredRange, setStoredRange } from "@/lib/analytics-range";
 import { useAnalytics } from "@/lib/analytics-context";
+import { useLocale, useTranslations } from "@/lib/i18n/locale-context";
 import type { DateRange as RdpDateRange } from "react-day-picker";
 
 const PRESETS = [
@@ -23,13 +24,14 @@ const PRESETS = [
   { value: "90d", label: "90d" },
 ] as const;
 
-function generateMonths(count: number): Array<{ value: string; label: string }> {
+function generateMonths(count: number, locale: string): Array<{ value: string; label: string }> {
   const months: Array<{ value: string; label: string }> = [];
   const now = new Date();
+  const dateLocale = locale === "zh-CN" ? "zh-CN" : "en";
   for (let i = 0; i < count; i++) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    const label = d.toLocaleString("en", { month: "long", year: "numeric" });
+    const label = d.toLocaleString(dateLocale, { month: "long", year: "numeric" });
     months.push({ value, label });
   }
   return months;
@@ -42,13 +44,15 @@ interface DateRangePickerProps {
 }
 
 export function DateRangePicker({ value, lastDate, onChange }: DateRangePickerProps) {
+  const t = useTranslations();
+  const { locale } = useLocale();
   const [open, setOpen] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [calendarRange, setCalendarRange] = useState<RdpDateRange | undefined>();
 
   const parsed = parseRange(value, lastDate);
 
-  const months = useMemo(() => generateMonths(12), []);
+  const months = useMemo(() => generateMonths(12, locale), [locale]);
 
   function select(rangeValue: string) {
     onChange(rangeValue === "30d" ? null : rangeValue);
@@ -92,7 +96,7 @@ export function DateRangePicker({ value, lastDate, onChange }: DateRangePickerPr
               className="mb-1"
               onClick={() => setShowCalendar(false)}
             >
-              &larr; Back
+              {t("analyticsRange.back")}
             </Button>
             <Calendar
               mode="range"
@@ -123,7 +127,7 @@ export function DateRangePicker({ value, lastDate, onChange }: DateRangePickerPr
 
             {/* Months */}
             <p className="mb-1.5 text-xs font-medium text-muted-foreground">
-              Month
+              {t("analyticsRange.month")}
             </p>
             <ScrollArea className="h-[180px]">
               <div className="flex flex-col gap-0.5 pr-3">
@@ -150,7 +154,7 @@ export function DateRangePicker({ value, lastDate, onChange }: DateRangePickerPr
               className="w-full"
               onClick={() => { setCalendarRange(undefined); setShowCalendar(true); }}
             >
-              Custom range&hellip;
+              {t("analyticsRange.customRange")}
             </Button>
           </div>
         )}

@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 interface AIRequiredDialogProps {
   open: boolean;
@@ -17,21 +18,21 @@ interface AIRequiredDialogProps {
 }
 
 export function AIRequiredDialog({ open, onOpenChange }: AIRequiredDialogProps) {
+  const t = useTranslations();
   const router = useRouter();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>AI setup required</DialogTitle>
+          <DialogTitle>{t("ai.requiredTitle")}</DialogTitle>
           <DialogDescription>
-            Configure an AI provider (cloud or local server) in Settings to use
-            translations and improvements.
+            {t("ai.requiredDescription")}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Maybe later
+            {t("ai.maybeLater")}
           </Button>
           <Button
             onClick={() => {
@@ -39,7 +40,7 @@ export function AIRequiredDialog({ open, onOpenChange }: AIRequiredDialogProps) 
               router.push("/settings/ai");
             }}
           >
-            Open settings
+            {t("ai.openSettings")}
           </Button>
         </DialogFooter>
       </DialogContent>

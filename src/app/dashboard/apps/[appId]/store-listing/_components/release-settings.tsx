@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { CalendarBlank } from "@phosphor-icons/react";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 export function ReleaseSettings({
   releaseType,
@@ -24,12 +27,14 @@ export function ReleaseSettings({
   onPhasedReleaseChange: (value: boolean) => void;
   readOnly: boolean;
 }) {
+  const t = useTranslations();
+
   return (
     <section className="space-y-6">
-      <h3 className="section-title">Release settings</h3>
+      <h3 className="section-title">{t("storeListing.release.title")}</h3>
 
       <div className="space-y-3">
-        <p className="text-sm font-medium">Release method</p>
+        <p className="text-sm font-medium">{t("storeListing.release.method")}</p>
         <Tabs
           value={releaseType}
           onValueChange={readOnly ? undefined : onReleaseTypeChange}
@@ -37,23 +42,20 @@ export function ReleaseSettings({
         >
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="automatically" disabled={readOnly}>
-              Automatic
+              {t("storeListing.release.automatic")}
             </TabsTrigger>
             <TabsTrigger value="manually" disabled={readOnly}>
-              Manual
+              {t("storeListing.release.manual")}
             </TabsTrigger>
             <TabsTrigger value="after-date" disabled={readOnly}>
-              Scheduled
+              {t("storeListing.release.scheduled")}
             </TabsTrigger>
           </TabsList>
         </Tabs>
         <p className="text-sm text-muted-foreground">
-          {releaseType === "automatically" &&
-            "Goes live as soon as App Review approves it."}
-          {releaseType === "manually" &&
-            "Stays on hold after approval \u2013 you decide when to release."}
-          {releaseType === "after-date" &&
-            "Released on a date you choose, after approval."}
+          {releaseType === "automatically" && t("storeListing.release.automaticHint")}
+          {releaseType === "manually" && t("storeListing.release.manualHint")}
+          {releaseType === "after-date" && t("storeListing.release.scheduledHint")}
         </p>
         {releaseType === "after-date" && (
           <div className="pt-1">
@@ -73,7 +75,7 @@ export function ReleaseSettings({
                         hour: "2-digit",
                         minute: "2-digit",
                       })
-                    : "Pick a release date"}
+                    : t("storeListing.release.pickDate")}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -82,7 +84,6 @@ export function ReleaseSettings({
                   selected={scheduledDate}
                   onSelect={(date) => {
                     if (!date) return;
-                    // Preserve existing time or default to noon local
                     const prev = scheduledDate;
                     date.setHours(prev?.getHours() ?? 12, prev?.getMinutes() ?? 0, 0, 0);
                     onScheduledDateChange(date);
@@ -91,7 +92,7 @@ export function ReleaseSettings({
                   initialFocus
                 />
                 <div className="border-t px-3 py-2">
-                  <Label className="text-xs text-muted-foreground">Time</Label>
+                  <Label className="text-xs text-muted-foreground">{t("storeListing.release.time")}</Label>
                   <Input
                     type="time"
                     value={scheduledDate
@@ -113,10 +114,9 @@ export function ReleaseSettings({
       </div>
 
       <div className="space-y-3">
-        <p className="text-sm font-medium">Phased rollout</p>
+        <p className="text-sm font-medium">{t("storeListing.release.phasedRollout")}</p>
         <p className="text-sm text-muted-foreground">
-          Gradually roll out to users over 7 days. Only affects automatic
-          updates – manual downloads get the new version immediately.
+          {t("storeListing.release.phasedHint")}
         </p>
         <div className="flex items-center gap-3">
           <Switch
@@ -124,7 +124,7 @@ export function ReleaseSettings({
             onCheckedChange={onPhasedReleaseChange}
             disabled={readOnly}
           />
-          <Label className="text-sm">Enable 7-day phased rollout</Label>
+          <Label className="text-sm">{t("storeListing.release.enablePhased")}</Label>
         </div>
       </div>
     </section>

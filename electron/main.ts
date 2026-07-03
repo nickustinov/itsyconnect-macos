@@ -550,6 +550,8 @@ if (!gotLock) {
     setupAutoUpdater();
     console.log(`[main] App started on port ${port} (${isDev ? "dev" : "prod"})`);
 
+    ipcMain.handle("get-system-locale", () => app.getLocale());
+
     // --- Update IPC handlers (direct distribution only) ---
 
     if (!isMAS) {

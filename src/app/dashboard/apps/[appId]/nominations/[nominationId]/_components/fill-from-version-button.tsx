@@ -21,14 +21,14 @@ import { AIRequiredDialog } from "@/components/ai-required-dialog";
 import { useAIStatus } from "@/lib/hooks/use-ai-status";
 import { normalizeLocale } from "@/lib/asc/locale-names";
 import {
-  stateLabel,
   STATE_DOT_COLORS,
-  PLATFORM_LABELS,
   type AscVersion,
 } from "@/lib/asc/version-types";
 import type { AscLocalization } from "@/lib/asc/localizations";
 import type { NominationType } from "@/lib/asc/nominations";
 import { LIMITS, type NominationFormData } from "./nomination-constants";
+import { useTranslations } from "@/lib/i18n/locale-context";
+import { useAscLabels } from "@/lib/i18n/use-asc-labels";
 
 // ── Platform -> device family mapping ─────────────────────────────────
 
@@ -61,6 +61,8 @@ export function FillFromVersionButton({
   onFill: (data: Partial<NominationFormData>) => void;
   disabled?: boolean;
 }) {
+  const t = useTranslations();
+  const { platformLabel, versionStateLabel } = useAscLabels();
   const { configured } = useAIStatus();
   const [open, setOpen] = useState(false);
   const [filling, setFilling] = useState(false);
@@ -172,9 +174,9 @@ export function FillFromVersionButton({
         supplementalMaterialsUris: supplementalUris,
       });
 
-      toast.success(`Filled from version ${version.attributes.versionString}`);
+      toast.success(t("nominations.filledFromVersion", { version: version.attributes.versionString }));
     } catch {
-      toast.error("Failed to generate nomination");
+      toast.error(t("nominations.generateFailed"));
     } finally {
       setFilling(false);
     }
@@ -197,18 +199,18 @@ export function FillFromVersionButton({
             ) : (
               <MagicWand size={14} />
             )}
-            Fill from version
+            {t("nominations.fillFromVersion")}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-72 p-0" align="start">
           <Command>
-            <CommandEmpty>No versions found.</CommandEmpty>
+            <CommandEmpty>{t("nominations.noVersionsFound")}</CommandEmpty>
             <CommandList>
               <CommandGroup>
                 {versions.map((v) => (
                   <CommandItem
                     key={v.id}
-                    value={`${v.attributes.versionString} ${stateLabel(v.attributes.appVersionState)} ${PLATFORM_LABELS[v.attributes.platform] ?? v.attributes.platform}`}
+                    value={`${v.attributes.versionString} ${versionStateLabel(v.attributes.appVersionState)} ${platformLabel(v.attributes.platform)}`}
                     onSelect={() => handlePick(v)}
                   >
                     <span className="font-mono">
@@ -216,12 +218,12 @@ export function FillFromVersionButton({
                     </span>
                     <span className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
                       <span className="text-xs">
-                        {PLATFORM_LABELS[v.attributes.platform] ?? v.attributes.platform}
+                        {platformLabel(v.attributes.platform)}
                       </span>
                       <span
                         className={`size-1.5 shrink-0 rounded-full ${STATE_DOT_COLORS[v.attributes.appVersionState] ?? "bg-muted-foreground"}`}
                       />
-                      {stateLabel(v.attributes.appVersionState)}
+                      {versionStateLabel(v.attributes.appVersionState)}
                     </span>
                   </CommandItem>
                 ))}

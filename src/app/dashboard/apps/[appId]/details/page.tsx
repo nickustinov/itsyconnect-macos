@@ -27,7 +27,7 @@ import { useAppInfo, useAppInfoLocalizations } from "@/lib/hooks/use-app-info";
 import { pickAppInfo } from "@/lib/asc/app-info-utils";
 import type { AscAppInfoLocalization } from "@/lib/asc/app-info";
 import { localeName, sortLocales, FIELD_LIMITS, FIELD_MIN_LIMITS } from "@/lib/asc/locale-names";
-import { CATEGORIES, categoryName } from "@/lib/asc/categories";
+import { CATEGORY_IDS } from "@/lib/asc/categories";
 import { CharCount } from "@/components/char-count";
 import { useRegisterHeaderLocale } from "@/lib/header-locale-context";
 import { useLocaleManagement } from "@/lib/hooks/use-locale-management";
@@ -45,10 +45,8 @@ import { useTabNavigation } from "@/lib/hooks/use-tab-navigation";
 import { useRegisterRefresh } from "@/lib/refresh-context";
 import { useVersions } from "@/lib/versions-context";
 import { resolveVersion, EDITABLE_STATES } from "@/lib/asc/version-types";
-
-const SORTED_CATEGORIES = Object.keys(CATEGORIES).sort((a, b) =>
-  CATEGORIES[a].localeCompare(CATEGORIES[b]),
-);
+import { useTranslations } from "@/lib/i18n/locale-context";
+import { useAscLabels } from "@/lib/i18n/use-asc-labels";
 
 type ContentRights = "DOES_NOT_USE_THIRD_PARTY_CONTENT" | "USES_THIRD_PARTY_CONTENT";
 
@@ -91,6 +89,12 @@ function buildLocaleData(
 }
 
 export default function AppDetailsPage() {
+  const t = useTranslations();
+  const { categoryLabel } = useAscLabels();
+  const sortedCategories = useMemo(
+    () => [...CATEGORY_IDS].sort((a, b) => categoryLabel(a).localeCompare(categoryLabel(b))),
+    [categoryLabel],
+  );
   const tabRef = useTabNavigation();
   const { appId } = useParams<{ appId: string }>();
   const searchParams = useSearchParams();
@@ -166,10 +170,13 @@ export default function AppDetailsPage() {
   const { bufferEnabled } = useChangeBuffer();
   const { bufferedData, save: saveToBuffer, discard: discardBuffer } = useSectionBuffer(appId, "details", appInfoId);
 
-  const bulkFields: BulkField[] = [
-    { key: "name", label: "Name", charLimit: FIELD_LIMITS.name },
-    { key: "subtitle", label: "Subtitle", charLimit: FIELD_LIMITS.subtitle },
-  ];
+  const bulkFields: BulkField[] = useMemo(
+    () => [
+      { key: "name", label: t("appDetails.name"), charLimit: FIELD_LIMITS.name },
+      { key: "subtitle", label: t("appDetails.subtitle"), charLimit: FIELD_LIMITS.subtitle },
+    ],
+    [t],
+  );
 
   const [bulkMode, setBulkMode] = useState<"translate" | "copy" | null>(null);
   const [bulkAllMode, setBulkAllMode] = useState<{ mode: "translate" | "copy"; field?: string } | null>(null);
@@ -187,8 +194,8 @@ export default function AppDetailsPage() {
     setDirty(true);
     toast.success(
       bulkMode === "translate"
-        ? "Translations applied to all locales"
-        : "Copied to all locales",
+        ? t("common.translationsApplied")
+        : t("common.copiedToAll"),
     );
   }
 
@@ -296,17 +303,25 @@ export default function AppDetailsPage() {
         errors.push(`Name must be at least ${FIELD_MIN_LIMITS.name} characters in ${lName}`);
       }
       if (fields.subtitle.length > FIELD_LIMITS.subtitle) {
-        errors.push(`Subtitle (${fields.subtitle.length}/${FIELD_LIMITS.subtitle}) in ${lName}`);
+        errors.push(t("appDetails.validationSubtitleLimit", {
+          length: fields.subtitle.length,
+          limit: FIELD_LIMITS.subtitle,
+          locale: lName,
+        }));
       }
       for (const urlField of ["privacyPolicyUrl", "privacyChoicesUrl"] as const) {
         const val = fields[urlField];
         if (val && !isValidUrl(val)) {
-          errors.push(`${urlField === "privacyPolicyUrl" ? "Privacy policy URL" : "Privacy choices URL"} is invalid in ${lName}`);
+          errors.push(
+            urlField === "privacyPolicyUrl"
+              ? t("appDetails.validationPrivacyPolicyInvalid", { locale: lName })
+              : t("appDetails.validationPrivacyChoicesInvalid", { locale: lName }),
+          );
         }
       }
     }
     setValidationErrors(errors);
-  }, [localeData, setValidationErrors]);
+  }, [localeData, setValidationErrors, t]);
 
   // Report submission checklist flags for app details fields
   const { reportAppDetails } = useSubmissionChecklist();
@@ -408,7 +423,7 @@ export default function AppDetailsPage() {
 
         bufferAppliedRef.current = true;
         saveToBuffer(data, originalData);
-        toast.success("Changes saved locally");
+        toast.success(t("common.savedLocally"));
         setDirty(false);
         return;
       }
@@ -446,7 +461,7 @@ export default function AppDetailsPage() {
             }),
           }).then(async (res) => {
             const data = await res.json();
-            if (!res.ok && !data.errors) throw new Error(data.error ?? "Save failed");
+            if (!res.ok && !data.errors) throw new Error(data.error ?? t("common.saveFailed"));
             if (data.errors?.length > 0) {
               syncErrors.push(...(data.errors as SyncError[]));
             }
@@ -509,7 +524,7 @@ export default function AppDetailsPage() {
             ascPath: err.ascPath,
           });
         } else {
-          toast.error(err instanceof Error ? err.message : "Save failed");
+          toast.error(err instanceof Error ? err.message : t("common.saveFailed"));
         }
         return;
       }
@@ -519,7 +534,7 @@ export default function AppDetailsPage() {
         return;
       }
 
-      toast.success("App details saved");
+      toast.success(t("appDetails.toastSaved"));
 
       const ids: Record<string, string> = { ...originalLocaleIdsRef.current };
       for (const [locale, id] of Object.entries(locCreatedIds)) {
@@ -593,7 +608,7 @@ export default function AppDetailsPage() {
   });
 
   if (!app) {
-    return <EmptyState title="App not found" />;
+    return <EmptyState title={t("app.notFound")} />;
   }
 
   if (infoLoading || locLoading) {
@@ -614,17 +629,17 @@ export default function AppDetailsPage() {
     <div ref={tabRef} className="space-y-8">
       {/* Identifiers (read-only) */}
       <section className="space-y-2">
-        <h3 className="section-title">Identifiers</h3>
+        <h3 className="section-title">{t("appDetails.identifiers")}</h3>
         <div className="grid gap-4 sm:grid-cols-2">
-          <ReadOnlyField label="Bundle ID" value={app.bundleId} mono copyable />
-          <ReadOnlyField label="SKU" value={app.sku} mono copyable />
+          <ReadOnlyField label={t("appDetails.bundleId")} value={app.bundleId} mono copyable />
+          <ReadOnlyField label={t("appDetails.sku")} value={app.sku} mono copyable />
         </div>
       </section>
 
       {/* Base language & App ID */}
       <div className="grid gap-4 sm:grid-cols-2">
         <section className="space-y-2">
-          <h3 className="section-title">Base language</h3>
+          <h3 className="section-title">{t("appDetails.baseLanguage")}</h3>
           <Select defaultValue={app.primaryLocale}>
             <SelectTrigger className="w-[280px] text-sm">
               <SelectValue />
@@ -653,7 +668,7 @@ export default function AppDetailsPage() {
           </Select>
         </section>
         <section className="space-y-2">
-          <h3 className="section-title">App ID</h3>
+          <h3 className="section-title">{t("appDetails.appId")}</h3>
           <div className="flex items-center gap-1.5">
             <p className="text-sm font-medium font-mono">{appId}</p>
             <CopyButton value={appId} />
@@ -665,12 +680,12 @@ export default function AppDetailsPage() {
         <>
           {/* Name & subtitle */}
           <section className="space-y-2">
-            <h3 className="section-title">Name &amp; subtitle</h3>
+            <h3 className="section-title">{t("appDetails.nameSubtitle")}</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1">
-                    <label className="text-sm text-muted-foreground">Name{localeTag}</label>
+                    <label className="text-sm text-muted-foreground">{t("appDetails.name")}{localeTag}</label>
                     <MagicWandButton
                       value={current.name}
                       onChange={(v) => updateField("name", v)}
@@ -690,7 +705,7 @@ export default function AppDetailsPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1">
-                    <label className="text-sm text-muted-foreground">Subtitle{localeTag}</label>
+                    <label className="text-sm text-muted-foreground">{t("appDetails.subtitle")}{localeTag}</label>
                     <MagicWandButton
                       value={current.subtitle}
                       onChange={(v) => updateField("subtitle", v)}
@@ -712,11 +727,11 @@ export default function AppDetailsPage() {
 
           {/* URLs */}
           <section className="space-y-2">
-            <h3 className="section-title">URLs</h3>
+            <h3 className="section-title">{t("appDetails.urls")}</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <label className="text-sm text-muted-foreground">
-                  Privacy policy URL{localeTag}
+                  {t("appDetails.privacyPolicyUrl")}{localeTag}
                 </label>
                 <Input
                   dir="ltr"
@@ -724,13 +739,13 @@ export default function AppDetailsPage() {
                   onChange={(e) =>
                     updateField("privacyPolicyUrl", e.target.value)
                   }
-                  placeholder="https://..."
+                  placeholder={t("common.urlPlaceholder")}
                   className="text-sm"
                 />
               </div>
               <div className="space-y-2">
                 <label className="text-sm text-muted-foreground">
-                  Privacy choices URL{localeTag}
+                  {t("appDetails.privacyChoicesUrl")}{localeTag}
                 </label>
                 <Input
                   dir="ltr"
@@ -738,7 +753,7 @@ export default function AppDetailsPage() {
                   onChange={(e) =>
                     updateField("privacyChoicesUrl", e.target.value)
                   }
-                  placeholder="https://..."
+                  placeholder={t("common.urlPlaceholder")}
                   className="text-sm"
                 />
               </div>
@@ -801,11 +816,11 @@ export default function AppDetailsPage() {
 
       {/* Categories */}
       <section className="space-y-2">
-        <h3 className="section-title">Categories</h3>
+        <h3 className="section-title">{t("appDetails.categories")}</h3>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <label className="text-sm text-muted-foreground">
-              Primary category
+              {t("appDetails.primaryCategory")}
             </label>
             <Select
               value={primaryCategoryId}
@@ -816,12 +831,12 @@ export default function AppDetailsPage() {
               }}
             >
               <SelectTrigger className="w-[280px] text-sm">
-                <SelectValue placeholder="Select category" />
+                <SelectValue placeholder={t("common.selectCategory")} />
               </SelectTrigger>
               <SelectContent>
-                {SORTED_CATEGORIES.map((id) => (
+                {sortedCategories.map((id) => (
                   <SelectItem key={id} value={id}>
-                    {categoryName(id)}
+                    {categoryLabel(id)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -829,7 +844,7 @@ export default function AppDetailsPage() {
           </div>
           <div className="space-y-2">
             <label className="text-sm text-muted-foreground">
-              Secondary category
+              {t("appDetails.secondaryCategory")}
             </label>
             <Select
               value={secondaryCategoryId || "NONE"}
@@ -842,11 +857,11 @@ export default function AppDetailsPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="NONE">None</SelectItem>
-                {SORTED_CATEGORIES.filter((id) => id !== primaryCategoryId).map(
+                <SelectItem value="NONE">{t("common.none")}</SelectItem>
+                {sortedCategories.filter((id) => id !== primaryCategoryId).map(
                   (id) => (
                     <SelectItem key={id} value={id}>
-                      {categoryName(id)}
+                      {categoryLabel(id)}
                     </SelectItem>
                   ),
                 )}
@@ -858,7 +873,7 @@ export default function AppDetailsPage() {
 
       {/* Age rating */}
       <section className="space-y-2">
-        <h3 className="section-title">Age rating</h3>
+        <h3 className="section-title">{t("appDetails.ageRating")}</h3>
         <div className="flex gap-4">
           <Card className="w-32">
             <CardContent className="flex flex-col items-center justify-center py-4">
@@ -874,7 +889,7 @@ export default function AppDetailsPage() {
 
       {/* Content rights */}
       <section className="space-y-2">
-        <h3 className="section-title">Content rights</h3>
+        <h3 className="section-title">{t("appDetails.contentRights")}</h3>
         <RadioGroup
           value={contentRights}
           onValueChange={(value) => {
@@ -885,13 +900,13 @@ export default function AppDetailsPage() {
           <div className="flex items-center gap-2">
             <RadioGroupItem value="DOES_NOT_USE_THIRD_PARTY_CONTENT" id="cr-none" />
             <Label htmlFor="cr-none" className="text-sm font-normal">
-              Does not use third-party content
+              {t("appDetails.noThirdParty")}
             </Label>
           </div>
           <div className="flex items-center gap-2">
             <RadioGroupItem value="USES_THIRD_PARTY_CONTENT" id="cr-has-rights" />
             <Label htmlFor="cr-has-rights" className="text-sm font-normal">
-              Contains third-party content and I have the necessary rights
+              {t("appDetails.hasThirdParty")}
             </Label>
           </div>
         </RadioGroup>
@@ -899,11 +914,11 @@ export default function AppDetailsPage() {
 
       {/* App Store server notifications */}
       <section className="space-y-2 pb-8">
-        <h3 className="section-title">App Store server notifications</h3>
+        <h3 className="section-title">{t("appDetails.serverNotifications")}</h3>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <label className="text-sm text-muted-foreground">
-              Production URL
+              {t("appDetails.productionUrl")}
             </label>
             <Input
               dir="ltr"
@@ -912,13 +927,13 @@ export default function AppDetailsPage() {
                 setNotifUrl(e.target.value);
                 setDirty(true);
               }}
-              placeholder="https://..."
+              placeholder={t("common.urlPlaceholder")}
               className="text-sm"
             />
           </div>
           <div className="space-y-2">
             <label className="text-sm text-muted-foreground">
-              Sandbox URL
+              {t("appDetails.sandboxUrl")}
             </label>
             <Input
               dir="ltr"
@@ -927,7 +942,7 @@ export default function AppDetailsPage() {
                 setNotifSandboxUrl(e.target.value);
                 setDirty(true);
               }}
-              placeholder="https://..."
+              placeholder={t("common.urlPlaceholder")}
               className="text-sm"
             />
           </div>

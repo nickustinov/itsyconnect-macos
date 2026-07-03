@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -17,6 +19,7 @@ import { GuidanceField } from "@/components/guidance-field";
 import { Stars } from "./review-summary";
 import { NON_ENGLISH_TERRITORIES } from "./territory-helpers";
 import type { Review } from "./territory-helpers";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 const MAX_RESPONSE_LENGTH = 5970;
 
@@ -61,6 +64,8 @@ export function ReplyDialog({
   onTranslate,
   translating,
 }: ReplyDialogProps) {
+  const t = useTranslations();
+
   return (
     <Dialog
       open={!!replyTarget}
@@ -71,11 +76,10 @@ export function ReplyDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {editingResponseId ? "Edit reply" : "Reply to review"}
+            {editingResponseId ? t("reviews.editReply") : t("reviews.replyToReview")}
           </DialogTitle>
           <DialogDescription>
-            Your response will be publicly visible on the App Store. It may
-            take up to 24 hours to appear after submission.
+            {t("reviews.replyDescription")}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
@@ -110,10 +114,10 @@ export function ReplyDialog({
                       <Translate size={12} />
                     )}
                     {isTranslatingReview
-                      ? "Translating…"
+                      ? t("reviews.translating")
                       : translated
-                        ? "Show original"
-                        : "Translate"}
+                        ? t("reviews.showOriginal")
+                        : t("reviews.translate")}
                   </button>
                 )}
               </div>
@@ -122,7 +126,7 @@ export function ReplyDialog({
           <Textarea
             value={replyBody}
             onChange={(e) => onReplyBodyChange(e.target.value)}
-            placeholder="Write your response…"
+            placeholder={t("reviews.replyPlaceholder")}
             className="min-h-[120px] max-h-[40vh] font-mono text-sm"
             maxLength={MAX_RESPONSE_LENGTH}
           />
@@ -139,7 +143,7 @@ export function ReplyDialog({
                 ) : (
                   <Translate size={12} />
                 )}
-                {translatingReply ? "Translating…" : "Translate reply"}
+                {translatingReply ? t("reviews.translating") : t("reviews.translateReply")}
               </button>
             ) : (
               <span />
@@ -166,7 +170,7 @@ export function ReplyDialog({
             ) : (
               <MagicWand size={14} className="mr-1.5" />
             )}
-            Help me write
+            {t("reviews.helpMeWrite")}
           </Button>
           <div className="flex items-center gap-2">
             <Button
@@ -175,7 +179,7 @@ export function ReplyDialog({
               onClick={onClose}
               disabled={replying}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               size="sm"
@@ -185,7 +189,7 @@ export function ReplyDialog({
               {replying && (
                 <CircleNotch size={14} className="mr-1.5 animate-spin" />
               )}
-              {editingResponseId ? "Update reply" : "Send reply"}
+              {editingResponseId ? t("reviews.updateReply") : t("reviews.sendReply")}
             </Button>
           </div>
         </DialogFooter>

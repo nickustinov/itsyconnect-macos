@@ -16,12 +16,14 @@ import { toast } from "sonner";
 import { AI_PROVIDERS } from "@/lib/ai-providers";
 import { invalidateAIStatus } from "@/lib/hooks/use-ai-status";
 import { LocalServerFields } from "@/components/local-server-fields";
+import { useTranslations } from "@/lib/i18n/locale-context";
 import {
   DEFAULT_LOCAL_OPENAI_BASE_URL,
   isLocalOpenAIProvider,
 } from "@/lib/ai/local-provider";
 
 export default function AISettingsPage() {
+  const t = useTranslations();
   const [providerId, setProviderId] = useState("anthropic");
   const [modelId, setModelId] = useState("claude-sonnet-4-6");
   const [baseUrl, setBaseUrl] = useState("");
@@ -170,7 +172,7 @@ export default function AISettingsPage() {
       });
 
       if (res.ok) {
-        toast.success("AI settings saved");
+        toast.success(t("settings.ai.saved"));
         setHasExistingSettings(true);
         setStoredProvider(providerId);
         setStoredModel(modelId.trim());
@@ -181,10 +183,10 @@ export default function AISettingsPage() {
         refreshGeminiKeyStatus();
       } else {
         const data = await res.json().catch(() => ({}));
-        toast.error(data.error || "Failed to save");
+        toast.error(data.error || t("common.saveFailed"));
       }
     } catch {
-      toast.error("Network error");
+      toast.error(t("common.networkError"));
     }
 
     setSaving(false);
@@ -196,7 +198,7 @@ export default function AISettingsPage() {
     try {
       const res = await fetch("/api/settings/ai", { method: "DELETE" });
       if (res.ok) {
-        toast.success("AI settings removed");
+        toast.success(t("settings.ai.removed"));
         setHasExistingSettings(false);
         setStoredProvider("");
         setStoredModel("");
@@ -206,10 +208,10 @@ export default function AISettingsPage() {
         setShowKey(false);
         invalidateAIStatus();
       } else {
-        toast.error("Failed to remove");
+        toast.error(t("settings.ai.removeFailed"));
       }
     } catch {
-      toast.error("Network error");
+      toast.error(t("common.networkError"));
     }
 
     setRemoving(false);
@@ -225,16 +227,16 @@ export default function AISettingsPage() {
         body: JSON.stringify({ apiKey: geminiKey.trim() }),
       });
       if (res.ok) {
-        toast.success("Gemini key saved");
+        toast.success(t("settings.ai.geminiKeySaved"));
         setGeminiKey("");
         setShowGeminiKey(false);
         refreshGeminiKeyStatus();
       } else {
         const data = await res.json().catch(() => ({}));
-        toast.error(data.error || "Failed to save");
+        toast.error(data.error || t("common.saveFailed"));
       }
     } catch {
-      toast.error("Network error");
+      toast.error(t("common.networkError"));
     }
     setSavingGeminiKey(false);
   }
@@ -244,13 +246,13 @@ export default function AISettingsPage() {
     try {
       const res = await fetch("/api/settings/gemini-key", { method: "DELETE" });
       if (res.ok) {
-        toast.success("Gemini key removed");
+        toast.success(t("settings.ai.geminiKeyRemoved"));
         refreshGeminiKeyStatus();
       } else {
-        toast.error("Failed to remove");
+        toast.error(t("settings.ai.removeFailed"));
       }
     } catch {
-      toast.error("Network error");
+      toast.error(t("common.networkError"));
     }
     setRemovingGeminiKey(false);
   }
@@ -260,17 +262,16 @@ export default function AISettingsPage() {
   return (
     <div className="space-y-8">
       <section className="space-y-2">
-        <h3 className="section-title">Provider</h3>
+        <h3 className="section-title">{t("settings.ai.provider")}</h3>
         <p className="text-sm text-muted-foreground">
-          Select the AI provider for translations, copywriting, and other AI
-          operations.
+          {t("settings.ai.providerHint")}
         </p>
         <Select value={providerId} onValueChange={handleProviderChange}>
           <SelectTrigger className="w-[280px] text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="__none__">None (off)</SelectItem>
+            <SelectItem value="__none__">{t("settings.ai.providerNone")}</SelectItem>
             {AI_PROVIDERS.map((p) => (
               <SelectItem key={p.id} value={p.id}>
                 {p.name}
@@ -292,7 +293,7 @@ export default function AISettingsPage() {
 
       {!isLocalProvider && provider && (
         <section className="space-y-2">
-          <h3 className="section-title">Model</h3>
+          <h3 className="section-title">{t("settings.ai.model")}</h3>
           <Select value={modelId} onValueChange={setModelId}>
             <SelectTrigger className="w-[320px] text-sm">
               <SelectValue />
@@ -312,11 +313,11 @@ export default function AISettingsPage() {
       )}
 
       <section className="space-y-2">
-        <h3 className="section-title">API key / token</h3>
+        <h3 className="section-title">{t("settings.ai.apiKey")}</h3>
         {hasExistingSettings && !providerChanged ? (
           <div className="flex items-center gap-2">
             <CheckCircle size={16} weight="fill" className="text-green-600" />
-            <span className="text-sm">Configured</span>
+            <span className="text-sm">{t("settings.ai.configured")}</span>
             <Button
               variant="ghost"
               size="sm"
@@ -324,7 +325,7 @@ export default function AISettingsPage() {
               onClick={handleRemove}
               disabled={removing}
             >
-              {removing ? <><Spinner className="size-3" /> Removing...</> : "Remove"}
+              {removing ? <><Spinner className="size-3" /> {t("settings.ai.removing")}</> : t("common.remove")}
             </Button>
           </div>
         ) : (
@@ -332,8 +333,8 @@ export default function AISettingsPage() {
             {providerChanged && provider && (
               <p className="text-sm text-muted-foreground">
                 {isLocalProvider
-                  ? "Switching to a local OpenAI-compatible server does not require a key unless auth is enabled."
-                  : `Switching to ${provider.name} requires a new API key.`}
+                  ? t("settings.ai.switchLocalHint")
+                  : t("settings.ai.switchProviderHint", { provider: provider.name })}
               </p>
             )}
             <div className="flex items-center gap-2">
@@ -343,8 +344,8 @@ export default function AISettingsPage() {
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder={
                   isLocalProvider
-                    ? "Optional token (if your local server requires auth)"
-                    : "Paste your API key"
+                    ? t("settings.ai.apiKeyPlaceholderLocal")
+                    : t("settings.ai.apiKeyPlaceholder")
                 }
                 className="font-mono text-sm"
               />
@@ -363,16 +364,16 @@ export default function AISettingsPage() {
 
       {/* Screenshot translation (Gemini) */}
       <section className="space-y-2">
-        <h3 className="section-title">Screenshot translation</h3>
+        <h3 className="section-title">{t("settings.ai.screenshotTranslation")}</h3>
         <p className="text-sm text-muted-foreground">
-          Uses Gemini 3 Pro Image to translate text in App Store screenshots.
-          {geminiKeyFromMain && " Your Google API key from above is used automatically."}
+          {t("settings.ai.screenshotHint")}
+          {geminiKeyFromMain && t("settings.ai.screenshotHintFromMain")}
         </p>
         {geminiKeyAvailable ? (
           <div className="flex items-center gap-2">
             <CheckCircle size={16} weight="fill" className="text-green-600" />
             <span className="text-sm">
-              {geminiKeyFromMain ? "Using your Google provider key" : "Configured"}
+              {geminiKeyFromMain ? t("settings.ai.usingGoogleKey") : t("settings.ai.configured")}
             </span>
             {!geminiKeyFromMain && (
               <Button
@@ -382,7 +383,7 @@ export default function AISettingsPage() {
                 onClick={handleRemoveGeminiKey}
                 disabled={removingGeminiKey}
               >
-                {removingGeminiKey ? <><Spinner className="size-3" /> Removing...</> : "Remove"}
+                {removingGeminiKey ? <><Spinner className="size-3" /> {t("settings.ai.removing")}</> : t("common.remove")}
               </Button>
             )}
           </div>
@@ -392,7 +393,7 @@ export default function AISettingsPage() {
               type={showGeminiKey ? "text" : "password"}
               value={geminiKey}
               onChange={(e) => setGeminiKey(e.target.value)}
-              placeholder="Gemini API key"
+              placeholder={t("settings.ai.geminiKeyPlaceholder")}
               className="font-mono text-sm"
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleSaveGeminiKey();
@@ -410,7 +411,7 @@ export default function AISettingsPage() {
               onClick={handleSaveGeminiKey}
               disabled={savingGeminiKey || !geminiKey.trim()}
             >
-              {savingGeminiKey ? <Spinner className="size-4" /> : "Save"}
+              {savingGeminiKey ? <Spinner className="size-4" /> : t("settings.ai.save")}
             </Button>
           </div>
         )}
@@ -420,10 +421,10 @@ export default function AISettingsPage() {
         {saving ? (
           <>
             <Spinner />
-            Saving...
+            {t("settings.ai.saving")}
           </>
         ) : (
-          "Save"
+          t("settings.ai.save")
         )}
       </Button>
     </div>

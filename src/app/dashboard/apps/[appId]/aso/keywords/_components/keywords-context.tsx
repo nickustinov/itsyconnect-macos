@@ -18,6 +18,7 @@ import type { AscAppInfoLocalization } from "@/lib/asc/app-info";
 import type { SyncError } from "@/lib/api-helpers";
 import type { StorefrontAnalysis } from "./keyword-analysis";
 import { analyzeAllLocales } from "./keyword-analysis";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 interface KeywordsContextValue {
   app: { id: string; name: string; primaryLocale: string } | undefined;
@@ -44,6 +45,7 @@ export function useKeywords() {
 }
 
 export function KeywordsProvider({ children }: { children: React.ReactNode }) {
+  const t = useTranslations();
   const { appId } = useParams<{ appId: string }>();
   const searchParams = useSearchParams();
   const { apps } = useApps();
@@ -156,7 +158,7 @@ export function KeywordsProvider({ children }: { children: React.ReactNode }) {
           { locales: changed },
           { locales: origChanged, localeIds: originalLocaleIdsRef.current },
         );
-        toast.success("Keywords saved locally");
+        toast.success(t("common.savedLocally"));
         setDirty(false);
         return;
       }
@@ -190,12 +192,12 @@ export function KeywordsProvider({ children }: { children: React.ReactNode }) {
           },
         );
         const data = await res.json();
-        if (!res.ok && !data.errors) throw new Error(data.error ?? "Save failed");
+        if (!res.ok && !data.errors) throw new Error(data.error ?? t("common.saveFailed"));
         if (data.errors?.length > 0) {
           showSyncErrors(data.errors as SyncError[]);
           return;
         }
-        toast.success("Keywords saved");
+        toast.success(t("keywords.toastSaved"));
         originalKeywordsRef.current = { ...keywordEdits };
         setDirty(false);
       } catch (err) {
@@ -207,7 +209,7 @@ export function KeywordsProvider({ children }: { children: React.ReactNode }) {
             ascPath: err.ascPath,
           });
         } else {
-          toast.error(err instanceof Error ? err.message : "Save failed");
+          toast.error(err instanceof Error ? err.message : t("common.saveFailed"));
         }
       }
     });

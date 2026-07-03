@@ -36,12 +36,12 @@ import { parseRange, filterByDateRange } from "@/lib/analytics-range";
 import { usePersistedRange } from "@/lib/hooks/use-persisted-range";
 import type { AnalyticsData } from "@/lib/asc/analytics";
 import {
-  PLATFORM_LABELS,
   STATE_DOT_COLORS,
-  stateLabel,
   type AscVersion,
 } from "@/lib/asc/version-types";
 import { ReportInitiatedBanner } from "@/components/report-initiated-banner";
+import { useTranslations } from "@/lib/i18n/locale-context";
+import { useAscLabels } from "@/lib/i18n/use-asc-labels";
 
 const CHART_COLORS = [
   "var(--color-chart-1)",
@@ -60,6 +60,8 @@ interface AppAnalytics {
 }
 
 export default function DashboardPage() {
+  const t = useTranslations();
+  const { platformLabel, versionStateLabel } = useAscLabels();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { apps, loading } = useApps();
@@ -272,12 +274,12 @@ export default function DashboardPage() {
       };
     }
     config["Total"] = {
-      label: "Total",
+      label: t("dashboard.total"),
       color: "oklch(from var(--foreground) l c h / 0.3)",
     };
 
     return { chartData: data, chartConfig: config };
-  }, [apps, analytics, parsed, hidden]);
+  }, [apps, analytics, parsed, hidden, t]);
 
   const appNames = useMemo(
     () => Object.keys(chartConfig).filter((k) => k !== "Total"),
@@ -289,7 +291,7 @@ export default function DashboardPage() {
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-background">
         <div className="drag fixed inset-x-0 top-0 h-16" />
         <Spinner className="size-6 text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">Getting things ready…</p>
+        <p className="text-sm text-muted-foreground">{t("dashboard.gettingReady")}</p>
       </div>
     );
   }
@@ -306,10 +308,10 @@ export default function DashboardPage() {
     return (
       <EmptyState
         icon={AppWindow}
-        title="No apps yet"
+        title={t("dashboard.noAppsTitle")}
         description={
           <>
-            Create your apps in{" "}
+            {t("dashboard.noAppsDescriptionPrefix")}{" "}
             <a
               href="https://appstoreconnect.apple.com"
               target="_blank"
@@ -318,7 +320,7 @@ export default function DashboardPage() {
             >
               App Store Connect
             </a>{" "}
-            first, then they&apos;ll appear here automatically.
+            {t("dashboard.noAppsDescriptionSuffix")}
           </>
         }
       />
@@ -340,22 +342,22 @@ export default function DashboardPage() {
       {/* KPI row */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard
-          title="Total downloads"
+          title={t("dashboard.totalDownloads")}
           value={anyLoaded ? totalDownloads.toLocaleString() : "–"}
           icon={DownloadSimple}
         />
         <KpiCard
-          title="Total proceeds"
+          title={t("dashboard.totalProceeds")}
           value={anyLoaded ? `$${totalProceeds.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "–"}
           icon={CurrencyDollar}
         />
         <KpiCard
-          title="Proceeds in selected range"
+          title={t("dashboard.rangeProceeds")}
           value={anyLoaded ? `$${rangeProceeds.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "–"}
           icon={CurrencyDollar}
         />
         <KpiCard
-          title="Proceeds yesterday"
+          title={t("dashboard.proceedsYesterday")}
           value={anyLoaded ? `$${proceedsYesterday.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "–"}
           icon={CurrencyDollar}
         />
@@ -370,17 +372,17 @@ export default function DashboardPage() {
         <div className="flex flex-col items-center justify-center gap-3 py-16">
           <Spinner className="size-6 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">
-            Fetching analytics data – this may take a moment on first load
+            {t("dashboard.fetchingAnalytics")}
           </p>
         </div>
       ) : noData ? (
         <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-          No analytics data available yet.
+          {t("dashboard.noAnalyticsData")}
         </div>
       ) : anyLoaded ? (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-sm font-medium">Proceeds</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("dashboard.proceeds")}</CardTitle>
             <DateRangePicker value={range} onChange={setRange} />
           </CardHeader>
           <CardContent>
@@ -442,7 +444,7 @@ export default function DashboardPage() {
               </ChartContainer>
             ) : (
               <p className="py-12 text-center text-sm text-muted-foreground">
-                No data for this date range.
+                {t("dashboard.noDataForRange")}
               </p>
             )}
           </CardContent>
@@ -467,13 +469,13 @@ export default function DashboardPage() {
                   {entry?.loading ? (
                     <Spinner className="size-4 text-muted-foreground" />
                   ) : (entry?.reportInitiated || devSimulate) && !entry?.data ? (
-                    <p className="text-xs text-muted-foreground">Awaiting data from App Store Connect</p>
+                    <p className="text-xs text-muted-foreground">{t("dashboard.awaitingData")}</p>
                   ) : entry?.pending ? (
-                    <p className="text-xs text-muted-foreground">Pending</p>
+                    <p className="text-xs text-muted-foreground">{t("dashboard.pending")}</p>
                   ) : entry?.data ? (
                     <AppCardStats data={entry.data} />
                   ) : (
-                    <p className="text-xs text-muted-foreground">No data</p>
+                    <p className="text-xs text-muted-foreground">{t("dashboard.noData")}</p>
                   )}
                   {versions.length > 0 && (
                     <div className="mt-3 space-y-0.5 border-t pt-3">
@@ -481,9 +483,9 @@ export default function DashboardPage() {
                         <div key={v.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
                           <span className={`size-1.5 shrink-0 rounded-full ${STATE_DOT_COLORS[v.attributes.appVersionState] ?? "bg-muted-foreground"}`} />
                           <span className="truncate">
-                            {PLATFORM_LABELS[v.attributes.platform] ?? v.attributes.platform}{" "}
+                            {platformLabel(v.attributes.platform)}{" "}
                             {v.attributes.versionString}{" "}
-                            {stateLabel(v.attributes.appVersionState)}
+                            {versionStateLabel(v.attributes.appVersionState)}
                           </span>
                         </div>
                       ))}

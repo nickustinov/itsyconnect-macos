@@ -18,6 +18,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { STOREFRONTS, POPULAR_STOREFRONTS } from "@/lib/asc/storefronts";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 interface StorefrontPickerProps {
   value: string;
@@ -25,6 +26,7 @@ interface StorefrontPickerProps {
 }
 
 export function StorefrontPicker({ value, onChange }: StorefrontPickerProps) {
+  const t = useTranslations();
   const [open, setOpen] = useState(false);
   const selected = STOREFRONTS[value];
 
@@ -41,16 +43,16 @@ export function StorefrontPicker({ value, onChange }: StorefrontPickerProps) {
           aria-expanded={open}
           className="w-[260px] justify-between"
         >
-          {selected?.name ?? "Select storefront"}
+          {selected?.name ?? t("keywords.selectStorefront")}
           <CaretUpDown className="ml-2 size-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[260px] p-0">
         <Command>
-          <CommandInput placeholder="Search storefronts..." />
+          <CommandInput placeholder={t("keywords.searchStorefronts")} />
           <CommandList>
-            <CommandEmpty>No storefront found.</CommandEmpty>
-            <CommandGroup heading="Popular">
+            <CommandEmpty>{t("keywords.noStorefrontFound")}</CommandEmpty>
+            <CommandGroup heading={t("keywords.popular")}>
               {POPULAR_STOREFRONTS.map((iso) => (
                 <CommandItem
                   key={iso}
@@ -70,7 +72,7 @@ export function StorefrontPicker({ value, onChange }: StorefrontPickerProps) {
                 </CommandItem>
               ))}
             </CommandGroup>
-            <CommandGroup heading="All storefronts">
+            <CommandGroup heading={t("keywords.allStorefronts")}>
               {otherCodes.map((iso) => (
                 <CommandItem
                   key={iso}

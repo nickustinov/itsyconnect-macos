@@ -33,11 +33,13 @@ import {
   DEFAULT_LOCAL_OPENAI_BASE_URL,
   isLocalOpenAIProvider,
 } from "@/lib/ai/local-provider";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 const WIZARD_STEPS = 3;
 
 export default function SetupPage() {
   const router = useRouter();
+  const t = useTranslations();
   const [ready, setReady] = useState(false);
   // step 0 = welcome, steps 1–3 = wizard
   const [step, setStep] = useState(0);
@@ -62,7 +64,7 @@ export default function SetupPage() {
   }, [router]);
 
   // Step 1 – Team name
-  const [teamName, setTeamName] = useState("My team");
+  const [teamName, setTeamName] = useState("");
 
   // Step 2 – ASC credentials
   const [issuerId, setIssuerId] = useState("");
@@ -124,11 +126,11 @@ export default function SetupPage() {
       } else {
         const data = await res.json().catch(() => ({}));
         setTestStatus("error");
-        setTestError(data.error || "Connection failed");
+        setTestError(data.error || t("common.connectionFailed"));
       }
     } catch {
       setTestStatus("error");
-      setTestError("Network error");
+      setTestError(t("common.networkError"));
     }
   }
 
@@ -150,7 +152,7 @@ export default function SetupPage() {
         !trimmed.startsWith("-----BEGIN PRIVATE KEY-----") ||
         !trimmed.endsWith("-----END PRIVATE KEY-----")
       ) {
-        setKeyError("Invalid key file – expected a .p8 private key from Apple.");
+        setKeyError(t("common.invalidKeyFile"));
         return;
       }
 
@@ -193,7 +195,7 @@ export default function SetupPage() {
 
       // Include ASC credentials
       if (issuerId.trim() && keyId.trim() && privateKey.trim()) {
-        body.name = teamName.trim() || "My team";
+        body.name = teamName.trim() || t("nav.myTeam");
         body.issuerId = issuerId.trim();
         body.keyId = keyId.trim();
         body.privateKey = privateKey;
@@ -219,17 +221,17 @@ export default function SetupPage() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        toast.error(data.error || "Setup failed");
+        toast.error(data.error || t("setup.setupFailed"));
         setSubmitting(false);
         return;
       }
 
-      toast.success("Setup complete");
+      toast.success(t("setup.setupComplete"));
       clearNavigation();
       router.push("/dashboard?entry=1");
       router.refresh();
     } catch {
-      toast.error("Network error");
+      toast.error(t("common.networkError"));
       setSubmitting(false);
     }
   }
@@ -239,7 +241,7 @@ export default function SetupPage() {
     try {
       const res = await fetch("/api/setup/demo", { method: "POST" });
       if (!res.ok) {
-        toast.error("Could not start demo mode");
+        toast.error(t("setup.demoFailed"));
         setEnteringDemo(false);
         return;
       }
@@ -247,7 +249,7 @@ export default function SetupPage() {
       router.push("/dashboard?entry=1");
       router.refresh();
     } catch {
-      toast.error("Network error");
+      toast.error(t("common.networkError"));
       setEnteringDemo(false);
     }
   }
@@ -280,19 +282,16 @@ export default function SetupPage() {
             {step === 3 && <MagicWand size={32} weight="fill" />}
           </div>
           <h1 className="text-2xl font-bold tracking-tight">
-            {step === 0 && "Welcome to Itsyconnect"}
-            {step === 1 && "Developer account"}
-            {step === 2 && "App Store Connect"}
-            {step === 3 && "AI assistant"}
+            {step === 0 && t("setup.title.welcome")}
+            {step === 1 && t("setup.title.account")}
+            {step === 2 && t("setup.title.asc")}
+            {step === 3 && t("setup.title.ai")}
           </h1>
           <p className="text-sm text-muted-foreground text-center">
-            {step === 0 && "Better App Store Connect"}
-            {step === 1 &&
-              "Name your developer account to get started."}
-            {step === 2 &&
-              "Set up to manage apps, versions, and metadata."}
-            {step === 3 &&
-              "Add an API key to auto-translate app metadata, generate keywords, and improve descriptions."}
+            {step === 0 && t("setup.subtitle.welcome")}
+            {step === 1 && t("setup.subtitle.account")}
+            {step === 2 && t("setup.subtitle.asc")}
+            {step === 3 && t("setup.subtitle.ai")}
           </p>
         </div>
 
@@ -320,19 +319,19 @@ export default function SetupPage() {
             <ul className="flex flex-col items-start gap-3 text-sm text-muted-foreground w-fit mx-auto">
               <li className="flex items-start gap-2">
                 <CheckCircle size={16} weight="fill" className="mt-0.5 shrink-0 text-green-600" />
-                Manage apps, versions, and metadata across all platforms
+                {t("setup.features.manage")}
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle size={16} weight="fill" className="mt-0.5 shrink-0 text-green-600" />
-                TestFlight builds, beta groups, and testers in one place
+                {t("setup.features.testflight")}
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle size={16} weight="fill" className="mt-0.5 shrink-0 text-green-600" />
-                AI-powered translations and copywriting (optional)
+                {t("setup.features.ai")}
               </li>
               <li className="flex items-start gap-2">
                 <Lock size={16} weight="fill" className="mt-0.5 shrink-0 text-green-600" />
-                All data stays on your machine, encrypted at rest
+                {t("setup.features.privacy")}
               </li>
             </ul>
           </div>
@@ -342,19 +341,19 @@ export default function SetupPage() {
         {step === 1 && (
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm text-muted-foreground">Team name</label>
+              <label className="text-sm text-muted-foreground">{t("setup.teamName")}</label>
               <Input
                 value={teamName}
                 onChange={(e) => setTeamName(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && canAdvance()) handleNext();
                 }}
-                placeholder="My team"
+                placeholder={t("nav.myTeam")}
                 className="text-sm"
                 autoFocus
               />
               <p className="text-xs text-muted-foreground">
-                A label to identify this developer account. You can connect multiple Apple developer accounts later.
+                {t("setup.teamNameHint")}
               </p>
             </div>
           </div>
@@ -367,22 +366,21 @@ export default function SetupPage() {
               <div className="flex items-start gap-2">
                 <Info size={14} className="mt-0.5 shrink-0 text-muted-foreground" />
                 <p className="text-xs text-muted-foreground">
-                  Go to{" "}
+                  {t("setup.ascHintPrefix")}{" "}
                   <a
                     href="https://appstoreconnect.apple.com/access/integrations/api"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-primary underline-offset-4 hover:underline"
                   >
-                    App Store Connect &rarr; Integrations &rarr; Team keys
+                    {t("setup.ascHintLink")}
                   </a>
-                  {" "}and generate a key with <strong>Admin</strong> access.
-                  Download the .p8 file and copy the Issuer ID shown on the page.
+                  {" "}{t("setup.ascHintSuffix")}
                 </p>
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-sm text-muted-foreground">Issuer ID</label>
+              <label className="text-sm text-muted-foreground">{t("setup.issuerId")}</label>
               <Input
                 value={issuerId}
                 onChange={(e) => {
@@ -396,7 +394,7 @@ export default function SetupPage() {
             </div>
             <div className="space-y-2">
               <label className="text-sm text-muted-foreground">
-                Private key (.p8)
+                {t("setup.privateKey")}
               </label>
               <Input
                 type="file"
@@ -415,20 +413,20 @@ export default function SetupPage() {
                   {testStatus === "testing" && (
                     <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Spinner className="size-3.5" />
-                      Testing connection...
+                      {t("common.testingConnection")}
                     </p>
                   )}
                   {testStatus === "ok" && (
                     <p className="flex items-center gap-1.5 text-xs text-green-600">
                       <CheckCircle size={14} weight="fill" />
-                      Connected – key ID{" "}
+                      {t("common.connectedKeyId")}{" "}
                       <span className="font-mono">{keyId}</span>
                     </p>
                   )}
                   {testStatus === "error" && (
                     <p className="flex items-center gap-1.5 text-xs text-destructive">
                       <XCircle size={14} weight="fill" />
-                      {testError || "Connection failed – check your credentials."}
+                      {testError || t("common.connectionFailedCheck")}
                     </p>
                   )}
                   {testStatus === "error" &&
@@ -445,21 +443,21 @@ export default function SetupPage() {
                           )
                         }
                       >
-                        Test again
+                        {t("common.testAgain")}
                       </button>
                     )}
                 </>
               )}
               {privateKey && !keyError && !keyIdFromFile && (
                 <p className="text-xs text-muted-foreground">
-                  Key loaded. Enter the key ID below to continue.
+                  {t("common.keyLoadedEnterId")}
                 </p>
               )}
             </div>
             {/* Show key ID input only if not extracted from filename */}
             {privateKey && !keyIdFromFile && !keyError && (
               <div className="space-y-2">
-                <label className="text-sm text-muted-foreground">Key ID</label>
+                <label className="text-sm text-muted-foreground">{t("setup.keyId")}</label>
                 <Input
                   value={keyId}
                   onChange={(e) => {
@@ -472,20 +470,20 @@ export default function SetupPage() {
                 {testStatus === "testing" && (
                   <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <Spinner className="size-3.5" />
-                    Testing connection...
+                    {t("common.testingConnection")}
                   </p>
                 )}
                 {testStatus === "ok" && (
                   <p className="flex items-center gap-1.5 text-xs text-green-600">
                     <CheckCircle size={14} weight="fill" />
-                    Connected – key ID{" "}
+                    {t("common.connectedKeyId")}{" "}
                     <span className="font-mono">{keyId}</span>
                   </p>
                 )}
                 {testStatus === "error" && (
                   <p className="flex items-center gap-1.5 text-xs text-destructive">
                     <XCircle size={14} weight="fill" />
-                    {testError || "Connection failed – check your credentials."}
+                    {testError || t("common.connectionFailedCheck")}
                   </p>
                 )}
                 {(testStatus === "idle" || testStatus === "error") &&
@@ -502,7 +500,7 @@ export default function SetupPage() {
                         )
                       }
                     >
-                      Test connection
+                      {t("common.testAgain")}
                     </button>
                   )}
               </div>
@@ -514,7 +512,7 @@ export default function SetupPage() {
         {step === 3 && (
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm text-muted-foreground">Provider</label>
+              <label className="text-sm text-muted-foreground">{t("setup.provider")}</label>
               <Select value={providerId} onValueChange={handleProviderChange}>
                 <SelectTrigger className="w-full text-sm">
                   <SelectValue />
@@ -540,7 +538,7 @@ export default function SetupPage() {
             )}
             {!isLocalOpenAIProvider(providerId) && (
               <div className="space-y-2">
-                <label className="text-sm text-muted-foreground">Model</label>
+                <label className="text-sm text-muted-foreground">{t("setup.model")}</label>
                 <Select value={modelId} onValueChange={setModelId}>
                   <SelectTrigger className="w-full text-sm">
                     <SelectValue />
@@ -560,8 +558,8 @@ export default function SetupPage() {
             )}
             <div className="space-y-2">
               <label className="text-sm text-muted-foreground">
-                API key{" "}
-                <span className="text-xs text-muted-foreground/60">(optional)</span>
+                {t("setup.apiKey")}{" "}
+                <span className="text-xs text-muted-foreground/60">{t("common.optional")}</span>
               </label>
               <div className="flex items-center gap-2">
                 <Input
@@ -569,8 +567,8 @@ export default function SetupPage() {
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   placeholder={isLocalOpenAIProvider(providerId)
-                    ? "Optional token (if your local server requires auth)"
-                    : "Paste your API key"}
+                    ? t("setup.apiKeyPlaceholderLocal")
+                    : t("setup.apiKeyPlaceholder")}
                   className="font-mono text-sm"
                 />
                 <Button
@@ -594,7 +592,7 @@ export default function SetupPage() {
               onClick={() => setStep(step - 1)}
               disabled={submitting}
             >
-              Back
+              {t("common.back")}
             </Button>
           )}
           <Button
@@ -604,14 +602,14 @@ export default function SetupPage() {
             {submitting ? (
               <>
                 <Spinner />
-                Setting up...
+                {t("setup.settingUp")}
               </>
             ) : step === WIZARD_STEPS ? (
-              "Finish"
+              t("common.finish")
             ) : step === 0 ? (
-              "Get started"
+              t("setup.getStarted")
             ) : (
-              "Continue"
+              t("common.continue")
             )}
           </Button>
         </div>
@@ -624,7 +622,7 @@ export default function SetupPage() {
               disabled={enteringDemo}
               onClick={handleEnterDemo}
             >
-              {enteringDemo ? "Loading..." : "Explore with sample data"}
+              {enteringDemo ? t("common.loading") : t("setup.exploreSampleData")}
             </button>
           </div>
         )}

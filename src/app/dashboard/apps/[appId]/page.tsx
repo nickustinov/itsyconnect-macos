@@ -7,11 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useApps } from "@/lib/apps-context";
 import { useVersions } from "@/lib/versions-context";
 import {
-  PLATFORM_LABELS,
   STATE_DOT_COLORS,
-  stateLabel,
   type AscVersion,
 } from "@/lib/asc/version-types";
+import { useTranslations } from "@/lib/i18n/locale-context";
+import { useAscLabels } from "@/lib/i18n/use-asc-labels";
 import { AppIcon } from "@/components/app-icon";
 import { KpiCard } from "@/components/kpi-card";
 import {
@@ -100,19 +100,21 @@ function pickOverviewVersions(versions: AscVersion[]): AscVersion[] {
 
 // ---------- Chart configs ----------
 
-const downloadsConfig = {
-  firstTime: { label: "First-time downloads", color: "var(--color-chart-1)" },
-  redownload: { label: "Redownloads", color: "var(--color-chart-2)" },
-} satisfies ChartConfig;
+const downloadsConfigBase = {
+  firstTime: { labelKey: "overview.firstTimeDownloads" as const, color: "var(--color-chart-1)" },
+  redownload: { labelKey: "overview.redownloads" as const, color: "var(--color-chart-2)" },
+};
 
-const proceedsConfig = {
-  proceeds: { label: "Proceeds", color: "var(--color-chart-1)" },
-} satisfies ChartConfig;
+const proceedsConfigBase = {
+  proceeds: { labelKey: "overview.totalProceeds" as const, color: "var(--color-chart-1)" },
+};
 
 // ---------- Page ----------
 
 export default function AppOverviewPage() {
   const { appId } = useParams<{ appId: string }>();
+  const t = useTranslations();
+  const { platformLabel, versionStateLabel } = useAscLabels();
   const { apps, loading: appsLoading } = useApps();
   const { versions, loading: versionsLoading } = useVersions();
   const app = apps.find((a) => a.id === appId);
@@ -183,6 +185,21 @@ export default function AppOverviewPage() {
     [analytics, parsedProceeds],
   );
 
+  const downloadsConfig = useMemo(
+    () => ({
+      firstTime: { label: t(downloadsConfigBase.firstTime.labelKey), color: downloadsConfigBase.firstTime.color },
+      redownload: { label: t(downloadsConfigBase.redownload.labelKey), color: downloadsConfigBase.redownload.color },
+    }) satisfies ChartConfig,
+    [t],
+  );
+
+  const proceedsConfig = useMemo(
+    () => ({
+      proceeds: { label: t("dashboard.proceeds"), color: proceedsConfigBase.proceeds.color },
+    }) satisfies ChartConfig,
+    [t],
+  );
+
   if (appsLoading || versionsLoading) {
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -192,7 +209,7 @@ export default function AppOverviewPage() {
   }
 
   if (!app) {
-    return <EmptyState title="App not found" />;
+    return <EmptyState title={t("app.notFound")} />;
   }
 
   return (
@@ -211,7 +228,7 @@ export default function AppOverviewPage() {
         </div>
         <Button variant="outline" size="sm" onClick={() => setMarkersOpen(true)}>
           <BookmarkSimple size={14} />
-          Markers
+          {t("overview.markers")}
           {markers.length > 0 && (
             <span className="ml-1 text-xs text-muted-foreground">
               {markers.length}
@@ -234,11 +251,11 @@ export default function AppOverviewPage() {
               <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
                 <div>
                   <CardTitle className="text-sm font-medium">
-                    {PLATFORM_LABELS[version.attributes.platform] ?? version.attributes.platform}
+                    {platformLabel(version.attributes.platform)}
                   </CardTitle>
                   {version.build && (
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                      Build {version.build.attributes.version} &middot;{" "}
+                      {t("overview.build")} {version.build.attributes.version} &middot;{" "}
                       {new Date(version.build.attributes.uploadedDate).toLocaleDateString("en-GB", {
                         day: "numeric",
                         month: "short",
@@ -249,7 +266,7 @@ export default function AppOverviewPage() {
                 <span
                   className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${STATE_BADGE_CLASSES[version.attributes.appVersionState] ?? "bg-muted text-muted-foreground border-border"}`}
                 >
-                  {stateLabel(version.attributes.appVersionState)}
+                  {versionStateLabel(version.attributes.appVersionState)}
                 </span>
               </CardHeader>
               <CardContent className="mt-auto">
@@ -279,7 +296,7 @@ export default function AppOverviewPage() {
       ) : pending ? (
         <Card>
           <CardContent className="py-12 text-center text-sm text-muted-foreground">
-            Fetching historical data. Insights will be available shortly.
+            {t("overview.fetchingHistorical")}
           </CardContent>
         </Card>
       ) : analytics ? (
@@ -287,21 +304,21 @@ export default function AppOverviewPage() {
           {/* KPI cards – all-time stats */}
           <div className="grid gap-4 sm:grid-cols-3">
             <KpiCard
-              title="Total downloads"
+              title={t("overview.totalDownloads")}
               value={totalDownloads.toLocaleString()}
-              subtitle="All time"
+              subtitle={t("overview.allTime")}
               icon={DownloadSimple}
             />
             <KpiCard
-              title="Total proceeds"
+              title={t("overview.totalProceeds")}
               value={`$${totalProceeds.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
-              subtitle="All time"
+              subtitle={t("overview.allTime")}
               icon={CurrencyDollar}
             />
             <KpiCard
-              title="Crash-free rate"
+              title={t("overview.crashFreeRate")}
               value={`${crashFreeRate}%`}
-              subtitle={crashDevices > 0 ? `${crashDevices} affected devices` : "All time"}
+              subtitle={crashDevices > 0 ? t("overview.affectedDevices", { count: crashDevices }) : t("overview.allTime")}
               icon={ShieldCheck}
             />
           </div>
@@ -311,7 +328,7 @@ export default function AppOverviewPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0">
                 <CardTitle className="text-sm font-medium">
-                  Downloads
+                  {t("overview.downloads")}
                 </CardTitle>
                 <DateRangePicker value={downloadsRange} onChange={setDownloadsRange} />
               </CardHeader>
@@ -359,7 +376,7 @@ export default function AppOverviewPage() {
                   </ChartContainer>
                 ) : (
                   <p className="py-12 text-center text-sm text-muted-foreground">
-                    No data for this period.
+                    {t("overview.noDataForPeriod")}
                   </p>
                 )}
               </CardContent>
@@ -368,7 +385,7 @@ export default function AppOverviewPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0">
                 <CardTitle className="text-sm font-medium">
-                  Proceeds
+                  {t("dashboard.proceeds")}
                 </CardTitle>
                 <DateRangePicker value={proceedsRange} onChange={setProceedsRange} />
               </CardHeader>
@@ -400,7 +417,7 @@ export default function AppOverviewPage() {
                             labelFormatter={(v) => formatDateShort(v as string)}
                             formatter={(value) => (
                               <div className="flex flex-1 items-center justify-between gap-2 leading-none">
-                                <span className="text-muted-foreground">Proceeds</span>
+                                <span className="text-muted-foreground">{t("dashboard.proceeds")}</span>
                                 <span className="font-mono font-medium tabular-nums">
                                   ${(value as number).toLocaleString()}
                                 </span>
@@ -424,7 +441,7 @@ export default function AppOverviewPage() {
                   </ChartContainer>
                 ) : (
                   <p className="py-12 text-center text-sm text-muted-foreground">
-                    No data for this period.
+                    {t("overview.noDataForPeriod")}
                   </p>
                 )}
               </CardContent>

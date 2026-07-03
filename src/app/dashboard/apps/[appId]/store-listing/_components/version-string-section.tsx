@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,9 +11,10 @@ import {
   isValidVersionString,
   hasInvalidVersionChars,
   STATE_DOT_COLORS,
-  stateLabel,
   type AscVersion,
 } from "@/lib/asc/version-types";
+import { useTranslations } from "@/lib/i18n/locale-context";
+import { useAscLabels } from "@/lib/i18n/use-asc-labels";
 
 export function VersionStringSection({
   appId,
@@ -24,6 +27,8 @@ export function VersionStringSection({
   readOnly: boolean;
   onUpdated: (newString: string) => void;
 }) {
+  const t = useTranslations();
+  const { versionStateLabel } = useAscLabels();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
@@ -56,7 +61,7 @@ export function VersionStringSection({
       onUpdated(trimmed);
       setEditing(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to update version");
+      toast.error(err instanceof Error ? err.message : t("storeListing.versionUpdateFailed"));
     } finally {
       setSaving(false);
     }
@@ -64,7 +69,7 @@ export function VersionStringSection({
 
   return (
     <section className="space-y-2">
-      <h3 className="section-title">Version</h3>
+      <h3 className="section-title">{t("storeListing.version")}</h3>
       <div className="flex items-center gap-2">
         {editing ? (
           <>
@@ -98,7 +103,7 @@ export function VersionStringSection({
               <X size={14} />
             </Button>
             {trimmed !== "" && hasInvalidVersionChars(trimmed) && (
-              <span className="text-xs text-destructive">Digits and dots only (e.g. 1.2.0)</span>
+              <span className="text-xs text-destructive">{t("storeListing.versionInvalid")}</span>
             )}
           </>
         ) : (
@@ -123,7 +128,7 @@ export function VersionStringSection({
             <span
               className={`size-1.5 shrink-0 rounded-full ${STATE_DOT_COLORS[version.attributes.appVersionState] ?? "bg-muted-foreground"}`}
             />
-            {stateLabel(version.attributes.appVersionState)}
+            {versionStateLabel(version.attributes.appVersionState)}
           </span>
         )}
       </div>

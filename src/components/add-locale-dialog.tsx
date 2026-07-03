@@ -26,6 +26,8 @@ import { localeName, FIELD_LIMITS } from "@/lib/asc/locale-names";
 import { buildForbiddenKeywords } from "@/lib/asc/keyword-utils";
 import { useAIStatus } from "@/lib/hooks/use-ai-status";
 import { toast } from "sonner";
+import { useTranslations } from "@/lib/i18n/locale-context";
+import { useReviewFieldLabel } from "@/lib/i18n/use-review-field-labels";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -99,19 +101,6 @@ const APP_DETAILS_URL_FIELDS: (keyof AppDetailsFields)[] = [
   "privacyChoicesUrl",
 ];
 
-const FIELD_LABELS: Record<string, string> = {
-  description: "Description",
-  whatsNew: "What's new",
-  promotionalText: "Promotional text",
-  keywords: "Keywords",
-  supportUrl: "Support URL",
-  marketingUrl: "Marketing URL",
-  name: "Name",
-  subtitle: "Subtitle",
-  privacyPolicyUrl: "Privacy policy URL",
-  privacyChoicesUrl: "Privacy choices URL",
-};
-
 function isTextField(field: string): boolean {
   return [...STORE_LISTING_TEXT_FIELDS, ...APP_DETAILS_TEXT_FIELDS].includes(field as never);
 }
@@ -143,6 +132,8 @@ export function AddLocaleDialog({
   isFirstVersion,
   onCreated,
 }: AddLocaleDialogProps) {
+  const t = useTranslations();
+  const fieldLabel = useReviewFieldLabel();
   const { configured: aiConfigured } = useAIStatus();
 
   // Section-level checkboxes
@@ -266,7 +257,7 @@ export function AddLocaleDialog({
       console.log("[add-locale] init: fetched version=%d info=%d", versionRes.status, infoRes.status);
 
       if (!versionRes.ok || !infoRes.ok) {
-        setError("Failed to load base locale data");
+        setError(t("addLocale.loadFailed"));
         setLoading(false);
         return;
       }
@@ -355,10 +346,10 @@ export function AddLocaleDialog({
 
     init().catch((err) => {
       console.error("[add-locale] init: failed", err);
-      setError("Failed to initialise");
+      setError(t("addLocale.initFailed"));
       setLoading(false);
     });
-  }, [open, appId, versionId, appInfoId, primaryLocale, locale, isFirstVersion]);
+  }, [open, appId, versionId, appInfoId, primaryLocale, locale, isFirstVersion, t]);
 
   // Translate checked fields on demand
   const handleTranslate = useCallback(async () => {
@@ -556,12 +547,12 @@ export function AddLocaleDialog({
       }
 
       console.log("[add-locale] handleCreate: success");
-      toast.success(`Added ${localeName(locale)}`);
+      toast.success(t("addLocale.added", { locale: localeName(locale) }));
       onOpenChange(false);
       onCreated();
     } catch (err) {
       console.error("[add-locale] handleCreate: error", err);
-      setError(err instanceof Error ? err.message : "Failed to create locale");
+      setError(err instanceof Error ? err.message : t("addLocale.createFailed"));
     } finally {
       setSaving(false);
     }
@@ -578,15 +569,15 @@ export function AddLocaleDialog({
       <DialogContent className="sm:max-w-4xl max-h-[85vh] !grid grid-rows-[auto_1fr_auto] gap-0">
         <DialogHeader className="pb-4">
           <DialogTitle>
-            Add {localeName(locale)}
+            {t("addLocale.title", { locale: localeName(locale) })}
             <span className="ml-1.5 text-sm font-normal text-muted-foreground">
               {locale}
             </span>
           </DialogTitle>
           <DialogDescription>
             {translated
-              ? `Translated from ${localeName(primaryLocale)}. Review the fields and uncheck any you don't want to include.`
-              : `Fields are copied from ${localeName(primaryLocale)}. Review, uncheck any you don't want, then translate with AI or add as-is.`}
+              ? t("addLocale.descriptionTranslated", { source: localeName(primaryLocale) })
+              : t("addLocale.descriptionCopied", { source: localeName(primaryLocale) })}
           </DialogDescription>
         </DialogHeader>
 
@@ -604,7 +595,7 @@ export function AddLocaleDialog({
               <div className="space-y-2">
                 {/* Store listing section */}
                 <FieldSection
-                  title="Store listing"
+                  title={t("nav.items.storeListing")}
                   checked={storeListingEnabled}
                   onCheckedChange={setStoreListingEnabled}
                   translating={storeListingTranslating}
@@ -615,6 +606,7 @@ export function AddLocaleDialog({
                       <FieldRow
                         key={f}
                         field={f}
+                        label={fieldLabel(f)}
                         state={fields[f]}
                         disabled={!storeListingEnabled}
                         onCheckedChange={(v) => updateField(f, { checked: v })}
@@ -624,16 +616,18 @@ export function AddLocaleDialog({
                   })}
                   <FieldRow
                     field="keywords"
+                    label={fieldLabel("keywords")}
                     state={fields.keywords}
                     disabled={!storeListingEnabled}
                     onCheckedChange={(v) => updateField("keywords", { checked: v })}
                     onValueChange={(v) => updateField("keywords", { value: v })}
-                    hint={translated ? "Translated, deduped, and optimised" : undefined}
+                    hint={translated ? t("addLocale.keywordsHint") : undefined}
                   />
                   {STORE_LISTING_URL_FIELDS.map((f) => (
                     <FieldRow
                       key={f}
                       field={f}
+                      label={fieldLabel(f)}
                       state={fields[f]}
                       disabled={!storeListingEnabled}
                       onCheckedChange={(v) => updateField(f, { checked: v })}
@@ -644,7 +638,7 @@ export function AddLocaleDialog({
 
                 {/* App details section */}
                 <FieldSection
-                  title="App details"
+                  title={t("nav.items.appDetails")}
                   checked={appDetailsEnabled}
                   onCheckedChange={setAppDetailsEnabled}
                   translating={appDetailsTranslating}
@@ -653,6 +647,7 @@ export function AddLocaleDialog({
                     <FieldRow
                       key={f}
                       field={f}
+                      label={fieldLabel(f)}
                       state={fields[f]}
                       disabled={!appDetailsEnabled}
                       onCheckedChange={(v) => updateField(f, { checked: v })}
@@ -663,6 +658,7 @@ export function AddLocaleDialog({
                     <FieldRow
                       key={f}
                       field={f}
+                      label={fieldLabel(f)}
                       state={fields[f]}
                       disabled={!appDetailsEnabled}
                       onCheckedChange={(v) => updateField(f, { checked: v })}
@@ -693,10 +689,10 @@ export function AddLocaleDialog({
               {saving && !anyTranslating ? (
                 <>
                   <Spinner className="size-3.5" />
-                  Adding…
+                  {t("addLocale.adding")}
                 </>
               ) : (
-                "Add without translation"
+                t("addLocale.addWithoutTranslation")
               )}
             </Button>
           )}
@@ -708,22 +704,22 @@ export function AddLocaleDialog({
               {anyTranslating ? (
                 <>
                   <Spinner className="size-3.5" />
-                  Translating…
+                  {t("addLocale.translating")}
                 </>
               ) : saving ? (
                 <>
                   <Spinner className="size-3.5" />
-                  Adding…
+                  {t("addLocale.adding")}
                 </>
               ) : translated ? (
                 <>
                   <MagicWand className="size-4" />
-                  Add translated locale
+                  {t("addLocale.addTranslatedLocale")}
                 </>
               ) : (
                 <>
                   <MagicWand className="size-4" />
-                  Translate with AI
+                  {t("addLocale.translateWithAi")}
                 </>
               )}
             </Button>
@@ -735,10 +731,10 @@ export function AddLocaleDialog({
               {saving ? (
                 <>
                   <Spinner className="size-3.5" />
-                  Adding…
+                  {t("addLocale.adding")}
                 </>
               ) : (
-                "Add locale"
+                t("addLocale.addLocale")
               )}
             </Button>
           )}
@@ -797,6 +793,7 @@ function FieldSection({
 
 function FieldRow({
   field,
+  label,
   state,
   disabled,
   onCheckedChange,
@@ -804,12 +801,14 @@ function FieldRow({
   hint,
 }: {
   field: string;
+  label: string;
   state: FieldState | undefined;
   disabled: boolean;
   onCheckedChange: (checked: boolean) => void;
   onValueChange: (value: string) => void;
   hint?: string;
 }) {
+  const t = useTranslations();
   if (!state) return null;
   const limit = FIELD_LIMITS[field];
   const multiLine = isMultiLine(field);
@@ -824,7 +823,7 @@ function FieldRow({
           onCheckedChange={(v) => onCheckedChange(v === true)}
           disabled={disabled}
         />
-        <span className="text-xs font-medium">{FIELD_LABELS[field] ?? field}</span>
+        <span className="text-xs font-medium">{label}</span>
         {state.translating && <Spinner className="size-3" />}
         {hint && !state.translating && (
           <span className="text-xs text-muted-foreground">{hint}</span>
@@ -840,7 +839,7 @@ function FieldRow({
           onChange={(e) => onValueChange(e.target.value)}
           disabled={disabled || dimmed}
           dir={isUrl ? "ltr" : undefined}
-          placeholder={!state.value ? "Empty" : undefined}
+          placeholder={!state.value ? t("reviewChanges.empty") : undefined}
           className="ml-7 text-sm min-h-[60px] max-h-[120px] resize-none overflow-y-auto"
           style={{ width: "calc(100% - 1.75rem)" }}
           rows={3}
@@ -851,7 +850,7 @@ function FieldRow({
           onChange={(e) => onValueChange(e.target.value)}
           disabled={disabled || dimmed}
           dir={isUrl ? "ltr" : undefined}
-          placeholder={!state.value ? "Empty" : undefined}
+          placeholder={!state.value ? t("reviewChanges.empty") : undefined}
           className="ml-7 text-sm"
           style={{ width: "calc(100% - 1.75rem)" }}
         />

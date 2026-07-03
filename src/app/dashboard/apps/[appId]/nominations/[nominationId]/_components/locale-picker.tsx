@@ -13,6 +13,7 @@ import {
   ComboboxValue,
   useComboboxAnchor,
 } from "@/components/ui/combobox";
+import { useTranslations } from "@/lib/i18n/locale-context";
 import { SORTED_LOCALES } from "./nomination-constants";
 
 export function LocalePicker({
@@ -24,11 +25,12 @@ export function LocalePicker({
   onChange: (locales: string[]) => void;
   disabled?: boolean;
 }) {
+  const t = useTranslations();
   const anchor = useComboboxAnchor();
 
   return (
     <section className="space-y-2">
-      <h3 className="section-title">Localization</h3>
+      <h3 className="section-title">{t("nominations.localization")}</h3>
       <Combobox
         multiple
         autoHighlight
@@ -53,7 +55,7 @@ export function LocalePicker({
           <ComboboxChipsInput />
         </ComboboxChips>
         <ComboboxContent anchor={anchor}>
-          <ComboboxEmpty>No languages found.</ComboboxEmpty>
+          <ComboboxEmpty>{t("nominations.noLanguagesFound")}</ComboboxEmpty>
           <ComboboxList>
             {(code: string) => (
               <ComboboxItem key={code} value={code}>

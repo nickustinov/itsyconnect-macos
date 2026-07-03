@@ -9,6 +9,7 @@ import {
   screenshotErrorMessage,
   type AscScreenshot,
 } from "@/lib/asc/display-types";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 // ---------------------------------------------------------------------------
 // Sortable screenshot thumbnail
@@ -132,10 +133,11 @@ export function SortableScreenshot({
 // ---------------------------------------------------------------------------
 
 export function UploadingPlaceholder() {
+  const t = useTranslations();
   return (
     <div className="flex h-[232px] w-[120px] shrink-0 flex-col items-center justify-center gap-2 rounded-lg border border-dashed bg-muted/20">
       <Spinner className="size-5 text-muted-foreground" />
-      <span className="text-xs text-muted-foreground">Uploading…</span>
+      <span className="text-xs text-muted-foreground">{t("screenshots.uploading")}</span>
     </div>
   );
 }

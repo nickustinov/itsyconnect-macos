@@ -21,7 +21,6 @@ import {
   ChartTooltipContent,
   ChartLegend,
   ChartLegendContent,
-  type ChartConfig,
 } from "@/components/ui/chart";
 import {
   Eye,
@@ -35,33 +34,18 @@ import { parseRange, filterByDateRange, previousRange, pctChange, getStoredRange
 import { KpiCard } from "@/components/kpi-card";
 import { AnalyticsStateGuard } from "@/components/analytics-state-guard";
 import { EmptyState } from "@/components/empty-state";
-
-// ---------- Chart configs ----------
-
-const downloadsConfig = {
-  firstTime: { label: "First-time downloads", color: "var(--color-chart-1)" },
-  redownload: { label: "Redownloads", color: "var(--color-chart-2)" },
-  update: { label: "Updates", color: "var(--color-chart-3)" },
-} satisfies ChartConfig;
-
-const revenueConfig = {
-  proceeds: { label: "Proceeds", color: "var(--color-chart-1)" },
-  sales: { label: "Sales", color: "var(--color-chart-2)" },
-} satisfies ChartConfig;
-
-const territoryConfig = {
-  downloads: { label: "Total downloads", color: "var(--color-chart-1)" },
-} satisfies ChartConfig;
-
-const funnelConfig = {
-  impressions: { label: "Impressions", color: "var(--color-chart-3)" },
-  pageViews: { label: "Product page views", color: "var(--color-chart-2)" },
-  downloads: { label: "First-time downloads", color: "var(--color-chart-1)" },
-} satisfies ChartConfig;
+import { useAnalyticsLabels } from "@/lib/i18n/use-analytics-labels";
 
 // ---------- Page ----------
 
 export default function AnalyticsOverviewPage() {
+  const {
+    downloadsConfig,
+    revenueConfig,
+    territoryConfig,
+    funnelConfig,
+    t,
+  } = useAnalyticsLabels();
   const searchParams = useSearchParams();
   const { appId } = useParams<{ appId: string }>();
   const { markers } = useAppMarkers(appId);
@@ -151,31 +135,31 @@ export default function AnalyticsOverviewPage() {
   return (
     <AnalyticsStateGuard>
     {isEmpty ? (
-      <EmptyState title="No analytics data" description="No analytics data is available for this app yet." />
+      <EmptyState title={t("analytics.emptyTitle")} description={t("analytics.emptyDescription")} />
     ) : (
     <div className="space-y-6">
       {/* KPI cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard
-          title="Impressions"
+          title={t("analytics.impressions")}
           value={totalImpressions.toLocaleString()}
           subtitle={pctChange(totalImpressions, prevImpressions, engagement.length, prevEngagementData.length)}
           icon={Eye}
         />
         <KpiCard
-          title="Total downloads"
+          title={t("analytics.totalDownloads")}
           value={totalDownloads.toLocaleString()}
           subtitle={pctChange(totalDownloads, prevDownloads, downloads.length, prevDownloadsData.length)}
           icon={DownloadSimple}
         />
         <KpiCard
-          title="Proceeds"
+          title={t("analytics.proceeds")}
           value={`$${totalRevenue.toLocaleString()}`}
           subtitle={pctChange(totalRevenue, prevRevenue, revenue.length, prevRevenueData.length)}
           icon={CurrencyDollar}
         />
         <KpiCard
-          title="First-time downloads"
+          title={t("analytics.firstTimeDownloads")}
           value={totalFirstTime.toLocaleString()}
           subtitle={pctChange(totalFirstTime, prevFirstTime, downloads.length, prevDownloadsData.length)}
           icon={Timer}
@@ -187,7 +171,7 @@ export default function AnalyticsOverviewPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium">
-              Downloads and updates
+              {t("analytics.downloadsAndUpdates")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -242,7 +226,7 @@ export default function AnalyticsOverviewPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium">
-              Proceeds and sales
+              {t("analytics.proceedsAndSales")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -273,7 +257,7 @@ export default function AnalyticsOverviewPage() {
                       formatter={(value, name) => (
                         <div className="flex flex-1 items-center justify-between gap-2 leading-none">
                           <span className="text-muted-foreground">
-                            {name === "proceeds" ? "Proceeds" : "Sales"}
+                            {name === "proceeds" ? t("analytics.proceeds") : t("analytics.sales")}
                           </span>
                           <span className="font-mono font-medium tabular-nums">
                             ${(value as number).toLocaleString()}
@@ -314,7 +298,7 @@ export default function AnalyticsOverviewPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium">
-              Top territories
+              {t("analytics.topTerritories")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -351,7 +335,7 @@ export default function AnalyticsOverviewPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium">
-              Conversion funnel
+              {t("analytics.conversionFunnel")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -392,7 +376,7 @@ export default function AnalyticsOverviewPage() {
             </ChartContainer>
             <div className="mt-3 flex items-center justify-center gap-6 text-xs text-muted-foreground">
               <span>
-                Product page view rate:{" "}
+                {t("analytics.productPageViewRate")}{" "}
                 <strong className="text-foreground">
                   {totalImpressions > 0
                     ? ((totalPageViews / totalImpressions) * 100).toFixed(1)
@@ -401,7 +385,7 @@ export default function AnalyticsOverviewPage() {
                 </strong>
               </span>
               <span>
-                First-time download rate:{" "}
+                {t("analytics.firstTimeDownloadRate")}{" "}
                 <strong className="text-foreground">
                   {totalPageViews > 0
                     ? ((totalFirstTime / totalPageViews) * 100).toFixed(1)

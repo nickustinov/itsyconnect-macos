@@ -24,8 +24,10 @@ import { apiFetch } from "@/lib/api-fetch";
 import { useApps } from "@/lib/apps-context";
 import { useRegisterRefresh } from "@/lib/refresh-context";
 import type { TFGroup } from "@/lib/asc/testflight";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 export default function GroupsPage() {
+  const t = useTranslations();
   const { appId } = useParams<{ appId: string }>();
   const searchParams = useSearchParams();
   const { apps } = useApps();
@@ -50,16 +52,16 @@ export default function GroupsPage() {
       const res = await fetch(`/api/apps/${appId}/testflight/groups${qs}`);
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? `Failed to fetch groups (${res.status})`);
+        throw new Error(data.error ?? t("testflight.fetchGroupsFailed"));
       }
       const data = await res.json();
       setGroups(data.groups);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch groups");
+      setError(err instanceof Error ? err.message : t("testflight.fetchGroupsFailed"));
     } finally {
       setLoading(false);
     }
-  }, [appId]);
+  }, [appId, t]);
 
   useEffect(() => {
     fetchData();
@@ -72,7 +74,7 @@ export default function GroupsPage() {
   const externalGroups = groups.filter((g) => !g.isInternal);
 
   if (!app) {
-    return <EmptyState title="App not found" />;
+    return <EmptyState title={t("app.notFound")} />;
   }
 
   if (loading) {
@@ -93,13 +95,13 @@ export default function GroupsPage() {
         <div />
         <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
           <Plus size={14} className="mr-1.5" />
-          New group
+          {t("testflight.newGroup")}
         </Button>
       </div>
 
       {internalGroups.length > 0 && (
         <section className="space-y-3">
-          <h3 className="section-title">Internal groups</h3>
+          <h3 className="section-title">{t("testflight.internalGroups")}</h3>
           <div className="rounded-lg border">
             {internalGroups.map((group, i) => (
               <Link
@@ -114,8 +116,8 @@ export default function GroupsPage() {
                   <span className="text-sm font-medium">{group.name}</span>
                 </div>
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  <span>{group.testerCount} testers</span>
-                  <span>{group.buildCount} builds</span>
+                  <span>{t("testflight.testersCount", { count: group.testerCount })}</span>
+                  <span>{t("testflight.buildsCount", { count: group.buildCount })}</span>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -137,7 +139,7 @@ export default function GroupsPage() {
 
       {externalGroups.length > 0 && (
         <section className="space-y-3">
-          <h3 className="section-title">External groups</h3>
+          <h3 className="section-title">{t("testflight.externalGroups")}</h3>
           <div className="rounded-lg border">
             {externalGroups.map((group, i) => (
               <Link
@@ -155,8 +157,8 @@ export default function GroupsPage() {
                   )}
                 </div>
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  <span>{group.testerCount} testers</span>
-                  <span>{group.buildCount} builds</span>
+                  <span>{t("testflight.testersCount", { count: group.testerCount })}</span>
+                  <span>{t("testflight.buildsCount", { count: group.buildCount })}</span>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -186,13 +188,15 @@ export default function GroupsPage() {
       <AlertDialog open={deleteTarget !== null} onOpenChange={(v) => { if (!v) setDeleteTarget(null); }}>
         <AlertDialogContent size="sm">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete {deleteTarget?.name}?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t("testflight.deleteGroupTitle", { name: deleteTarget?.name ?? "" })}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              This will remove the group and revoke tester access to its builds.
+              {t("testflight.deleteGroupDescription")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <DeleteGroupAction
               appId={appId}
               groupId={deleteTarget?.id ?? ""}
@@ -220,6 +224,7 @@ function DeleteGroupAction({
   onDeleted: () => void;
   onError: () => void;
 }) {
+  const t = useTranslations();
   const [deleting, setDeleting] = useState(false);
 
   async function handleDelete() {
@@ -228,10 +233,10 @@ function DeleteGroupAction({
       await apiFetch(`/api/apps/${appId}/testflight/groups/${groupId}`, {
         method: "DELETE",
       });
-      toast.success("Group deleted");
+      toast.success(t("testflight.groupDeleted"));
       onDeleted();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete group");
+      toast.error(err instanceof Error ? err.message : t("testflight.deleteGroupFailed"));
       onError();
     } finally {
       setDeleting(false);
@@ -241,7 +246,7 @@ function DeleteGroupAction({
   return (
     <AlertDialogAction variant="destructive" onClick={handleDelete} disabled={deleting}>
       {deleting && <Spinner className="mr-1.5" />}
-      Delete
+      {t("testflight.delete")}
     </AlertDialogAction>
   );
 }

@@ -23,6 +23,7 @@ import {
   TranslateScreenshotsModal,
   type ScreenshotItem,
 } from "@/components/translate-screenshots-modal";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 // ---------------------------------------------------------------------------
 // Base locale screenshots (collapsible reference section)
@@ -47,6 +48,7 @@ export function BaseLocaleScreenshots({
   targetSets: AscScreenshotSet[];
   onCopied: () => Promise<void>;
 }) {
+  const t = useTranslations();
   const { screenshotSets, loading } = useScreenshotSets(appId, versionId, primaryLocalizationId);
 
   const sortedSets = useMemo(() => {
@@ -169,7 +171,7 @@ export function BaseLocaleScreenshots({
                   !open && "-rotate-90",
                 )}
               />
-              <span>Base locale screenshots ({localeName(primaryLocale)})</span>
+              <span>{t("screenshots.baseLocaleTitle", { locale: localeName(primaryLocale) })}</span>
             </button>
           </CollapsibleTrigger>
 
@@ -194,7 +196,7 @@ export function BaseLocaleScreenshots({
                 onClick={handleTranslateSelected}
               >
                 <Translate size={12} />
-                Translate selected ({selectedIds.size})
+                {t("screenshots.translateSelected", { count: selectedIds.size })}
               </Button>
             ) : (
               <Button
@@ -204,7 +206,7 @@ export function BaseLocaleScreenshots({
                 onClick={handleTranslateAll}
               >
                 <Translate size={12} />
-                Translate all
+                {t("screenshots.translateAll")}
               </Button>
             )}
           </div>

@@ -5,7 +5,23 @@ import { Button } from "@/components/ui/button";
 import { CircleNotch, UserPlus, X } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import type { TFTester } from "@/lib/asc/testflight";
+import { useTranslations } from "@/lib/i18n/locale-context";
 import { AddTesterDialog } from "./add-tester-dialog";
+
+function testerStatusLabel(
+  state: string | undefined,
+  t: ReturnType<typeof useTranslations>,
+): string {
+  const labels: Record<string, string> = {
+    INSTALLED: t("testflight.testerStatus.INSTALLED"),
+    ACCEPTED: t("testflight.testerStatus.ACCEPTED"),
+    INVITED: t("testflight.testerStatus.INVITED"),
+    NOT_INVITED: t("testflight.testerStatus.NOT_INVITED"),
+    REVOKED: t("testflight.testerStatus.REVOKED"),
+  };
+  if (state && labels[state]) return labels[state];
+  return state?.toLowerCase().replace(/_/g, " ") ?? t("testflight.unknownVersion");
+}
 
 export function TestersSection({
   appId,
@@ -20,6 +36,7 @@ export function TestersSection({
   onRemoved: () => void;
   onTesterAdded: (tester: TFTester) => void;
 }) {
+  const t = useTranslations();
   const [removing, setRemoving] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -33,12 +50,12 @@ export function TestersSection({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? "Failed to remove tester");
+        throw new Error(data.error ?? t("testflight.removeTesterFromBuildFailed"));
       }
-      toast.success("Tester removed from build");
+      toast.success(t("testflight.testerRemovedFromBuild"));
       onRemoved();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to remove tester");
+      toast.error(err instanceof Error ? err.message : t("testflight.removeTesterFromBuildFailed"));
     } finally {
       setRemoving(null);
     }
@@ -47,60 +64,56 @@ export function TestersSection({
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="section-title">Individual testers</h3>
+        <h3 className="section-title">{t("testflight.individualTesters")}</h3>
         <Button variant="outline" size="sm" onClick={() => setDialogOpen(true)}>
           <UserPlus size={14} className="mr-1.5" />
-          Add tester
+          {t("testflight.addTester")}
         </Button>
       </div>
       {testers.length === 0 ? (
         <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-          No individual testers on this build.
+          {t("testflight.noIndividualTesters")}
         </div>
       ) : (
         <div className="space-y-1">
-          {testers.map((t) => (
+          {testers.map((tester) => (
             <div
-              key={t.id}
+              key={tester.id}
               className="flex items-center gap-3 rounded-lg border px-4 py-3"
             >
               <div className="flex flex-1 items-center gap-3 min-w-0">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">
-                    {t.firstName} {t.lastName}
+                    {tester.firstName} {tester.lastName}
                   </p>
-                  {t.email && (
+                  {tester.email && (
                     <p className="truncate text-xs text-muted-foreground">
-                      {t.email}
+                      {tester.email}
                     </p>
                   )}
                 </div>
                 <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                  t.state === "INSTALLED"
+                  tester.state === "INSTALLED"
                     ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                    : t.state === "ACCEPTED"
+                    : tester.state === "ACCEPTED"
                       ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
                       : "bg-muted text-muted-foreground"
                 }`}>
-                  {t.state === "INSTALLED" ? "Installed" :
-                   t.state === "ACCEPTED" ? "Accepted" :
-                   t.state === "NOT_INVITED" ? "Not invited" :
-                   t.state === "INVITED" ? "Invited" :
-                   t.state?.toLowerCase().replace(/_/g, " ") ?? "Unknown"}
+                  {testerStatusLabel(tester.state, t)}
                 </span>
                 <div className="hidden items-center gap-4 text-xs text-muted-foreground tabular-nums sm:flex">
-                  <span>{t.sessions} sessions</span>
-                  <span>{t.crashes} crashes</span>
+                  <span>{t("testflight.sessionsCount", { count: tester.sessions })}</span>
+                  <span>{t("testflight.crashesCount", { count: tester.crashes })}</span>
                 </div>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
                 className="size-7 shrink-0 text-muted-foreground hover:text-destructive"
-                onClick={() => removeTester(t.id)}
-                disabled={removing === t.id}
+                onClick={() => removeTester(tester.id)}
+                disabled={removing === tester.id}
               >
-                {removing === t.id ? (
+                {removing === tester.id ? (
                   <CircleNotch size={14} className="animate-spin" />
                 ) : (
                   <X size={14} />
@@ -116,7 +129,7 @@ export function TestersSection({
         onOpenChange={setDialogOpen}
         appId={appId}
         buildId={buildId}
-        existingTesterIds={testers.map((t) => t.id)}
+        existingTesterIds={testers.map((tester) => tester.id)}
         onAdded={onTesterAdded}
       />
     </section>

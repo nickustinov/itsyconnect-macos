@@ -23,39 +23,12 @@ import {
   ChartTooltipContent,
   ChartLegend,
   ChartLegendContent,
-  type ChartConfig,
 } from "@/components/ui/chart";
 import { formatDateShort } from "@/lib/format";
 import { useAnalytics } from "@/lib/analytics-context";
 import { parseRange, filterByDateRange, getStoredRange } from "@/lib/analytics-range";
 import { AnalyticsStateGuard } from "@/components/analytics-state-guard";
-
-// ---------- Chart configs ----------
-
-const sourceConfig = {
-  search: { label: "App Store search", color: "var(--color-chart-1)" },
-  browse: { label: "App Store browse", color: "var(--color-chart-2)" },
-  webReferrer: { label: "Web referrer", color: "var(--color-chart-3)" },
-  unavailable: { label: "Unavailable", color: "var(--color-chart-4)" },
-  count: { label: "Total downloads" },
-} satisfies ChartConfig;
-
-const engagementConfig = {
-  impressions: { label: "Impressions", color: "var(--color-chart-1)" },
-  pageViews: { label: "Product page views", color: "var(--color-chart-2)" },
-} satisfies ChartConfig;
-
-const downloadSourceConfig = {
-  search: { label: "Search", color: "var(--color-chart-1)" },
-  browse: { label: "Browse", color: "var(--color-chart-2)" },
-  webReferrer: { label: "Web referrer", color: "var(--color-chart-3)" },
-  unavailable: { label: "Unavailable", color: "var(--color-chart-4)" },
-} satisfies ChartConfig;
-
-const webPreviewConfig = {
-  pageViews: { label: "Product page views", color: "var(--color-chart-1)" },
-  appStoreTaps: { label: "App Store taps", color: "var(--color-chart-2)" },
-} satisfies ChartConfig;
+import { useAnalyticsLabels } from "@/lib/i18n/use-analytics-labels";
 
 // ---------- Fill colours for discovery sources ----------
 
@@ -69,6 +42,13 @@ const SOURCE_FILLS: Record<string, string> = {
 // ---------- Page ----------
 
 export default function AcquisitionPage() {
+  const {
+    sourceConfig,
+    engagementConfig,
+    downloadSourceConfig,
+    webPreviewConfig,
+    t,
+  } = useAnalyticsLabels();
   const searchParams = useSearchParams();
   const { appId } = useParams<{ appId: string }>();
   const { markers } = useAppMarkers(appId);
@@ -109,7 +89,7 @@ export default function AcquisitionPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium">
-              Discovery sources
+              {t("analytics.discoverySources")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -164,7 +144,7 @@ export default function AcquisitionPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium">
-              Impressions and product page views
+              {t("analytics.impressionsAndPageViews")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -219,7 +199,7 @@ export default function AcquisitionPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-sm font-medium">
-            Total downloads by source
+            {t("analytics.downloadsBySource")}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -283,7 +263,7 @@ export default function AcquisitionPage() {
       <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium">
-              Web preview engagement
+              {t("analytics.webPreviewEngagement")}
             </CardTitle>
           </CardHeader>
           <CardContent>

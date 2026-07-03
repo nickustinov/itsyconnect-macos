@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { CircleNotch, MagnifyingGlass } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import type { TFTester } from "@/lib/asc/testflight";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 export function AddTesterDialog({
   open,
@@ -24,20 +25,19 @@ export function AddTesterDialog({
   existingTesterIds: string[];
   onAdded: (tester: TFTester) => void;
 }) {
+  const t = useTranslations();
   const [mode, setMode] = useState<"existing" | "new">("existing");
   const [appTesters, setAppTesters] = useState<TFTester[]>([]);
   const [loadingTesters, setLoadingTesters] = useState(false);
   const [search, setSearch] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // New tester fields
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
 
   const existingSet = useMemo(() => new Set(existingTesterIds), [existingTesterIds]);
 
-  // Fetch app-level testers when dialog opens in "existing" mode
   useEffect(() => {
     if (!open) return;
     setSearch("");
@@ -55,14 +55,14 @@ export function AddTesterDialog({
   }, [open, appId, buildId]);
 
   const filteredTesters = useMemo(() => {
-    const available = appTesters.filter((t) => !existingSet.has(t.id));
+    const available = appTesters.filter((tester) => !existingSet.has(tester.id));
     if (!search) return available;
     const q = search.toLowerCase();
     return available.filter(
-      (t) =>
-        t.firstName.toLowerCase().includes(q) ||
-        t.lastName.toLowerCase().includes(q) ||
-        (t.email?.toLowerCase().includes(q) ?? false),
+      (tester) =>
+        tester.firstName.toLowerCase().includes(q) ||
+        tester.lastName.toLowerCase().includes(q) ||
+        (tester.email?.toLowerCase().includes(q) ?? false),
     );
   }, [appTesters, existingSet, search]);
 
@@ -76,16 +76,16 @@ export function AddTesterDialog({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? "Failed to add tester");
+        throw new Error(data.error ?? t("testflight.addTesterFailed"));
       }
-      const tester = appTesters.find((t) => t.id === testerId);
+      const tester = appTesters.find((item) => item.id === testerId);
       if (tester) {
         onAdded({ ...tester, state: "INVITED" });
       }
-      toast.success("Tester added and invited");
+      toast.success(t("testflight.testerAddedAndInvited"));
       onOpenChange(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to add tester");
+      toast.error(err instanceof Error ? err.message : t("testflight.addTesterFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -106,12 +106,12 @@ export function AddTesterDialog({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? "Failed to add tester");
+        throw new Error(data.error ?? t("testflight.addTesterFailed"));
       }
       const data = await res.json();
       onAdded({
         id: data.testerId,
-        firstName: firstName.trim() || "Anonymous",
+        firstName: firstName.trim() || t("testflight.anonymous"),
         lastName: lastName.trim(),
         email: email.trim(),
         inviteType: "EMAIL",
@@ -120,10 +120,10 @@ export function AddTesterDialog({
         crashes: 0,
         feedbackCount: 0,
       });
-      toast.success("Tester invited to build");
+      toast.success(t("testflight.testerInvitedToBuild"));
       onOpenChange(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to add tester");
+      toast.error(err instanceof Error ? err.message : t("testflight.addTesterFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -133,7 +133,7 @@ export function AddTesterDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add tester</DialogTitle>
+          <DialogTitle>{t("testflight.addTester")}</DialogTitle>
         </DialogHeader>
 
         <div className="flex gap-2 border-b pb-3">
@@ -142,14 +142,14 @@ export function AddTesterDialog({
             size="sm"
             onClick={() => setMode("existing")}
           >
-            Pick existing
+            {t("testflight.pickExisting")}
           </Button>
           <Button
             variant={mode === "new" ? "default" : "outline"}
             size="sm"
             onClick={() => setMode("new")}
           >
-            Add new
+            {t("testflight.addNew")}
           </Button>
         </div>
 
@@ -160,7 +160,7 @@ export function AddTesterDialog({
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search testers…"
+                placeholder={t("testflight.searchTesters")}
                 className="pl-8"
               />
             </div>
@@ -171,23 +171,23 @@ export function AddTesterDialog({
                 </div>
               ) : filteredTesters.length === 0 ? (
                 <p className="py-6 text-center text-sm text-muted-foreground">
-                  {search ? "No matching testers" : "No available testers"}
+                  {search ? t("testflight.noMatchingTesters") : t("testflight.noAvailableTesters")}
                 </p>
               ) : (
-                filteredTesters.map((t) => (
+                filteredTesters.map((tester) => (
                   <button
-                    key={t.id}
-                    onClick={() => addExisting(t.id)}
+                    key={tester.id}
+                    onClick={() => addExisting(tester.id)}
                     disabled={submitting}
                     className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-muted/50 disabled:opacity-50"
                   >
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">
-                        {t.firstName} {t.lastName}
+                        {tester.firstName} {tester.lastName}
                       </p>
-                      {t.email && (
+                      {tester.email && (
                         <p className="truncate text-xs text-muted-foreground">
-                          {t.email}
+                          {tester.email}
                         </p>
                       )}
                     </div>
@@ -199,29 +199,29 @@ export function AddTesterDialog({
         ) : (
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <Label className="text-sm">Email</Label>
+              <Label className="text-sm">{t("appReview.email")}</Label>
               <Input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="tester@example.com"
+                placeholder={t("testflight.emailPlaceholder")}
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-sm">First name</Label>
+                <Label className="text-sm">{t("appReview.firstName")}</Label>
                 <Input
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
-                  placeholder="Optional"
+                  placeholder={t("common.optional")}
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-sm">Last name</Label>
+                <Label className="text-sm">{t("appReview.lastName")}</Label>
                 <Input
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
-                  placeholder="Optional"
+                  placeholder={t("common.optional")}
                 />
               </div>
             </div>
@@ -231,7 +231,7 @@ export function AddTesterDialog({
                 disabled={submitting || !email.trim()}
               >
                 {submitting && <CircleNotch size={14} className="mr-1.5 animate-spin" />}
-                Add tester
+                {t("testflight.addTester")}
               </Button>
             </DialogFooter>
           </div>

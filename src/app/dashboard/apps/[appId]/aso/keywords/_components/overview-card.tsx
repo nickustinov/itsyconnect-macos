@@ -9,6 +9,7 @@ import { useAIStatus } from "@/lib/hooks/use-ai-status";
 import { AIRequiredDialog } from "@/components/ai-required-dialog";
 import { FixAllDialog } from "./fix-all-dialog";
 import type { StorefrontAnalysis } from "./keyword-analysis";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 interface OverviewCardProps {
   analysis: StorefrontAnalysis;
@@ -35,6 +36,7 @@ export function OverviewCard({
   header,
   children,
 }: OverviewCardProps) {
+  const t = useTranslations();
   const { configured } = useAIStatus();
   const [showAIRequired, setShowAIRequired] = useState(false);
   const [showFixAll, setShowFixAll] = useState(false);
@@ -59,7 +61,7 @@ export function OverviewCard({
             {allGood && (
               <Badge variant="outline" className="border-green-500/50 text-green-600 dark:text-green-400 shrink-0">
                 <CheckCircle size={14} className="mr-1" weight="fill" />
-                Good shape
+                {t("keywords.goodShape")}
               </Badge>
             )}
           </div>
@@ -67,10 +69,14 @@ export function OverviewCard({
           <div>
             <div className="flex items-center justify-between text-sm mb-1.5">
               <span className="text-muted-foreground">
-                Keyword budget: {analysis.totalCharsUsed} / {analysis.totalBudget} characters ({budgetPercent}%)
+                {t("keywords.keywordBudget", {
+                  used: analysis.totalCharsUsed,
+                  total: analysis.totalBudget,
+                  percent: budgetPercent,
+                })}
               </span>
               <span className="text-muted-foreground">
-                {analysis.totalBudget - analysis.totalCharsUsed} free
+                {t("keywords.charsFree", { count: analysis.totalBudget - analysis.totalCharsUsed })}
               </span>
             </div>
             <div className="h-2.5 rounded-full bg-muted overflow-hidden">
@@ -86,17 +92,23 @@ export function OverviewCard({
               {analysis.totalOverlaps > 0 && (
                 <Badge variant="outline" className="border-amber-500/50 text-amber-600 dark:text-amber-400">
                   <Warning size={14} className="mr-1" weight="fill" />
-                  {analysis.totalOverlaps} name/subtitle overlap{analysis.totalOverlaps > 1 ? "s" : ""}
+                  {analysis.totalOverlaps === 1
+                    ? t("keywords.overlapBadge", { count: analysis.totalOverlaps })
+                    : t("keywords.overlapBadgePlural", { count: analysis.totalOverlaps })}
                 </Badge>
               )}
               {analysis.crossLocaleDuplicates.size > 0 && (
                 <Badge variant="outline" className="border-blue-500/50 text-blue-600 dark:text-blue-400">
-                  {analysis.crossLocaleDuplicates.size} cross-locale duplicate{analysis.crossLocaleDuplicates.size > 1 ? "s" : ""}
+                  {analysis.crossLocaleDuplicates.size === 1
+                    ? t("keywords.crossLocaleBadge", { count: analysis.crossLocaleDuplicates.size })
+                    : t("keywords.crossLocaleBadgePlural", { count: analysis.crossLocaleDuplicates.size })}
                 </Badge>
               )}
               {analysis.missingLocales.length > 0 && (
                 <Badge variant="outline">
-                  {analysis.missingLocales.length} untapped locale{analysis.missingLocales.length > 1 ? "s" : ""}
+                  {analysis.missingLocales.length === 1
+                    ? t("keywords.untappedBadge", { count: analysis.missingLocales.length })
+                    : t("keywords.untappedBadgePlural", { count: analysis.missingLocales.length })}
                 </Badge>
               )}
             </div>
@@ -112,7 +124,7 @@ export function OverviewCard({
               }}
             >
               <MagicWand size={14} className="mr-1.5" />
-              Fix all issues
+              {t("keywords.fixAllIssues")}
             </Button>
           )}
         </CardContent>

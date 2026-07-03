@@ -76,11 +76,17 @@ export function useUnreadReviewsPoller(appIds: string[]) {
   }, [appIds, checkAll]);
 }
 
+const EMPTY_BADGE_STATE: Record<string, boolean> = {};
+
+function getServerBadgeSnapshot() {
+  return EMPTY_BADGE_STATE;
+}
+
 /**
  * Check if a specific app has unread reviews.
  */
 export function useHasUnreadReviews(appId: string): boolean {
-  const state = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  const state = useSyncExternalStore(subscribe, getSnapshot, getServerBadgeSnapshot);
   return state[appId] ?? false;
 }
 

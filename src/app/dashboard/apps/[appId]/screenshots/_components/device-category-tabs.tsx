@@ -9,6 +9,7 @@ import {
   DEVICE_CATEGORY_TYPES,
   type DeviceCategory,
 } from "@/lib/asc/display-types";
+import { useAscLabels } from "@/lib/i18n/use-asc-labels";
 
 // ---------------------------------------------------------------------------
 // Device category tab bar
@@ -23,6 +24,8 @@ export function DeviceCategoryTabs({
   selected: DeviceCategory;
   onSelect: (cat: DeviceCategory) => void;
 }) {
+  const { deviceCategoryLabel } = useAscLabels();
+
   return (
     <div className="border-b">
       <nav className="-mb-px flex">
@@ -38,7 +41,7 @@ export function DeviceCategoryTabs({
                 : "border-transparent text-muted-foreground hover:text-foreground",
             )}
           >
-            {cat}
+            {deviceCategoryLabel(cat)}
           </button>
         ))}
       </nav>

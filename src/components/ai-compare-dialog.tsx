@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { CharCount } from "@/components/char-count";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 interface AICompareDialogProps {
   open: boolean;
@@ -41,6 +42,7 @@ export function AICompareDialog({
   charLimit,
   onApply,
 }: AICompareDialogProps) {
+  const t = useTranslations();
   // Fetch state: null = loading/not started, object = completed
   const [fetchResult, setFetchResult] = useState<{
     proposed: string;
@@ -84,8 +86,8 @@ export function AICompareDialog({
           setFetchResult({
             proposed: "",
             error: data.error === "ai_auth_error"
-              ? "Your API key is invalid or revoked. Update it in AI settings."
-              : data.error ?? "Request failed",
+              ? t("ai.authError")
+              : data.error ?? t("ai.requestFailed"),
             forKey: fetchKey,
           });
         } else {
@@ -93,7 +95,7 @@ export function AICompareDialog({
         }
       })
       .catch(() => {
-        if (!cancelled) setFetchResult({ proposed: "", error: "Network error", forKey: fetchKey });
+        if (!cancelled) setFetchResult({ proposed: "", error: t("common.networkError"), forKey: fetchKey });
       });
 
     return () => { cancelled = true; };
@@ -112,7 +114,7 @@ export function AICompareDialog({
         </DialogHeader>
         <div className="grid grid-cols-2 gap-4 min-h-0 flex-1">
           <div className="space-y-1.5">
-            <p className="text-sm font-medium text-muted-foreground">Current</p>
+            <p className="text-sm font-medium text-muted-foreground">{t("ai.compareCurrent")}</p>
             <TextField
               value={currentValue}
               readOnly
@@ -121,7 +123,7 @@ export function AICompareDialog({
             <CharCount value={currentValue} limit={charLimit} />
           </div>
           <div className="space-y-1.5">
-            <p className="text-sm font-medium text-muted-foreground">Proposed</p>
+            <p className="text-sm font-medium text-muted-foreground">{t("ai.compareProposed")}</p>
             {loading ? (
               <div className="flex min-h-40 items-center justify-center rounded-md border">
                 <Spinner className="size-5 text-muted-foreground" />
@@ -144,7 +146,7 @@ export function AICompareDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Keep current
+            {t("ai.keepCurrent")}
           </Button>
           <Button
             disabled={loading || !!error || !proposed}
@@ -153,7 +155,7 @@ export function AICompareDialog({
               onOpenChange(false);
             }}
           >
-            Apply
+            {t("ai.apply")}
           </Button>
         </DialogFooter>
       </DialogContent>

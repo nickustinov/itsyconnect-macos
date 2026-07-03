@@ -18,11 +18,19 @@ import { toast } from "sonner";
 import { apiFetch } from "@/lib/api-fetch";
 import { useBuildAction } from "@/lib/build-action-context";
 import { ActionFooter } from "@/components/layout/action-footer";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
-function BetaSubmitChecklist({ hasWhatsNew, hasExternalGroup }: { hasWhatsNew: boolean; hasExternalGroup: boolean }) {
+function BetaSubmitChecklist({
+  hasWhatsNew,
+  hasExternalGroup,
+}: {
+  hasWhatsNew: boolean;
+  hasExternalGroup: boolean;
+}) {
+  const t = useTranslations();
   const items = [
-    { label: "What's new", done: hasWhatsNew },
-    { label: "External group", done: hasExternalGroup },
+    { label: t("storeListing.fields.whatsNew"), done: hasWhatsNew },
+    { label: t("testflight.externalGroup"), done: hasExternalGroup },
   ];
 
   return (
@@ -43,6 +51,7 @@ function BetaSubmitChecklist({ hasWhatsNew, hasExternalGroup }: { hasWhatsNew: b
 }
 
 export function BuildActionFooter() {
+  const t = useTranslations();
   const { state, refresh, save, clear } = useBuildAction();
   const [loading, setLoading] = useState<string | null>(null);
   const [expireOpen, setExpireOpen] = useState(false);
@@ -60,7 +69,7 @@ export function BuildActionFooter() {
       clear();
       refresh();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : `Failed: ${action}`);
+      toast.error(err instanceof Error ? err.message : t("testflight.actionFailed", { action }));
     } finally {
       setLoading(null);
     }
@@ -74,7 +83,7 @@ export function BuildActionFooter() {
             open={expireOpen}
             onOpenChange={setExpireOpen}
             loading={loading === "expire"}
-            onConfirm={() => act("expire", "Build expired")}
+            onConfirm={() => act("expire", t("testflight.buildExpired"))}
           />
           <Button
             disabled={!hasWhatsNew || !hasExternalGroup || loading !== null}
@@ -83,18 +92,18 @@ export function BuildActionFooter() {
               try {
                 await save();
                 await apiFetch(`${base}/submit-for-review`, { method: "POST" });
-                toast.success("Submitted for beta review");
+                toast.success(t("testflight.submittedForBetaReview"));
                 clear();
                 refresh();
               } catch (err) {
-                toast.error(err instanceof Error ? err.message : "Failed to submit");
+                toast.error(err instanceof Error ? err.message : t("testflight.submitForReviewFailed"));
               } finally {
                 setLoading(null);
               }
             }}
           >
             {loading === "submit-for-review" && <Spinner className="mr-1.5" />}
-            Submit for review
+            {t("testflight.submitForReview")}
           </Button>
         </div>
       </ActionFooter>
@@ -106,10 +115,10 @@ export function BuildActionFooter() {
       <ActionFooter>
         <Button
           disabled={loading !== null}
-          onClick={() => act("export-compliance", "Export compliance declared")}
+          onClick={() => act("export-compliance", t("testflight.exportComplianceDeclared"))}
         >
           {loading === "export-compliance" && <Spinner className="mr-1.5" />}
-          Declare no encryption
+          {t("testflight.declareNoEncryption")}
         </Button>
       </ActionFooter>
     );
@@ -123,7 +132,7 @@ export function BuildActionFooter() {
             open={expireOpen}
             onOpenChange={setExpireOpen}
             loading={loading === "expire"}
-            onConfirm={() => act("expire", "Build expired")}
+            onConfirm={() => act("expire", t("testflight.buildExpired"))}
           />
           <Button
             variant="outline"
@@ -132,9 +141,9 @@ export function BuildActionFooter() {
               setLoading("notify-testers");
               try {
                 const res = await apiFetch<{ autoNotified?: boolean }>(`${base}/notify-testers`, { method: "POST" });
-                toast.success(res.autoNotified ? "Testers already auto-notified" : "Testers notified");
+                toast.success(res.autoNotified ? t("testflight.testersAutoNotified") : t("testflight.testersNotified"));
               } catch (err) {
-                toast.error(err instanceof Error ? err.message : "Failed to notify testers");
+                toast.error(err instanceof Error ? err.message : t("testflight.notifyTestersFailed"));
               } finally {
                 setLoading(null);
               }
@@ -143,7 +152,7 @@ export function BuildActionFooter() {
             {loading === "notify-testers"
               ? <Spinner className="mr-1.5" />
               : <Bell size={14} className="mr-1.5" />}
-            Notify testers
+            {t("testflight.notifyTesters")}
           </Button>
         </div>
       </ActionFooter>
@@ -155,7 +164,7 @@ export function BuildActionFooter() {
       <ActionFooter>
         <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
           <Timer size={14} />
-          Waiting for Apple review
+          {t("testflight.waitingForAppleReview")}
         </span>
       </ActionFooter>
     );
@@ -175,6 +184,8 @@ function ExpireButton({
   loading: boolean;
   onConfirm: () => void;
 }) {
+  const t = useTranslations();
+
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <Button
@@ -183,23 +194,22 @@ function ExpireButton({
         onClick={() => onOpenChange(true)}
       >
         {loading && <Spinner className="mr-1.5" />}
-        Expire build
+        {t("testflight.expireBuild")}
       </Button>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Expire this build?</AlertDialogTitle>
+          <AlertDialogTitle>{t("testflight.expireThisBuild")}</AlertDialogTitle>
           <AlertDialogDescription>
-            This is irreversible. Internal and external testers will no longer be able to install this build.
+            {t("testflight.expireThisBuildDescription")}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
           <AlertDialogAction onClick={onConfirm}>
-            Expire build
+            {t("testflight.expireBuild")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
   );
 }
-

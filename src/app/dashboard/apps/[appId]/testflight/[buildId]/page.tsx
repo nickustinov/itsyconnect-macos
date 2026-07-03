@@ -22,8 +22,10 @@ import { formatDateTime } from "@/lib/format";
 import { DiagnosticsSection } from "./_components/diagnostics-section";
 import { GroupsSection } from "./_components/groups-section";
 import { TestersSection } from "./_components/testers-section";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 export default function BuildDetailPage() {
+  const t = useTranslations();
   const { appId, buildId } = useParams<{ appId: string; buildId: string }>();
   const searchParams = useSearchParams();
 
@@ -56,7 +58,7 @@ export default function BuildDetailPage() {
 
       if (!buildRes.ok) {
         const data = await buildRes.json().catch(() => ({}));
-        throw new Error(data.error ?? `Failed to fetch build (${buildRes.status})`);
+        throw new Error(data.error ?? t("testflight.fetchBuildFailed"));
       }
 
       const buildData = await buildRes.json();
@@ -73,11 +75,11 @@ export default function BuildDetailPage() {
         setTesters(testersData.testers ?? []);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch build");
+      setError(err instanceof Error ? err.message : t("testflight.fetchBuildFailed"));
     } finally {
       setLoading(false);
     }
-  }, [appId, buildId]);
+  }, [appId, buildId, t]);
 
   // Refetch just testers (lightweight, no full page reload)
   const refetchTesters = useCallback(async () => {
@@ -110,7 +112,7 @@ export default function BuildDetailPage() {
 
   const handleRefresh = useCallback(() => fetchData(true), [fetchData]);
   useRegisterRefresh({ onRefresh: handleRefresh, busy: loading });
-  useSetBreadcrumbTitle(build ? `Build ${build.buildNumber}` : null);
+  useSetBreadcrumbTitle(build ? t("testflight.buildNumber", { number: build.buildNumber }) : null);
 
   // Report build state to footer context
   useEffect(() => {
@@ -150,12 +152,12 @@ export default function BuildDetailPage() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? "Failed to save what's new");
+        throw new Error(data.error ?? t("testflight.saveWhatsNewFailed"));
       }
       setBuild((prev) => prev ? { ...prev, whatsNew } : prev);
       setDirty(false);
     });
-  }, [appId, buildId, build, whatsNew, registerBuildSave, setDirty]);
+  }, [appId, buildId, build, whatsNew, registerBuildSave, setDirty, t]);
 
   const buildGroups = useMemo(
     () =>
@@ -196,13 +198,13 @@ export default function BuildDetailPage() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? "Failed to save");
+        throw new Error(data.error ?? t("common.saveFailed"));
       }
-      toast.success("What's new saved");
+      toast.success(t("testflight.whatsNewSaved"));
       setBuild((prev) => prev ? { ...prev, whatsNew } : prev);
       setDirty(false);
     });
-  }, [appId, buildId, build, whatsNew, registerSave, setDirty]);
+  }, [appId, buildId, build, whatsNew, registerSave, setDirty, t]);
 
   // Register discard handler for the header discard button
   useEffect(() => {
@@ -224,7 +226,7 @@ export default function BuildDetailPage() {
   }
 
   if (!build) {
-    return <EmptyState title="Build not found" />;
+    return <EmptyState title={t("testflight.buildNotFound")} />;
   }
 
   const isExpired = build.expired;
@@ -234,16 +236,16 @@ export default function BuildDetailPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <AppIcon iconUrl={build.iconUrl} name={`Build ${build.buildNumber}`} className="size-10" iconSize={20} />
+          <AppIcon iconUrl={build.iconUrl} name={t("testflight.buildNumber", { number: build.buildNumber })} className="size-10" iconSize={20} />
           <div>
             <h1 className="text-2xl font-bold tracking-tight">
-              Build {build.buildNumber}
+              {t("testflight.buildNumber", { number: build.buildNumber })}
             </h1>
             <p className="text-sm text-muted-foreground">
               {build.versionString}
               {daysUntilExpiry !== null && (
                 <span className="ml-2">
-                  · Expires in {daysUntilExpiry} days
+                  · {t("testflight.expiresInDays", { count: daysUntilExpiry })}
                 </span>
               )}
             </p>
@@ -260,34 +262,34 @@ export default function BuildDetailPage() {
       {/* Stats row */}
       <div className="flex items-center gap-6 text-sm">
         <div>
-          <p className="text-muted-foreground">Created</p>
+          <p className="text-muted-foreground">{t("testflight.created")}</p>
           <p className="font-medium tabular-nums">
             {formatDateTime(build.uploadedDate)}
           </p>
         </div>
         <div className="h-8 border-l" />
         <div>
-          <p className="text-muted-foreground">Installs</p>
+          <p className="text-muted-foreground">{t("testflight.installs")}</p>
           <p className="font-medium tabular-nums">{build.installs}</p>
         </div>
         <div className="h-8 border-l" />
         <div>
-          <p className="text-muted-foreground">Sessions</p>
+          <p className="text-muted-foreground">{t("testflight.sessions")}</p>
           <p className="font-medium tabular-nums">{build.sessions}</p>
         </div>
         <div className="h-8 border-l" />
         <div>
-          <p className="text-muted-foreground">Crashes</p>
+          <p className="text-muted-foreground">{t("testflight.crashes")}</p>
           <p className="font-medium tabular-nums">{build.crashes}</p>
         </div>
         <div className="h-8 border-l" />
         <div>
-          <p className="text-muted-foreground">Invites</p>
+          <p className="text-muted-foreground">{t("testflight.invites")}</p>
           <p className="font-medium tabular-nums">{build.invites}</p>
         </div>
         <div className="h-8 border-l" />
         <div>
-          <p className="text-muted-foreground">Feedback</p>
+          <p className="text-muted-foreground">{t("testflight.feedback")}</p>
           <p className="font-medium tabular-nums">{build.feedbackCount}</p>
         </div>
       </div>
@@ -295,7 +297,7 @@ export default function BuildDetailPage() {
       {/* What's new */}
       <section className="space-y-2">
         <div className="flex items-center gap-2">
-          <h3 className="section-title">What&apos;s new</h3>
+          <h3 className="section-title">{t("storeListing.fields.whatsNew")}</h3>
           {!isExpired && siblingBuilds.length > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -305,7 +307,7 @@ export default function BuildDetailPage() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
                 <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>Copy from build</DropdownMenuSubTrigger>
+                  <DropdownMenuSubTrigger>{t("testflight.copyFromBuild")}</DropdownMenuSubTrigger>
                   <DropdownMenuSubContent>
                     {siblingBuilds.map((sb) => (
                       <DropdownMenuItem
@@ -315,7 +317,7 @@ export default function BuildDetailPage() {
                           setDirty(sb.whatsNew !== (build.whatsNew ?? ""));
                         }}
                       >
-                        Build {sb.buildNumber}
+                        {t("testflight.buildNumber", { number: sb.buildNumber })}
                       </DropdownMenuItem>
                     ))}
                   </DropdownMenuSubContent>
@@ -333,7 +335,7 @@ export default function BuildDetailPage() {
                 setWhatsNew(e.target.value);
                 setDirty(e.target.value !== (build.whatsNew ?? ""));
               }}
-              placeholder="Describe what's new in this build…"
+              placeholder={t("storeListing.fields.whatsNewPlaceholder")}
               className="border-0 p-0 shadow-none focus-visible:ring-0 resize-none text-sm min-h-0 dark:bg-transparent"
             />
           </CardContent>

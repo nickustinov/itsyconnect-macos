@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -11,6 +13,7 @@ import {
 import { CircleNotch, Copy } from "@phosphor-icons/react";
 import { Stars } from "./review-summary";
 import type { Review } from "./territory-helpers";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 interface AppealDialogProps {
   appealTarget: Review | null;
@@ -29,6 +32,8 @@ export function AppealDialog({
   onClose,
   onCopyAndOpen,
 }: AppealDialogProps) {
+  const t = useTranslations();
+
   return (
     <Dialog
       open={!!appealTarget}
@@ -38,10 +43,9 @@ export function AppealDialog({
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Appeal review</DialogTitle>
+          <DialogTitle>{t("reviews.appealReview")}</DialogTitle>
           <DialogDescription>
-            AI-generated appeal text based on the review. Edit if needed, then
-            copy and submit via App Store Connect.
+            {t("reviews.appealDescription")}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
@@ -65,7 +69,7 @@ export function AppealDialog({
             <Textarea
               value={appealText}
               onChange={(e) => onAppealTextChange(e.target.value)}
-              placeholder="Appeal text will appear here…"
+              placeholder={t("reviews.appealPlaceholder")}
               className="min-h-[160px] max-h-[40vh] font-mono text-sm"
             />
           )}
@@ -75,14 +79,14 @@ export function AppealDialog({
             variant="outline"
             onClick={onClose}
           >
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button
             onClick={onCopyAndOpen}
             disabled={appealLoading || !appealText.trim()}
           >
             <Copy size={14} className="mr-1.5" />
-            Copy &amp; open App Store Connect
+            {t("reviews.copyAndOpenAsc")}
           </Button>
         </DialogFooter>
       </DialogContent>

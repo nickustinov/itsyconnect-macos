@@ -30,6 +30,7 @@ import { useRegisterRefresh } from "@/lib/refresh-context";
 import { EmptyState } from "@/components/empty-state";
 import { useLocaleManagement } from "@/lib/hooks/use-locale-management";
 import { useScreenshotOperations } from "@/lib/hooks/use-screenshot-operations";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 import { ScreenshotSetCard } from "./_components/screenshot-set-card";
 import { DeviceCategoryTabs, AddVariantButton } from "./_components/device-category-tabs";
@@ -40,6 +41,7 @@ import { BaseLocaleScreenshots } from "./_components/base-locale-screenshots";
 // ---------------------------------------------------------------------------
 
 export default function ScreenshotsPage() {
+  const t = useTranslations();
   const { appId } = useParams<{ appId: string }>();
   const searchParams = useSearchParams();
   const { apps } = useApps();
@@ -247,7 +249,7 @@ export default function ScreenshotsPage() {
   });
 
   if (!app) {
-    return <EmptyState title="App not found" />;
+    return <EmptyState title={t("app.notFound")} />;
   }
 
   if (versionsLoading || locLoading) {
@@ -261,7 +263,7 @@ export default function ScreenshotsPage() {
   if (locales.length === 0) {
     return (
       <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-        No localizations for this version.
+        {t("screenshots.noLocalizations")}
       </div>
     );
   }
@@ -305,11 +307,11 @@ export default function ScreenshotsPage() {
 
       {isEmpty && readOnly ? (
         <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-          No screenshots on this version.
+          {t("screenshots.noScreenshotsOnVersion")}
         </div>
       ) : isEmpty && !readOnly ? (
         <div className="space-y-2">
-          <p className="text-xs text-muted-foreground">Add variant</p>
+          <p className="text-xs text-muted-foreground">{t("screenshots.addVariant")}</p>
           <AddVariantButton
             category={selectedCategory}
             existingTypes={existingTypes}
@@ -337,7 +339,7 @@ export default function ScreenshotsPage() {
 
           {!readOnly && hasAddableVariants && (
             <div className="space-y-2">
-              <p className="text-xs text-muted-foreground">Add variant</p>
+              <p className="text-xs text-muted-foreground">{t("screenshots.addVariant")}</p>
               <AddVariantButton
                 category={selectedCategory}
                 existingTypes={existingTypes}

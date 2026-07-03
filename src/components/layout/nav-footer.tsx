@@ -24,6 +24,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { AddAccountDialog } from "./add-account-dialog";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 interface Account {
   id: string;
@@ -38,6 +39,7 @@ export function NavFooter() {
   const router = useRouter();
   const { isMobile } = useSidebar();
   const { guardNavigation } = useFormDirty();
+  const t = useTranslations();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [switching, setSwitching] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -60,7 +62,7 @@ export function NavFooter() {
   }, [fetchAccounts]);
 
   const active = accounts.find((a) => a.isActive);
-  const displayName = isDemo ? "Sample data" : (active?.name || "My team");
+  const displayName = isDemo ? t("nav.sampleData") : (active?.name || t("nav.myTeam"));
 
   async function doSwitch(id: string) {
     setSwitching(true);
@@ -128,7 +130,7 @@ export function NavFooter() {
                   ) : (
                     <span className="w-4" />
                   )}
-                  {account.name || "My team"}
+                  {account.name || t("nav.myTeam")}
                 </DropdownMenuItem>
               ))}
               {!isDemo && (
@@ -136,7 +138,7 @@ export function NavFooter() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => setDialogOpen(true)}>
                     <Plus size={16} />
-                    Add team…
+                    {t("nav.addTeam")}
                   </DropdownMenuItem>
                 </>
               )}
@@ -147,7 +149,7 @@ export function NavFooter() {
                 }
               >
                 <GearSix size={16} />
-                Settings
+                {t("nav.settings")}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() =>
@@ -158,7 +160,7 @@ export function NavFooter() {
                 }
               >
                 <GithubLogo size={16} />
-                Report an issue
+                {t("nav.reportIssue")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

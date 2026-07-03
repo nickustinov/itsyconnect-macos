@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
 import { DEFAULT_LOCAL_OPENAI_BASE_URL } from "@/lib/ai/local-provider";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 interface LocalServerFieldsProps {
   baseUrl: string;
@@ -26,6 +27,7 @@ export function LocalServerFields({
   apiKey,
   compact,
 }: LocalServerFieldsProps) {
+  const t = useTranslations();
   const [detectedModels, setDetectedModels] = useState<string[]>([]);
   const [testing, setTesting] = useState(false);
   const effectiveBaseUrl = baseUrl.trim() || DEFAULT_LOCAL_OPENAI_BASE_URL;
@@ -44,7 +46,7 @@ export function LocalServerFields({
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(data.error || "Failed to reach local server");
+        toast.error(data.error || t("localServer.reachFailed"));
         setTesting(false);
         return;
       }
@@ -55,13 +57,17 @@ export function LocalServerFields({
 
       setDetectedModels(models);
       if (models.length === 0) {
-        toast.error("Server is reachable, but no models were returned.");
+        toast.error(t("localServer.noModels"));
       } else {
         if (!models.includes(modelId)) onModelIdChange(models[0]);
-        toast.success(`Detected ${models.length} model${models.length === 1 ? "" : "s"}`);
+        toast.success(
+          models.length === 1
+            ? t("localServer.detectedModels", { count: models.length })
+            : t("localServer.detectedModelsPlural", { count: models.length }),
+        );
       }
     } catch {
-      toast.error("Network error");
+      toast.error(t("common.networkError"));
     }
     setTesting(false);
   }
@@ -72,9 +78,9 @@ export function LocalServerFields({
     <>
       <Wrapper className={compact ? "space-y-2" : "space-y-2 max-w-2xl"}>
         {compact ? (
-          <label className="text-sm text-muted-foreground">Server URL</label>
+          <label className="text-sm text-muted-foreground">{t("localServer.serverUrl")}</label>
         ) : (
-          <h3 className="section-title">Server URL</h3>
+          <h3 className="section-title">{t("localServer.serverUrl")}</h3>
         )}
         <Input
           value={baseUrl}
@@ -83,23 +89,23 @@ export function LocalServerFields({
           className="font-mono text-sm max-w-xl"
         />
         <p className="text-xs text-muted-foreground">
-          OpenAI-compatible endpoint, e.g. <span className="font-mono">http://127.0.0.1:1234/v1</span>
+          {t("localServer.endpointHint", { example: "http://127.0.0.1:1234/v1" })}
         </p>
         <div className="flex items-center gap-2 pt-1">
           <Button variant="outline" size="sm" onClick={handleTest} disabled={testing}>
-            {testing ? <><Spinner className="size-3" /> Testing...</> : "Test connection"}
+            {testing ? <><Spinner className="size-3" /> {t("localServer.testing")}</> : t("localServer.testConnection")}
           </Button>
           <span className="text-xs text-muted-foreground">
-            Tries <span className="font-mono">{effectiveBaseUrl}/models</span>
+            {t("localServer.triesEndpoint", { endpoint: effectiveBaseUrl })}
           </span>
         </div>
       </Wrapper>
 
       <Wrapper className={compact ? "space-y-2" : "space-y-2 max-w-2xl"}>
         {compact ? (
-          <label className="text-sm text-muted-foreground">Model</label>
+          <label className="text-sm text-muted-foreground">{t("localServer.model")}</label>
         ) : (
-          <h3 className="section-title">Model</h3>
+          <h3 className="section-title">{t("localServer.model")}</h3>
         )}
         <Input
           value={modelId}
@@ -124,7 +130,7 @@ export function LocalServerFields({
           </div>
         )}
         <p className="text-xs text-muted-foreground">
-          The model ID exposed by your local server (for LM Studio, the loaded model ID).
+          {t("localServer.modelHint")}
         </p>
       </Wrapper>
     </>

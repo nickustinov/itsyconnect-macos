@@ -3,6 +3,7 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
 import { toast } from "sonner";
 import { type Review, territoryToLocale } from "./territory-helpers";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 /** Resolve which app (and its display name) a review belongs to. */
 export type ResolveApp = (review: Review) => { appId: string; appName?: string };
@@ -26,6 +27,8 @@ export function useReviewActions<T extends Review>({
   aiConfigured,
   reviewGuidance,
 }: UseReviewActionsOptions<T>) {
+  const t = useTranslations();
+
   // Translation state
   const [translations, setTranslations] = useState<
     Record<string, { title: string; body: string }>
@@ -78,7 +81,7 @@ export function useReviewActions<T extends Review>({
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? "Translation failed");
+        throw new Error(data.error ?? t("reviews.toastTranslationFailed"));
       }
 
       const { result } = await res.json();
@@ -89,7 +92,7 @@ export function useReviewActions<T extends Review>({
       setTranslations((prev) => ({ ...prev, [review.id]: { title, body } }));
       setShowTranslation((prev) => ({ ...prev, [review.id]: true }));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Translation failed");
+      toast.error(err instanceof Error ? err.message : t("reviews.toastTranslationFailed"));
     } finally {
       setTranslating((prev) => ({ ...prev, [review.id]: false }));
     }
@@ -123,7 +126,7 @@ export function useReviewActions<T extends Review>({
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? (isEdit ? "Failed to update reply" : "Failed to send reply"));
+        throw new Error(data.error ?? (isEdit ? t("reviews.toastUpdateReplyFailed") : t("reviews.toastSendReplyFailed")));
       }
 
       const data = await res.json();
@@ -145,15 +148,13 @@ export function useReviewActions<T extends Review>({
       );
 
       toast.success(
-        isEdit
-          ? "Reply updated – it may take up to 24 hours to appear on the App Store"
-          : "Reply sent – it may take up to 24 hours to appear on the App Store",
+        isEdit ? t("reviews.toastReplyUpdated") : t("reviews.toastReplySent"),
       );
       setReplyTarget(null);
       setReplyBody("");
       setEditingResponseId(null);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to send reply");
+      toast.error(err instanceof Error ? err.message : t("reviews.toastSendReplyFailed"));
     } finally {
       setReplying(false);
     }
@@ -188,13 +189,13 @@ export function useReviewActions<T extends Review>({
           setShowAIRequired(true);
           return;
         }
-        throw new Error(data.error ?? "Failed to generate reply");
+        throw new Error(data.error ?? t("reviews.toastGenerateReplyFailed"));
       }
 
       const { result } = await res.json();
       setReplyBody(result);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to generate reply");
+      toast.error(err instanceof Error ? err.message : t("reviews.toastGenerateReplyFailed"));
     } finally {
       setDraftingReply(false);
     }
@@ -228,13 +229,13 @@ export function useReviewActions<T extends Review>({
           setShowAIRequired(true);
           return;
         }
-        throw new Error(data.error ?? "Translation failed");
+        throw new Error(data.error ?? t("reviews.toastTranslationFailed"));
       }
 
       const { result } = await res.json();
       setReplyBody(result);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Translation failed");
+      toast.error(err instanceof Error ? err.message : t("reviews.toastTranslationFailed"));
     } finally {
       setTranslatingReply(false);
     }
@@ -272,13 +273,13 @@ export function useReviewActions<T extends Review>({
           setShowAIRequired(true);
           return;
         }
-        throw new Error(data.error ?? "Failed to generate appeal");
+        throw new Error(data.error ?? t("reviews.toastGenerateAppealFailed"));
       }
 
       const { result } = await res.json();
       setAppealText(result);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to generate appeal");
+      toast.error(err instanceof Error ? err.message : t("reviews.toastGenerateAppealFailed"));
       setAppealTarget(null);
     } finally {
       setAppealLoading(false);
@@ -289,11 +290,11 @@ export function useReviewActions<T extends Review>({
     try {
       await navigator.clipboard.writeText(appealText);
       window.open("https://appstoreconnect.apple.com", "_blank");
-      toast.success("Appeal text copied to clipboard");
+      toast.success(t("reviews.toastAppealCopied"));
       setAppealTarget(null);
       setAppealText("");
     } catch {
-      toast.error("Failed to copy to clipboard");
+      toast.error(t("reviews.toastCopyFailed"));
     }
   }
 
@@ -309,15 +310,15 @@ export function useReviewActions<T extends Review>({
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? "Failed to delete response");
+        throw new Error(data.error ?? t("reviews.toastDeleteResponseFailed"));
       }
 
       setReviews((prev) =>
         prev.map((r) => (r.id === review.id ? { ...r, response: undefined } : r)),
       );
-      toast.success("Response deleted");
+      toast.success(t("reviews.toastResponseDeleted"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete response");
+      toast.error(err instanceof Error ? err.message : t("reviews.toastDeleteResponseFailed"));
     } finally {
       setDeletingResponseId(null);
     }

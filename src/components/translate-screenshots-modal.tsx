@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { localeName } from "@/lib/asc/locale-names";
 import { screenshotImageUrl } from "@/lib/asc/display-types";
 import type { AscScreenshot } from "@/lib/asc/display-types";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -64,6 +65,7 @@ export function TranslateScreenshotsModal({
   targetLocalizationId,
   onComplete,
 }: TranslateScreenshotsModalProps) {
+  const t = useTranslations();
   const [marketingOnly, setMarketingOnly] = useState(true);
   const [started, setStarted] = useState(false);
   const [itemStates, setItemStates] = useState<Map<string, ItemState>>(new Map());
@@ -128,7 +130,7 @@ export function TranslateScreenshotsModal({
       if (!token) {
         setItemStates((prev) => {
           const next = new Map(prev);
-          next.set(ssId, { status: "failed", error: "No asset token" });
+          next.set(ssId, { status: "failed", error: t("translateScreenshots.noAssetToken") });
           return next;
         });
         continue;
@@ -173,10 +175,10 @@ export function TranslateScreenshotsModal({
           if (data.error === "gemini_auth_error") {
             setHasKey(false);
             setStarted(false);
-            setKeyError("Invalid API key. Please check and try again.");
+            setKeyError(t("translateScreenshots.invalidApiKey"));
             return;
           }
-          throw new Error(data.error || "Failed");
+          throw new Error(data.error || t("translateScreenshots.failed"));
         }
 
         // Cache the resolved set ID for subsequent images of the same display type
@@ -199,7 +201,7 @@ export function TranslateScreenshotsModal({
           const next = new Map(prev);
           next.set(ssId, {
             status: "failed",
-            error: err instanceof Error ? err.message : "Failed",
+            error: err instanceof Error ? err.message : t("translateScreenshots.failed"),
           });
           return next;
         });
@@ -207,7 +209,7 @@ export function TranslateScreenshotsModal({
     }
 
     abortRef.current = null;
-  }, [items, toLocale, marketingOnly, targetLocalizationId]);
+  }, [items, toLocale, marketingOnly, targetLocalizationId, t]);
 
   function handleStop() {
     stopRef.current = true;
@@ -265,7 +267,7 @@ export function TranslateScreenshotsModal({
         });
 
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Failed");
+        if (!res.ok) throw new Error(data.error || t("translateScreenshots.failed"));
 
         if (data.targetSetId) {
           setIdCacheRef.current.set(item.displayType, data.targetSetId);
@@ -286,7 +288,7 @@ export function TranslateScreenshotsModal({
           const next = new Map(prev);
           next.set(ssId, {
             status: "failed",
-            error: err instanceof Error ? err.message : "Failed",
+            error: err instanceof Error ? err.message : t("translateScreenshots.failed"),
           });
           return next;
         });
@@ -336,8 +338,9 @@ export function TranslateScreenshotsModal({
       <DialogContent className="sm:max-w-4xl w-full max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>
-            {isSingle ? "Translate screenshot" : `Translate ${total} screenshots`}
-            {" "}to {localeName(toLocale)}
+            {isSingle
+              ? t("translateScreenshots.titleSingleTo", { locale: localeName(toLocale) })
+              : t("translateScreenshots.titlePluralTo", { count: total, locale: localeName(toLocale) })}
           </DialogTitle>
         </DialogHeader>
 
@@ -356,7 +359,7 @@ export function TranslateScreenshotsModal({
                 {status === "done" && state?.thumbnail ? (
                   <img
                     src={`data:${state.thumbnailMimeType};base64,${state.thumbnail}`}
-                    alt="Translated"
+                    alt={t("translateScreenshots.translatedAlt")}
                     className="h-[300px] w-auto rounded object-contain"
                   />
                 ) : token ? (
@@ -409,7 +412,7 @@ export function TranslateScreenshotsModal({
             <div className="flex items-start gap-2 text-sm">
               <Info size={16} className="mt-0.5 shrink-0 text-orange-500" />
               <p className="text-muted-foreground">
-                Screenshot translation uses Gemini 3 Pro Image. Enter your Gemini API key to continue.
+                {t("translateScreenshots.geminiHint")}
               </p>
             </div>
             <div className="flex gap-2">
@@ -417,7 +420,7 @@ export function TranslateScreenshotsModal({
                 <Input
                   ref={keyInputRef}
                   type={showKey ? "text" : "password"}
-                  placeholder="Gemini API key"
+                  placeholder={t("translateScreenshots.geminiKeyPlaceholder")}
                   value={geminiKey}
                   onChange={(e) => setGeminiKey(e.target.value)}
                   onKeyDown={(e) => {
@@ -449,14 +452,14 @@ export function TranslateScreenshotsModal({
                   onCheckedChange={setMarketingOnly}
                 />
                 <Label htmlFor="marketing-only-batch" className="text-sm">
-                  Don&apos;t translate app UI
+                  {t("translateScreenshots.dontTranslateUi")}
                 </Label>
               </div>
               <Button
                 variant="outline"
                 onClick={() => processItems(true)}
               >
-                Copy without translation
+                {t("translateScreenshots.copyWithoutTranslation")}
               </Button>
               <Button
                 onClick={() => {
@@ -468,7 +471,7 @@ export function TranslateScreenshotsModal({
                 }}
                 disabled={hasKey === false && !geminiKey.trim()}
               >
-                Translate
+                {t("translateScreenshots.translate")}
               </Button>
             </>
           )}
@@ -478,12 +481,12 @@ export function TranslateScreenshotsModal({
               <div className="mr-auto flex items-center gap-3 text-xs text-muted-foreground">
                 <span className="shrink-0">
                   {inProgress
-                    ? copyMode ? "Uploading..." : "Translating (up to 1\u20132 min per image)"
+                    ? copyMode ? t("translateScreenshots.uploading") : t("translateScreenshots.translating")
                     : allDone && !hasFailed
-                      ? "All done!"
+                      ? t("translateScreenshots.allDone")
                       : allDone && hasFailed
-                        ? `${failedCount} failed`
-                        : "Stopped"
+                        ? t("translateScreenshots.failedCount", { count: failedCount })
+                        : t("translateScreenshots.stopped")
                   }
                 </span>
                 <div className="h-1.5 w-24 overflow-hidden rounded-full bg-muted">
@@ -497,25 +500,25 @@ export function TranslateScreenshotsModal({
               {hasFailed && !inProgress && (
                 <Button variant="outline" size="sm" className="gap-1" onClick={handleRetryFailed}>
                   <ArrowsClockwise size={14} />
-                  Retry failed
+                  {t("translateScreenshots.retryFailed")}
                 </Button>
               )}
               <Button onClick={handleClose}>
-                {inProgress ? "Cancel" : "Done"}
+                {inProgress ? t("common.cancel") : t("translateScreenshots.done")}
               </Button>
             </>
           )}
         </div>
 
         <p className="text-xs text-muted-foreground text-right">
-          Uses Gemini 3 Pro Image {"\u2013"} approximately $0.30 per image.{" "}
+          {t("translateScreenshots.pricing")}{" "}
           <a
             href="https://cloud.google.com/vertex-ai/generative-ai/pricing"
             target="_blank"
             rel="noopener noreferrer"
             className="underline"
           >
-            Google pricing
+            {t("translateScreenshots.googlePricing")}
           </a>
         </p>
       </DialogContent>

@@ -10,6 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 export function SubmitNominationDialog({
   open,
@@ -20,20 +21,21 @@ export function SubmitNominationDialog({
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
 }) {
+  const t = useTranslations();
+
   return (
     <AlertDialog open={open} onOpenChange={(o) => !o && onOpenChange(false)}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Submit nomination?</AlertDialogTitle>
+          <AlertDialogTitle>{t("nominations.submitTitle")}</AlertDialogTitle>
           <AlertDialogDescription>
-            Your nomination will be submitted to Apple&apos;s editorial team for review.
-            You can still edit most fields after submission, but the type and related apps cannot be changed.
+            {t("nominations.submitDescription")}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
           <AlertDialogAction onClick={onConfirm}>
-            Submit
+            {t("nominations.submitAction")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -5,9 +5,13 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { SidebarProvider, SidebarInset, useSidebar } from "@/components/ui/sidebar";
 import { List } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
-import { AppSidebar } from "@/components/layout/app-sidebar";
 import { DashboardBreadcrumb } from "@/components/layout/dashboard-breadcrumb";
 import dynamic from "next/dynamic";
+
+const AppSidebar = dynamic(
+  () => import("@/components/layout/app-sidebar").then((m) => ({ default: m.AppSidebar })),
+  { ssr: false },
+);
 
 const HeaderVersionPicker = dynamic(
   () => import("@/components/layout/header-version-picker").then(m => ({ default: m.HeaderVersionPicker })),
@@ -55,22 +59,6 @@ import { InsightsPanelProvider, useInsightsPanel } from "@/lib/insights-panel-co
 import { InsightsPanel } from "@/components/layout/insights-panel";
 import { saveNavigation } from "@/lib/nav-state";
 import { useMcpEvents } from "@/lib/hooks/use-mcp-events";
-
-declare global {
-  interface Window {
-    electron?: {
-      ready: () => void;
-      onNavigate: (cb: (path: string) => void) => () => void;
-      updates: {
-        checkNow: () => void;
-        installNow: () => void;
-        onStatus: (cb: (status: { state: string; message?: string; notes?: string[] }) => void) => () => void;
-        getAutoCheck: () => Promise<boolean>;
-        setAutoCheck: (enabled: boolean) => void;
-      };
-    };
-  }
-}
 
 function ReadySignal() {
   const { loading } = useApps();

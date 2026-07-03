@@ -26,6 +26,7 @@ import {
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { AddAccountDialog } from "@/components/layout/add-account-dialog";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 interface Team {
   id: string;
@@ -38,6 +39,7 @@ interface Team {
 
 export default function TeamsPage() {
   const router = useRouter();
+  const t = useTranslations();
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [testingId, setTestingId] = useState<string | null>(null);
@@ -107,7 +109,7 @@ export default function TeamsPage() {
       if (data.redirectToSetup) {
         router.push("/setup");
       } else {
-        toast.success("Team removed");
+        toast.success(t("settings.teams.teamRemoved"));
         fetchTeams();
         router.refresh();
       }
@@ -122,7 +124,7 @@ export default function TeamsPage() {
 
   function startEditing(team: Team) {
     setEditingId(team.id);
-    setEditValue(team.name || "My team");
+    setEditValue(team.name || t("nav.myTeam"));
     setTimeout(() => editRef.current?.select(), 0);
   }
 
@@ -172,7 +174,7 @@ export default function TeamsPage() {
                   onClick={() => startEditing(team)}
                   className="group flex items-center gap-1.5 font-medium text-sm hover:text-foreground/80"
                 >
-                  {team.name || "My team"}
+                  {team.name || t("nav.myTeam")}
                   <PencilSimple
                     size={13}
                     className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
@@ -180,17 +182,17 @@ export default function TeamsPage() {
                 </button>
               )}
               {team.isActive && (
-                <Badge variant="secondary" className="text-xs">Active</Badge>
+                <Badge variant="secondary" className="text-xs">{t("settings.teams.active")}</Badge>
               )}
             </div>
 
             <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
               <div>
-                <span className="text-muted-foreground">Issuer ID</span>
+                <span className="text-muted-foreground">{t("settings.teams.issuerId")}</span>
                 <p className="font-mono text-xs mt-0.5">{team.issuerId}</p>
               </div>
               <div>
-                <span className="text-muted-foreground">Key ID</span>
+                <span className="text-muted-foreground">{t("settings.teams.keyId")}</span>
                 <p className="font-mono text-xs mt-0.5">{team.keyId}</p>
               </div>
             </div>
@@ -203,43 +205,42 @@ export default function TeamsPage() {
                 disabled={testingId === team.id}
               >
                 <Plugs size={14} />
-                {testingId === team.id ? "Testing…" : "Test connection"}
+                {testingId === team.id ? t("settings.teams.testing") : t("settings.teams.testConnection")}
               </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="ghost" size="sm">
                     <Trash size={14} />
-                    Remove team
+                    {t("settings.teams.removeTeam")}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Remove team?</AlertDialogTitle>
+                    <AlertDialogTitle>{t("settings.teams.removeTeamTitle")}</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This will remove the App Store Connect credentials for{" "}
-                      <strong>{team.name || "My team"}</strong> and clear all
-                      cached app data.
+                      {t("settings.teams.removeTeamDescription")}{" "}
+                      <strong>{team.name || t("nav.myTeam")}</strong>{" "}
                       {teams.length === 1
-                        ? " You will need to set up the app again."
-                        : " Another team will be activated automatically."}
+                        ? t("settings.teams.removeTeamSetupAgain")
+                        : t("settings.teams.removeTeamActivateOther")}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
                     <AlertDialogAction onClick={() => handleRemove(team.id)}>
-                      Remove
+                      {t("common.remove")}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
               {testResults[team.id] === "ok" && (
                 <span className="flex items-center gap-1.5 text-sm text-green-600">
-                  <CheckCircle size={16} weight="fill" /> Connected
+                  <CheckCircle size={16} weight="fill" /> {t("settings.teams.connected")}
                 </span>
               )}
               {testResults[team.id] === "error" && (
                 <span className="flex items-center gap-1.5 text-sm text-destructive">
-                  <XCircle size={16} weight="fill" /> Connection failed
+                  <XCircle size={16} weight="fill" /> {t("settings.teams.connectionFailed")}
                 </span>
               )}
             </div>
@@ -248,7 +249,7 @@ export default function TeamsPage() {
 
         {isDemo ? (
           <p className="text-sm text-muted-foreground">
-            Team management is not available in demo mode.
+            {t("settings.teams.demoUnavailable")}
           </p>
         ) : (
           <Button
@@ -256,7 +257,7 @@ export default function TeamsPage() {
             onClick={() => setDialogOpen(true)}
           >
             <Plus size={16} />
-            Add team
+            {t("settings.teams.addTeam")}
           </Button>
         )}
       </div>

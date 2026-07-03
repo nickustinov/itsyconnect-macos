@@ -4,8 +4,11 @@ import Image from "next/image";
 import { GithubLogo } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { APP_VERSION, BUILD_NUMBER } from "@/lib/version";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 export default function AboutPage() {
+  const t = useTranslations();
+
   return (
     <div className="max-w-2xl space-y-6">
       <Image
@@ -29,11 +32,11 @@ export default function AboutPage() {
 
       <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
         <div>
-          <span className="text-muted-foreground">Version</span>
+          <span className="text-muted-foreground">{t("settings.about.version")}</span>
           <p className="font-mono text-xs mt-0.5">{APP_VERSION}</p>
         </div>
         <div>
-          <span className="text-muted-foreground">Build</span>
+          <span className="text-muted-foreground">{t("settings.about.build")}</span>
           <p className="font-mono text-xs mt-0.5">{BUILD_NUMBER}</p>
         </div>
       </div>
@@ -45,7 +48,7 @@ export default function AboutPage() {
           rel="noopener noreferrer"
         >
           <GithubLogo size={16} />
-          Report an issue
+          {t("settings.about.reportIssue")}
         </a>
       </Button>
     </div>

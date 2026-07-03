@@ -28,6 +28,7 @@ import type { AscErrorReportData } from "@/components/error-report-dialog";
 import { resolveVersion, type AscVersion } from "@/lib/asc/version-types";
 import { useApps } from "@/lib/apps-context";
 import { ActionFooter } from "@/components/layout/action-footer";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 /** Brief pause to let ASC propagate state changes before re-fetching. */
 const ASC_PROPAGATION_DELAY = 3000;
@@ -45,6 +46,8 @@ function getPageSegment(pathname: string): string {
 }
 
 function ChecklistIcon({ status, localesWithIssues }: { status: FieldStatus; localesWithIssues?: string[] }) {
+  const t = useTranslations();
+
   if (status === "ok") {
     return <CheckCircle size={14} weight="fill" className="text-green-500/70" />;
   }
@@ -58,7 +61,11 @@ function ChecklistIcon({ status, localesWithIssues }: { status: FieldStatus; loc
           </span>
         </TooltipTrigger>
         <TooltipContent side="top">
-          <p className="mb-2">Missing in {n} locale{n > 1 ? "s" : ""}:</p>
+          <p className="mb-2">
+            {n === 1
+              ? t("versionAction.missingInLocales", { count: n })
+              : t("versionAction.missingInLocalesPlural", { count: n })}
+          </p>
           {localesWithIssues.map((l) => (
             <p key={l}>{localeName(l)}</p>
           ))}
@@ -70,6 +77,7 @@ function ChecklistIcon({ status, localesWithIssues }: { status: FieldStatus; loc
 }
 
 function SubmissionChecklist({ version, isFirstVersion }: { version: AscVersion; isFirstVersion: boolean }) {
+  const t = useTranslations();
   const { flags } = useSubmissionChecklist();
   const sl = flags.storeListing;
   const ad = flags.appDetails;
@@ -83,16 +91,16 @@ function SubmissionChecklist({ version, isFirstVersion }: { version: AscVersion;
     flags.hasScreenshots === null ? "missing" : flags.hasScreenshots ? "ok" : "missing";
 
   const items: { label: string; status: FieldStatus; localesWithIssues?: string[] }[] = [
-    { label: "Build", status: hasBuild ? "ok" : "missing" },
-    { label: "Screenshots", status: screenshotStatus },
-    { label: "Name", status: ad?.name.status ?? "missing", localesWithIssues: ad?.name.localesWithIssues },
-    { label: "Description", status: sl?.description.status ?? "missing", localesWithIssues: sl?.description.localesWithIssues },
-    ...(!isFirstVersion ? [{ label: "What's new", status: sl?.whatsNew.status ?? "missing", localesWithIssues: sl?.whatsNew.localesWithIssues }] : []),
-    { label: "Keywords", status: sl?.keywords.status ?? "missing", localesWithIssues: sl?.keywords.localesWithIssues },
-    { label: "Support", status: sl?.supportUrl.status ?? "missing", localesWithIssues: sl?.supportUrl.localesWithIssues },
-    { label: "Privacy", status: ad?.privacyPolicyUrl.status ?? "missing", localesWithIssues: ad?.privacyPolicyUrl.localesWithIssues },
-    { label: "Copyright", status: hasCopyright ? "ok" : "missing" },
-    { label: "Contact", status: hasContact ? "ok" : "missing" },
+    { label: t("storeListing.build.title"), status: hasBuild ? "ok" : "missing" },
+    { label: t("nav.items.screenshots"), status: screenshotStatus },
+    { label: t("appDetails.name"), status: ad?.name.status ?? "missing", localesWithIssues: ad?.name.localesWithIssues },
+    { label: t("storeListing.fields.description"), status: sl?.description.status ?? "missing", localesWithIssues: sl?.description.localesWithIssues },
+    ...(!isFirstVersion ? [{ label: t("storeListing.fields.whatsNew"), status: sl?.whatsNew.status ?? "missing", localesWithIssues: sl?.whatsNew.localesWithIssues }] : []),
+    { label: t("storeListing.fields.keywords"), status: sl?.keywords.status ?? "missing", localesWithIssues: sl?.keywords.localesWithIssues },
+    { label: t("versionAction.support"), status: sl?.supportUrl.status ?? "missing", localesWithIssues: sl?.supportUrl.localesWithIssues },
+    { label: t("versionAction.privacy"), status: ad?.privacyPolicyUrl.status ?? "missing", localesWithIssues: ad?.privacyPolicyUrl.localesWithIssues },
+    { label: t("storeListing.copyright"), status: hasCopyright ? "ok" : "missing" },
+    { label: t("versionAction.contact"), status: hasContact ? "ok" : "missing" },
   ];
 
   return (
@@ -133,6 +141,7 @@ function useChecklistReady(version: AscVersion, isFirstVersion: boolean): boolea
 }
 
 export function VersionActionFooter() {
+  const t = useTranslations();
   const { appId } = useParams<{ appId: string }>();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -294,26 +303,26 @@ export function VersionActionFooter() {
   if (CANCEL_STATES.has(state)) {
     return (
       <>
-        {loading && <LoadingOverlay label="Cancelling submission…" />}
+        {loading && <LoadingOverlay label={t("versionAction.cancellingSubmission")} />}
         <ActionFooter>
           <Button
             variant="destructive"
             disabled={loading}
             onClick={() => setConfirmOpen(true)}
           >
-            Cancel submission
+            {t("versionAction.cancelSubmission")}
           </Button>
         </ActionFooter>
         <AlertDialog open={confirmOpen} onOpenChange={(open) => !open && setConfirmOpen(false)}>
           <AlertDialogContent size="sm">
             <AlertDialogHeader>
-              <AlertDialogTitle>Cancel submission?</AlertDialogTitle>
+              <AlertDialogTitle>{t("versionAction.cancelSubmissionTitle")}</AlertDialogTitle>
               <AlertDialogDescription>
-                Version {version.attributes.versionString} will be removed from App Review.
+                {t("versionAction.cancelSubmissionDescription", { version: version.attributes.versionString })}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Keep in review</AlertDialogCancel>
+              <AlertDialogCancel>{t("versionAction.keepInReview")}</AlertDialogCancel>
               <AlertDialogAction
                 variant="destructive"
                 onClick={async () => {
@@ -324,16 +333,16 @@ export function VersionActionFooter() {
                       `/api/apps/${appId}/versions/${version.id}/cancel-submission`,
                       { method: "POST" },
                     );
-                    toast.success("Submission cancelled");
+                    toast.success(t("versionAction.submissionCancelled"));
                     await delay(ASC_PROPAGATION_DELAY);
                   } catch (err) {
-                    toast.error(err instanceof Error ? err.message : "Failed to cancel submission");
+                    toast.error(err instanceof Error ? err.message : t("versionAction.cancelSubmissionFailed"));
                   }
                   setLoading(false);
                   await refresh();
                 }}
               >
-                Cancel submission
+                {t("versionAction.cancelSubmission")}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -345,26 +354,26 @@ export function VersionActionFooter() {
   if (isRejected && hasUnresolved === true) {
     return (
       <>
-        {loading && <LoadingOverlay label="Cancelling submission…" />}
+        {loading && <LoadingOverlay label={t("versionAction.cancellingSubmission")} />}
         <ActionFooter>
           <Button
             variant="destructive"
             disabled={loading}
             onClick={() => setConfirmOpen(true)}
           >
-            Cancel submission
+            {t("versionAction.cancelSubmission")}
           </Button>
         </ActionFooter>
         <AlertDialog open={confirmOpen} onOpenChange={(open) => !open && setConfirmOpen(false)}>
           <AlertDialogContent size="sm">
             <AlertDialogHeader>
-              <AlertDialogTitle>Cancel submission?</AlertDialogTitle>
+              <AlertDialogTitle>{t("versionAction.cancelSubmissionTitle")}</AlertDialogTitle>
               <AlertDialogDescription>
-                Version {version.attributes.versionString} will be removed from review. You can make changes and submit again.
+                {t("versionAction.cancelSubmissionRejectedDescription", { version: version.attributes.versionString })}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Keep submission</AlertDialogCancel>
+              <AlertDialogCancel>{t("versionAction.keepSubmission")}</AlertDialogCancel>
               <AlertDialogAction
                 variant="destructive"
                 onClick={async () => {
@@ -379,17 +388,17 @@ export function VersionActionFooter() {
                         body: JSON.stringify({ unresolved: true }),
                       },
                     );
-                    toast.success("Submission cancelled");
+                    toast.success(t("versionAction.submissionCancelled"));
                     await delay(ASC_PROPAGATION_DELAY);
                   } catch (err) {
-                    toast.error(err instanceof Error ? err.message : "Failed to cancel submission");
+                    toast.error(err instanceof Error ? err.message : t("versionAction.cancelSubmissionFailed"));
                   }
                   setLoading(false);
                   setUnresolvedResult({ value: false, forAppId: appId, forRejected: true });
                   await refresh();
                 }}
               >
-                Cancel submission
+                {t("versionAction.cancelSubmission")}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -421,7 +430,7 @@ export function VersionActionFooter() {
   if (state === "PENDING_DEVELOPER_RELEASE") {
     return (
       <>
-        {loading && <LoadingOverlay label="Releasing version…" />}
+        {loading && <LoadingOverlay label={t("versionAction.releasingVersion")} />}
         <ActionFooter>
           <Button
             disabled={loading}
@@ -432,16 +441,16 @@ export function VersionActionFooter() {
                   `/api/apps/${appId}/versions/${version.id}/release-now`,
                   { method: "POST" },
                 );
-                toast.success("Version released");
+                toast.success(t("versionAction.versionReleased"));
                 await delay(ASC_PROPAGATION_DELAY);
               } catch (err) {
-                toast.error(err instanceof Error ? err.message : "Failed to release version");
+                toast.error(err instanceof Error ? err.message : t("versionAction.releaseVersionFailed"));
               }
               setLoading(false);
               await refresh();
             }}
           >
-            Release now
+            {t("versionAction.releaseNow")}
           </Button>
         </ActionFooter>
       </>
@@ -480,6 +489,7 @@ function SubmitFooter({
   setLoading: (v: boolean) => void;
   setConfirmOpen: (v: boolean) => void;
 }) {
+  const t = useTranslations();
   const checklistReady = useChecklistReady(version, isFirstVersion);
   const canSubmit = checklistReady && !hasValidationErrors && !isSaving;
 
@@ -496,7 +506,7 @@ function SubmitFooter({
           body: JSON.stringify({ platform: version.attributes.platform }),
         },
       );
-      toast.success("Submitted for review");
+      toast.success(t("versionAction.submittedForReview"));
       await delay(ASC_PROPAGATION_DELAY);
     } catch (err) {
       if (err instanceof ApiError && (err.ascErrors?.length || err.ascAssociatedErrors)) {
@@ -508,7 +518,7 @@ function SubmitFooter({
           ascAssociatedErrors: err.ascAssociatedErrors,
         });
       } else {
-        toast.error(err instanceof Error ? err.message : "Failed to submit for review");
+        toast.error(err instanceof Error ? err.message : t("versionAction.submitForReviewFailed"));
       }
     }
     setLoading(false);
@@ -517,24 +527,24 @@ function SubmitFooter({
 
   return (
     <>
-      {loading && <LoadingOverlay label="Submitting for review…" />}
+      {loading && <LoadingOverlay label={t("versionAction.submittingForReview")} />}
       <ActionFooter left={<SubmissionChecklist version={version} isFirstVersion={isFirstVersion} />}>
         <Button disabled={!canSubmit || loading} onClick={() => setConfirmOpen(true)}>
-          Submit for review
+          {t("versionAction.submitForReview")}
         </Button>
       </ActionFooter>
       <AlertDialog open={confirmOpen} onOpenChange={(open) => !open && setConfirmOpen(false)}>
         <AlertDialogContent size="sm">
           <AlertDialogHeader>
-            <AlertDialogTitle>Submit for review?</AlertDialogTitle>
+            <AlertDialogTitle>{t("versionAction.submitForReviewTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Version {version.attributes.versionString} will be submitted to App Review.
+              {t("versionAction.submitForReviewDescription", { version: version.attributes.versionString })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction onClick={handleSubmit}>
-              Submit
+              {t("versionAction.submit")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

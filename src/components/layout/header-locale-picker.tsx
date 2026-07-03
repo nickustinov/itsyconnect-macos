@@ -16,8 +16,10 @@ import { useHeaderLocale } from "@/lib/header-locale-context";
 import { useAIStatus } from "@/lib/hooks/use-ai-status";
 import { localeName } from "@/lib/asc/locale-names";
 import { AIRequiredDialog } from "@/components/ai-required-dialog";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 export function HeaderLocalePicker() {
+  const t = useTranslations();
   const { configRef, config } = useHeaderLocale();
   const { configured } = useAIStatus();
   const [showRequired, setShowRequired] = useState(false);
@@ -94,14 +96,14 @@ export function HeaderLocalePicker() {
                 <DropdownMenuItem
                   onSelect={() => requireAI(() => configRef.current?.onBulkTranslate?.())}
                 >
-                  Translate from {baseLabel} to {targetLabel}…
+                  {t("ai.translateFromTo", { source: baseLabel, target: targetLabel })}
                 </DropdownMenuItem>
               )}
               {!isBaseLocale && config.onBulkCopy && (
                 <DropdownMenuItem
                   onSelect={() => configRef.current?.onBulkCopy?.()}
                 >
-                  Copy from {baseLabel} to {targetLabel}…
+                  {t("ai.copyFromTo", { source: baseLabel, target: targetLabel })}
                 </DropdownMenuItem>
               )}
               {/* Separator between single and all-locale items */}
@@ -114,8 +116,8 @@ export function HeaderLocalePicker() {
                   onSelect={() => requireAI(() => configRef.current?.onBulkTranslateAll?.())}
                 >
                   {isBaseLocale
-                    ? "Translate to all languages…"
-                    : `Translate from ${baseLabel} to all languages…`}
+                    ? t("ai.translateToAll")
+                    : t("ai.translateFromToAll", { source: baseLabel })}
                 </DropdownMenuItem>
               )}
               {config.onBulkCopyAll && (
@@ -123,8 +125,8 @@ export function HeaderLocalePicker() {
                   onSelect={() => configRef.current?.onBulkCopyAll?.()}
                 >
                   {isBaseLocale
-                    ? "Copy to all languages…"
-                    : `Copy from ${baseLabel} to all languages…`}
+                    ? t("ai.copyToAll")
+                    : t("ai.copyFromToAll", { source: baseLabel })}
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>

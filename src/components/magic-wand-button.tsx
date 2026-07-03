@@ -21,6 +21,7 @@ import { buildForbiddenKeywords, splitMetaWords } from "@/lib/asc/keyword-utils"
 import { PLATFORM_LABELS } from "@/lib/asc/version-types";
 import { AIRequiredDialog } from "./ai-required-dialog";
 import { AICompareDialog } from "./ai-compare-dialog";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 export interface CopyFromVersion {
   versionId: string;
@@ -128,6 +129,7 @@ export function MagicWandButton({
   copyFromVersions,
   onCopyFromVersion,
 }: MagicWandButtonProps) {
+  const t = useTranslations();
   const { configured } = useAIStatus();
   const [menuOpen, setMenuOpen] = useState(false);
   const [showRequired, setShowRequired] = useState(false);
@@ -186,7 +188,7 @@ export function MagicWandButton({
   function handleImprove() {
     if (!requireAI()) return;
     openCompare({
-      title: "Improve text",
+      title: t("ai.improveText"),
       charLimit,
       apiBody: {
         action: "improve",
@@ -237,7 +239,7 @@ export function MagicWandButton({
       .join(",");
 
     openCompare({
-      title: hasValue ? "Improve keywords" : "Generate keywords",
+      title: hasValue ? t("ai.improveKeywords") : t("ai.generateKeywords"),
       charLimit,
       apiBody: {
         action: "fix-keywords",
@@ -283,13 +285,13 @@ export function MagicWandButton({
           {hasKeywordActions && (
             <>
               <DropdownMenuItem onSelect={handleFixKeywords}>
-                {hasValue ? "Improve…" : "Generate…"}
+                {hasValue ? t("ai.improve") : t("ai.generate")}
               </DropdownMenuItem>
               {keywordsInsightsHref && (
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href={keywordsInsightsHref}>Keywords insights</Link>
+                    <Link href={keywordsInsightsHref}>{t("ai.keywordsInsights")}</Link>
                   </DropdownMenuItem>
                 </>
               )}
@@ -298,16 +300,16 @@ export function MagicWandButton({
           {hasTranslateActions && (
             <>
               <DropdownMenuItem onSelect={handleTranslate} disabled={!hasBaseValue}>
-                Translate from {localeName(baseLocale)}
+                {t("ai.translateFrom", { source: localeName(baseLocale) })}
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={handleCopy} disabled={!hasBaseValue}>
-                Copy from {localeName(baseLocale)}
+                {t("ai.copyFrom", { source: localeName(baseLocale) })}
               </DropdownMenuItem>
             </>
           )}
           {hasImproveAction && (
             <DropdownMenuItem onSelect={handleImprove} disabled={!hasValue}>
-              Improve…
+              {t("ai.improve")}
             </DropdownMenuItem>
           )}
           {hasCopyFromVersionAction && (
@@ -333,8 +335,8 @@ export function MagicWandButton({
                 disabled={!hasBaseValue}
               >
                 {isBaseLocale
-                  ? "Translate to all languages…"
-                  : `Translate from ${localeName(baseLocale)} to all languages…`}
+                  ? t("ai.translateToAll")
+                  : t("ai.translateFromToAll", { source: localeName(baseLocale) })}
               </DropdownMenuItem>
             </>
           )}
@@ -364,12 +366,13 @@ function CopyFromVersionSubMenu({
   versions: CopyFromVersion[];
   onSelect: (versionId: string) => void;
 }) {
+  const t = useTranslations();
   const platforms = [...new Set(versions.map((v) => v.platform))];
   const multiPlatform = platforms.length > 1;
 
   return (
     <DropdownMenuSub>
-      <DropdownMenuSubTrigger>Copy from version</DropdownMenuSubTrigger>
+      <DropdownMenuSubTrigger>{t("ai.copyFromVersion")}</DropdownMenuSubTrigger>
       <DropdownMenuSubContent>
         {multiPlatform
           ? platforms.map((platform) => (

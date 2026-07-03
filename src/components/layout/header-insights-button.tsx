@@ -4,8 +4,10 @@ import { usePathname } from "next/navigation";
 import { MagicWand } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { useInsightsPanel } from "@/lib/insights-panel-context";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 export function HeaderInsightsButton() {
+  const t = useTranslations();
   const pathname = usePathname();
   const { open, toggle } = useInsightsPanel();
 
@@ -19,7 +21,7 @@ export function HeaderInsightsButton() {
       onClick={toggle}
     >
       <MagicWand size={14} className="mr-1.5" />
-      Insights
+      {t("insights.title")}
     </Button>
   );
 }

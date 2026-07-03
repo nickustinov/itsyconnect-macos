@@ -27,6 +27,9 @@ export const CATEGORIES: Record<string, string> = {
   WEATHER: "Weather",
 };
 
+/** Stable category ID list (App Store Connect enum values). */
+export const CATEGORY_IDS = Object.keys(CATEGORIES);
+
 export function categoryName(id: string): string {
   return CATEGORIES[id] ?? id;
 }

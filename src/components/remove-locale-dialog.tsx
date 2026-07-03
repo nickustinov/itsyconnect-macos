@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { localeName } from "@/lib/asc/locale-names";
 import { useSeedSectionLocales } from "@/lib/section-locales-context";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 export interface RemoveLocaleDialogProps {
   open: boolean;
@@ -35,6 +36,7 @@ export function RemoveLocaleDialog({
   appInfoId,
   onRemoved,
 }: RemoveLocaleDialogProps) {
+  const t = useTranslations();
   const [storeListing, setStoreListing] = useState(true);
   const [appDetails, setAppDetails] = useState(true);
   const [removing, setRemoving] = useState(false);
@@ -72,14 +74,14 @@ export function RemoveLocaleDialog({
     }
 
     check().catch(() => {
-      setError("Failed to check locale sections");
+      setError(t("removeLocale.checkFailed"));
       setLoading(false);
     });
-  }, [open, locale, appId, versionId, appInfoId]);
+  }, [open, locale, appId, versionId, appInfoId, t]);
 
   const sectionList = [
-    { key: "storeListing", label: "Store listing", exists: sections.storeListing, checked: storeListing, setChecked: setStoreListing },
-    { key: "appDetails", label: "App details", exists: sections.appDetails, checked: appDetails, setChecked: setAppDetails },
+    { key: "storeListing", label: t("nav.items.storeListing"), exists: sections.storeListing, checked: storeListing, setChecked: setStoreListing },
+    { key: "appDetails", label: t("nav.items.appDetails"), exists: sections.appDetails, checked: appDetails, setChecked: setAppDetails },
   ];
 
   const anyChecked = sectionList.some((s) => s.exists && s.checked);
@@ -116,7 +118,7 @@ export function RemoveLocaleDialog({
       onOpenChange(false);
       onRemoved();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to remove locale");
+      setError(err instanceof Error ? err.message : t("removeLocale.removeFailed"));
     } finally {
       setRemoving(false);
     }
@@ -136,9 +138,9 @@ export function RemoveLocaleDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Remove {localeName(locale)}</DialogTitle>
+          <DialogTitle>{t("removeLocale.title", { locale: localeName(locale) })}</DialogTitle>
           <DialogDescription>
-            Choose which sections to remove this locale from. This cannot be undone.
+            {t("removeLocale.description")}
           </DialogDescription>
         </DialogHeader>
 
@@ -162,7 +164,7 @@ export function RemoveLocaleDialog({
                 />
                 <span className="text-sm font-medium">{s.label}</span>
                 {!s.exists && (
-                  <span className="text-xs text-muted-foreground">No locale</span>
+                  <span className="text-xs text-muted-foreground">{t("removeLocale.noLocale")}</span>
                 )}
               </label>
             ))}
@@ -175,7 +177,7 @@ export function RemoveLocaleDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button
             variant="destructive"
@@ -185,10 +187,10 @@ export function RemoveLocaleDialog({
             {removing ? (
               <>
                 <Spinner className="size-3.5" />
-                Removing…
+                {t("removeLocale.removing")}
               </>
             ) : (
-              "Remove"
+              t("common.remove")
             )}
           </Button>
         </DialogFooter>

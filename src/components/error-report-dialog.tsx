@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { APP_VERSION } from "@/lib/version";
 import { sanitisePath, sanitiseText } from "@/lib/sanitise-error";
+import { useTranslations } from "@/lib/i18n/locale-context";
 import type { AscErrorEntry } from "@/lib/asc/errors";
 import type { SyncError } from "@/lib/api-helpers";
 
@@ -138,6 +139,7 @@ function buildReportText(details: string, title: string): string {
 const SUPPORT_EMAIL = "support@itsyconnect.com";
 
 export function ErrorReportDialog({ data, onClose }: ErrorReportDialogProps) {
+  const t = useTranslations();
   const [copied, setCopied] = useState(false);
 
   if (!data) return null;
@@ -147,12 +149,12 @@ export function ErrorReportDialog({ data, onClose }: ErrorReportDialogProps) {
     : formatSyncDetails(data);
 
   const title = data.kind === "asc"
-    ? `ASC error: ${sanitiseText(data.message).slice(0, 60)}`
-    : `Sync errors (${data.syncErrors.length})`;
+    ? t("errorReport.ascError", { message: sanitiseText(data.message).slice(0, 60) })
+    : t("errorReport.syncErrors", { count: data.syncErrors.length });
 
   const description = data.kind === "asc"
-    ? "App Store Connect returned an error"
-    : `${data.syncErrors.length} error(s) occurred while saving`;
+    ? t("errorReport.ascDescription")
+    : t("errorReport.syncDescription", { count: data.syncErrors.length });
 
   function handleReport() {
     const url = buildGithubUrl(details, title);
@@ -184,23 +186,23 @@ export function ErrorReportDialog({ data, onClose }: ErrorReportDialogProps) {
 
         <p className="text-xs text-muted-foreground">
           <EnvelopeSimple size={13} className="inline-block mr-1 -mt-0.5" />
-          You can also email us at{" "}
+          {t("errorReport.emailHint")}{" "}
           <a href={`mailto:${SUPPORT_EMAIL}`} className="underline">{SUPPORT_EMAIL}</a>
         </p>
 
         <DialogFooter>
           <Button variant="outline" size="sm" onClick={onClose}>
-            Dismiss
+            {t("errorReport.dismiss")}
           </Button>
           <Button variant="outline" size="sm" onClick={handleCopy}>
             {copied
-              ? <><Check size={14} className="mr-1.5" />Copied</>
-              : <><Copy size={14} className="mr-1.5" />Copy</>
+              ? <><Check size={14} className="mr-1.5" />{t("errorReport.copied")}</>
+              : <><Copy size={14} className="mr-1.5" />{t("common.copy")}</>
             }
           </Button>
           <Button size="sm" onClick={handleReport}>
             <GithubLogo size={14} className="mr-1.5" />
-            Report issue
+            {t("errorReport.reportIssue")}
           </Button>
         </DialogFooter>
       </DialogContent>

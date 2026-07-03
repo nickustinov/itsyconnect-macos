@@ -14,13 +14,14 @@ import { AnalyticsRangePicker } from "@/components/analytics-range-picker";
 import { Button } from "@/components/ui/button";
 import { MarkersDialog } from "@/components/markers-dialog";
 import { useAppMarkers } from "@/lib/hooks/use-app-markers";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
-const TABS = [
-  { label: "Overview", segment: "" },
-  { label: "Acquisition", segment: "/acquisition" },
-  { label: "Usage", segment: "/usage" },
-  { label: "Crashes", segment: "/crashes" },
-  { label: "Performance", segment: "/performance" },
+const TAB_KEYS = [
+  { key: "analytics.tabs.overview" as const, segment: "" },
+  { key: "analytics.tabs.acquisition" as const, segment: "/acquisition" },
+  { key: "analytics.tabs.usage" as const, segment: "/usage" },
+  { key: "analytics.tabs.crashes" as const, segment: "/crashes" },
+  { key: "analytics.tabs.performance" as const, segment: "/performance" },
 ];
 
 export default function AnalyticsLayout({
@@ -28,6 +29,7 @@ export default function AnalyticsLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const t = useTranslations();
   const { appId } = useParams<{ appId: string }>();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -42,10 +44,10 @@ export default function AnalyticsLayout({
 
   // Derive current segment so tab links preserve the range param
   const currentSegment =
-    TABS.find((t) =>
-      t.segment === ""
+    TAB_KEYS.find((tab) =>
+      tab.segment === ""
         ? pathname === base
-        : pathname.startsWith(`${base}${t.segment}`),
+        : pathname.startsWith(`${base}${tab.segment}`),
     )?.segment ?? "";
 
   // Crashes = monthly aggregate, Performance = per-version – no range picker for either
@@ -56,7 +58,7 @@ export default function AnalyticsLayout({
       <div className="flex flex-1 flex-col gap-6">
         <div className="flex items-center justify-between border-b">
           <nav className="-mb-px flex">
-            {TABS.map((tab) => {
+            {TAB_KEYS.map((tab) => {
               const href = buildHref(tab.segment);
               const active =
                 tab.segment === ""
@@ -73,7 +75,7 @@ export default function AnalyticsLayout({
                       : "border-transparent text-muted-foreground hover:text-foreground",
                   )}
                 >
-                  {tab.label}
+                  {t(tab.key)}
                 </Link>
               );
             })}
@@ -86,7 +88,7 @@ export default function AnalyticsLayout({
                 onClick={() => setMarkersOpen(true)}
               >
                 <BookmarkSimple className="size-4" />
-                Markers
+                {t("analytics.markers")}
                 {markers.length > 0 && (
                   <span className="ml-1 text-xs text-muted-foreground">
                     {markers.length}

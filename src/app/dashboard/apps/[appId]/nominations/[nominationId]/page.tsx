@@ -34,6 +34,7 @@ import { ErrorState } from "@/components/error-state";
 import { FooterPortal } from "@/lib/footer-portal-context";
 import { normalizeLocale } from "@/lib/asc/locale-names";
 import type { AscNomination, NominationType } from "@/lib/asc/nominations";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 import {
   LIMITS,
@@ -99,6 +100,7 @@ function formatDate(date: Date): string {
 // ── Page ─────────────────────────────────────────────────────────────
 
 export default function NominationDetailPage() {
+  const t = useTranslations();
   const { appId, nominationId } = useParams<{
     appId: string;
     nominationId: string;
@@ -140,7 +142,7 @@ export default function NominationDetailPage() {
 
   // Breadcrumb
   useSetBreadcrumbTitle(
-    isNew ? "New nomination" : (nomination?.attributes.name ?? null),
+    isNew ? t("nominations.form.newTitle") : (nomination?.attributes.name ?? null),
   );
 
   // ── Fetch existing nomination ──────────────────────────────────────
@@ -165,12 +167,12 @@ export default function NominationDetailPage() {
       setDirty(false);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to fetch nomination",
+        err instanceof Error ? err.message : t("nominations.toast.fetchFailed"),
       );
     } finally {
       setLoading(false);
     }
-  }, [isNew, nominationId, setDirty]);
+  }, [isNew, nominationId, setDirty, t]);
 
   useEffect(() => {
     fetchNomination();
@@ -198,18 +200,18 @@ export default function NominationDetailPage() {
 
   useEffect(() => {
     const errors: string[] = [];
-    if (!form.name.trim()) errors.push("Name is required");
+    if (!form.name.trim()) errors.push(t("nominations.validation.nameRequired"));
     if (form.name.length > LIMITS.name)
-      errors.push(`Name (${form.name.length}/${LIMITS.name})`);
-    if (!form.description.trim()) errors.push("Description is required");
+      errors.push(t("nominations.validation.nameLimit", { length: form.name.length, limit: LIMITS.name }));
+    if (!form.description.trim()) errors.push(t("nominations.validation.descriptionRequired"));
     if (form.description.length > LIMITS.description)
-      errors.push(`Description (${form.description.length}/${LIMITS.description})`);
+      errors.push(t("nominations.validation.descriptionLimit", { length: form.description.length, limit: LIMITS.description }));
     if (form.notes.length > LIMITS.notes)
-      errors.push(`Notes (${form.notes.length}/${LIMITS.notes})`);
-    if (!form.publishStartDate) errors.push("Publish date is required");
-    if (form.relatedAppIds.length === 0) errors.push("At least one related app is required");
+      errors.push(t("nominations.validation.notesLimit", { length: form.notes.length, limit: LIMITS.notes }));
+    if (!form.publishStartDate) errors.push(t("nominations.validation.publishDateRequired"));
+    if (form.relatedAppIds.length === 0) errors.push(t("nominations.validation.relatedAppsRequired"));
     setValidationErrors(errors);
-  }, [form, setValidationErrors]);
+  }, [form, setValidationErrors, t]);
 
   // ── Save handler ───────────────────────────────────────────────────
 
@@ -245,11 +247,11 @@ export default function NominationDetailPage() {
 
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          throw new Error(data.error ?? "Failed to create nomination");
+          throw new Error(data.error ?? t("nominations.toast.createFailed"));
         }
 
         const { id: newId } = await res.json();
-        toast.success("Nomination saved as draft");
+        toast.success(t("nominations.toast.savedDraft"));
         setDirty(false);
         router.replace(`/dashboard/apps/${appId}/nominations/${newId}`);
       } else {
@@ -285,10 +287,10 @@ export default function NominationDetailPage() {
 
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          throw new Error(data.error ?? "Failed to update nomination");
+          throw new Error(data.error ?? t("nominations.toast.updateFailed"));
         }
 
-        toast.success("Nomination updated");
+        toast.success(t("nominations.toast.updated"));
         originalRef.current = { ...form };
         setDirty(false);
       }
@@ -301,6 +303,7 @@ export default function NominationDetailPage() {
     nominationId,
     router,
     setDirty,
+    t,
   ]);
 
   // ── Discard handler ────────────────────────────────────────────────
@@ -401,9 +404,9 @@ export default function NominationDetailPage() {
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          throw new Error(data.error ?? "Failed to submit nomination");
+          throw new Error(data.error ?? t("nominations.toast.submitFailed"));
         }
-        toast.success("Nomination submitted");
+        toast.success(t("nominations.toast.submitted"));
         setDirty(false);
         router.push(`/dashboard/apps/${appId}/nominations`);
       } else {
@@ -419,13 +422,13 @@ export default function NominationDetailPage() {
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          throw new Error(data.error ?? "Failed to submit nomination");
+          throw new Error(data.error ?? t("nominations.toast.submitFailed"));
         }
-        toast.success("Nomination submitted");
+        toast.success(t("nominations.toast.submitted"));
         await fetchNomination();
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to submit");
+      toast.error(err instanceof Error ? err.message : t("nominations.toast.submitError"));
     } finally {
       setSubmitting(false);
     }
@@ -484,13 +487,13 @@ export default function NominationDetailPage() {
       {/* Name */}
       <section className="space-y-2">
         <div className="flex items-center justify-between">
-          <h3 className="section-title">Name</h3>
+          <h3 className="section-title">{t("nominations.form.name")}</h3>
           <CharCount value={form.name} limit={LIMITS.name} />
         </div>
         <Input
           value={form.name}
           onChange={(e) => updateField("name", e.target.value)}
-          placeholder="A memorable name to help you recognise this nomination later"
+          placeholder={t("nominations.form.namePlaceholder")}
           className="text-sm"
           disabled={readOnly}
         />
@@ -498,9 +501,9 @@ export default function NominationDetailPage() {
 
       {/* Type */}
       <section className="space-y-2">
-        <h3 className="section-title">Type</h3>
+        <h3 className="section-title">{t("nominations.form.type")}</h3>
         <p className="text-sm text-muted-foreground">
-          The type of nomination you&apos;re submitting.
+          {t("nominations.form.typeHint")}
         </p>
         <Select
           value={form.type}
@@ -511,22 +514,22 @@ export default function NominationDetailPage() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="APP_LAUNCH">App launch</SelectItem>
-            <SelectItem value="APP_ENHANCEMENTS">App enhancements</SelectItem>
-            <SelectItem value="NEW_CONTENT">New content</SelectItem>
+            <SelectItem value="APP_LAUNCH">{t("nominations.types.APP_LAUNCH")}</SelectItem>
+            <SelectItem value="APP_ENHANCEMENTS">{t("nominations.types.APP_ENHANCEMENTS")}</SelectItem>
+            <SelectItem value="NEW_CONTENT">{t("nominations.types.NEW_CONTENT")}</SelectItem>
           </SelectContent>
         </Select>
       </section>
 
       {/* Description */}
       <section className="space-y-2">
-        <h3 className="section-title">Description</h3>
+        <h3 className="section-title">{t("nominations.form.description")}</h3>
         <Card className="gap-0 py-0">
           <CardContent className="px-5 py-4">
             <Textarea
               value={form.description}
               onChange={(e) => updateField("description", e.target.value)}
-              placeholder="A detailed description of your nomination."
+              placeholder={t("nominations.form.descriptionPlaceholder")}
               className="border-0 p-0 shadow-none focus-visible:ring-0 resize-none text-sm min-h-0 dark:bg-transparent"
               disabled={readOnly}
             />
@@ -539,9 +542,9 @@ export default function NominationDetailPage() {
 
       {/* Publish date */}
       <section className="space-y-2">
-        <h3 className="section-title">Publish date</h3>
+        <h3 className="section-title">{t("nominations.form.publishDate")}</h3>
         <p className="text-sm text-muted-foreground">
-          The date or time frame when you expect to publish on the App Store.
+          {t("nominations.form.publishDateHint")}
         </p>
         <Popover>
           <PopoverTrigger asChild>
@@ -553,7 +556,7 @@ export default function NominationDetailPage() {
               <CalendarBlank size={16} className="text-muted-foreground" />
               {form.publishStartDate
                 ? formatDate(form.publishStartDate)
-                : "Pick a date"}
+                : t("nominations.form.pickDate")}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
@@ -578,9 +581,9 @@ export default function NominationDetailPage() {
 
       {/* Related apps */}
       <section className="space-y-2">
-        <h3 className="section-title">Related apps</h3>
+        <h3 className="section-title">{t("nominations.form.relatedApps")}</h3>
         <p className="text-sm text-muted-foreground">
-          Choose all apps related to this nomination.
+          {t("nominations.form.relatedAppsHint")}
         </p>
         <div className="space-y-2">
           {apps.map((app) => (
@@ -601,9 +604,9 @@ export default function NominationDetailPage() {
 
       {/* Platforms */}
       <section className="space-y-2">
-        <h3 className="section-title">Platforms</h3>
+        <h3 className="section-title">{t("nominations.form.platforms")}</h3>
         <p className="text-sm text-muted-foreground">
-          Select all platforms associated with this nomination.
+          {t("nominations.form.platformsHint")}
         </p>
         <div className="flex flex-wrap items-center gap-4">
           {DEVICE_FAMILIES.map((df) => (
@@ -631,7 +634,7 @@ export default function NominationDetailPage() {
 
       {/* In-app events */}
       <section className="space-y-4">
-        <h3 className="section-title">In-app events</h3>
+        <h3 className="section-title">{t("nominations.form.inAppEvents")}</h3>
         <div className="flex items-center gap-3">
           <Switch
             id="has-events"
@@ -640,16 +643,16 @@ export default function NominationDetailPage() {
             disabled={readOnly}
           />
           <Label htmlFor="has-events" className="text-sm">
-            Submit a new in-app event for this nomination
+            {t("nominations.form.inAppEventsHint")}
           </Label>
         </div>
       </section>
 
       {/* Supplemental materials */}
       <section className="space-y-2">
-        <h3 className="section-title">Supplemental materials</h3>
+        <h3 className="section-title">{t("nominations.form.supplementalMaterials")}</h3>
         <p className="text-sm text-muted-foreground">
-          Links to any additional material you&apos;d like to include.
+          {t("nominations.form.supplementalMaterialsHint")}
         </p>
         <div className="space-y-2">
           {form.supplementalMaterialsUris.map((uri, i) => (
@@ -658,7 +661,7 @@ export default function NominationDetailPage() {
                 dir="ltr"
                 value={uri}
                 onChange={(e) => updateSupplementalUri(i, e.target.value)}
-                placeholder="https://..."
+                placeholder={t("common.urlPlaceholder")}
                 className="text-sm"
                 disabled={readOnly}
               />
@@ -682,7 +685,7 @@ export default function NominationDetailPage() {
               onClick={addSupplementalUri}
             >
               <Plus size={14} />
-              Add link
+              {t("nominations.form.addLink")}
             </Button>
           )}
         </div>
@@ -691,7 +694,7 @@ export default function NominationDetailPage() {
       {/* Helpful details (notes) */}
       <section className="space-y-2">
         <div className="flex items-center gap-1">
-          <h3 className="section-title">Helpful details</h3>
+          <h3 className="section-title">{t("nominations.form.helpfulDetails")}</h3>
           {!readOnly && (
             <CopyNotesButton
               appId={appId}
@@ -702,15 +705,14 @@ export default function NominationDetailPage() {
           )}
         </div>
         <p className="text-sm text-muted-foreground">
-          What makes you stand out from the crowd? Tell us about your unique
-          approach or behind-the-scenes story.
+          {t("nominations.form.helpfulDetailsHint")}
         </p>
         <Card className="gap-0 py-0">
           <CardContent className="px-5 py-4">
             <Textarea
               value={form.notes}
               onChange={(e) => updateField("notes", e.target.value)}
-              placeholder="Additional context for Apple's editorial team..."
+              placeholder={t("nominations.form.notesPlaceholder")}
               className="border-0 p-0 shadow-none focus-visible:ring-0 resize-none text-sm min-h-0 dark:bg-transparent"
               disabled={readOnly}
             />
@@ -723,7 +725,7 @@ export default function NominationDetailPage() {
 
       {/* Options */}
       <section className="space-y-4">
-        <h3 className="section-title">Options</h3>
+        <h3 className="section-title">{t("nominations.form.options")}</h3>
         <div className="flex items-center gap-3">
           <Switch
             id="select-markets"
@@ -734,7 +736,7 @@ export default function NominationDetailPage() {
             disabled={readOnly}
           />
           <Label htmlFor="select-markets" className="text-sm">
-            Launch in select markets first
+            {t("nominations.form.launchSelectMarkets")}
           </Label>
         </div>
         <div className="flex items-center gap-3">
@@ -745,7 +747,7 @@ export default function NominationDetailPage() {
             disabled={readOnly}
           />
           <Label htmlFor="pre-order" className="text-sm">
-            Pre-order enabled
+            {t("nominations.form.preOrderEnabled")}
           </Label>
         </div>
       </section>
@@ -755,13 +757,13 @@ export default function NominationDetailPage() {
         <section className="space-y-2 border-t pt-6 pb-8">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Last updated</p>
+              <p className="text-sm text-muted-foreground">{t("nominations.form.lastUpdated")}</p>
               <p className="text-sm font-medium">
                 {formatDate(new Date(nomination.attributes.lastModifiedDate))}
               </p>
             </div>
             <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Nomination ID</p>
+              <p className="text-sm text-muted-foreground">{t("nominations.form.nominationId")}</p>
               <p className="text-sm font-medium font-mono">{nomination.id}</p>
             </div>
           </div>
@@ -781,7 +783,7 @@ export default function NominationDetailPage() {
                 onClick={() => setConfirmSubmitOpen(true)}
               >
                 {submitting && <Spinner className="size-3.5 mr-1.5" />}
-                Submit nomination
+                {t("nominations.form.submitNomination")}
               </Button>
             </div>
           </div>
@@ -810,19 +812,19 @@ export default function NominationDetailPage() {
                     });
                     if (!res.ok) {
                       const data = await res.json().catch(() => ({}));
-                      throw new Error(data.error ?? "Failed to archive nomination");
+                      throw new Error(data.error ?? t("nominations.archiveFailed"));
                     }
-                    toast.success("Nomination archived");
+                    toast.success(t("nominations.archiveSuccess"));
                     await fetchNomination();
                   } catch (err) {
-                    toast.error(err instanceof Error ? err.message : "Failed to archive");
+                    toast.error(err instanceof Error ? err.message : t("nominations.archiveFailed"));
                   } finally {
                     setArchiving(false);
                   }
                 }}
               >
                 {archiving ? <Spinner className="size-3.5 mr-1.5" /> : <Archive size={14} className="mr-1.5" />}
-                Archive
+                {t("nominations.archive")}
               </Button>
             ) : (
               <Button
@@ -842,19 +844,19 @@ export default function NominationDetailPage() {
                     });
                     if (!res.ok) {
                       const data = await res.json().catch(() => ({}));
-                      throw new Error(data.error ?? "Failed to unarchive nomination");
+                      throw new Error(data.error ?? t("nominations.toast.unarchiveFailed"));
                     }
-                    toast.success("Nomination unarchived");
+                    toast.success(t("nominations.unarchiveSuccess"));
                     await fetchNomination();
                   } catch (err) {
-                    toast.error(err instanceof Error ? err.message : "Failed to unarchive");
+                    toast.error(err instanceof Error ? err.message : t("nominations.toast.unarchiveFailed"));
                   } finally {
                     setArchiving(false);
                   }
                 }}
               >
                 {archiving ? <Spinner className="size-3.5 mr-1.5" /> : <ArrowCounterClockwise size={14} className="mr-1.5" />}
-                Unarchive
+                {t("nominations.unarchive")}
               </Button>
             )}
           </div>

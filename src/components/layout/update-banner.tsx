@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react";
 import { ArrowClockwise, X } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 export function UpdateBanner() {
   const [notes, setNotes] = useState<string[]>([]);
   const [ready, setReady] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const t = useTranslations();
 
   useEffect(() => {
     const unsub = window.electron?.updates.onStatus((status) => {
@@ -25,7 +27,7 @@ export function UpdateBanner() {
   return (
     <div className="fixed right-4 bottom-4 z-50 w-80 rounded-lg border bg-popover p-4 shadow-lg">
       <div className="mb-3 flex items-start justify-between gap-2">
-        <h4 className="text-sm font-medium">Update available</h4>
+        <h4 className="text-sm font-medium">{t("banners.updateAvailable")}</h4>
         <button
           onClick={() => setDismissed(true)}
           className="rounded-sm p-0.5 text-muted-foreground hover:text-foreground"
@@ -50,14 +52,14 @@ export function UpdateBanner() {
           onClick={() => window.electron?.updates.installNow()}
         >
           <ArrowClockwise size={14} className="mr-1.5" />
-          Restart to update
+          {t("banners.restartToUpdate")}
         </Button>
         <Button
           variant="outline"
           size="sm"
           onClick={() => setDismissed(true)}
         >
-          Later
+          {t("banners.later")}
         </Button>
       </div>
     </div>

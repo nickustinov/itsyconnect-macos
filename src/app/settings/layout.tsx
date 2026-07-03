@@ -6,13 +6,14 @@ import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
-const TABS = [
-  { label: "General", segment: "" },
-  { label: "Appearance", segment: "/appearance" },
-  { label: "Teams", segment: "/teams" },
-  { label: "AI", segment: "/ai" },
-  { label: "About", segment: "/about" },
+const TAB_SEGMENTS = [
+  { labelKey: "settings.tabs.general" as const, segment: "" },
+  { labelKey: "settings.tabs.appearance" as const, segment: "/appearance" },
+  { labelKey: "settings.tabs.teams" as const, segment: "/teams" },
+  { labelKey: "settings.tabs.ai" as const, segment: "/ai" },
+  { labelKey: "settings.tabs.about" as const, segment: "/about" },
 ];
 
 export default function SettingsLayout({
@@ -22,6 +23,7 @@ export default function SettingsLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const t = useTranslations();
   const base = "/settings";
 
   useEffect(() => {
@@ -40,12 +42,12 @@ export default function SettingsLayout({
             onClick={() => router.push("/dashboard")}
           >
             <ArrowLeft size={16} />
-            Back
+            {t("settings.back")}
           </Button>
         </div>
         <div className="mb-0 flex items-center border-b overflow-x-auto scrollbar-hide">
           <nav className="-mb-px flex">
-            {TABS.map((tab) => {
+            {TAB_SEGMENTS.map((tab) => {
               const href = `${base}${tab.segment}`;
               const active =
                 tab.segment === ""
@@ -62,7 +64,7 @@ export default function SettingsLayout({
                       : "border-transparent text-muted-foreground hover:text-foreground",
                   )}
                 >
-                  {tab.label}
+                  {t(tab.labelKey)}
                 </Link>
               );
             })}

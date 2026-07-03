@@ -1,3 +1,5 @@
+"use client";
+
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -8,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { territoryName } from "./territory-helpers";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 interface ReviewFiltersProps {
   sortBy: string;
@@ -36,6 +39,8 @@ export function ReviewFilters({
   hideResponded,
   onHideRespondedChange,
 }: ReviewFiltersProps) {
+  const t = useTranslations();
+
   return (
     <div className="flex flex-wrap items-center gap-3">
       <Select value={sortBy} onValueChange={onSortChange}>
@@ -43,10 +48,10 @@ export function ReviewFilters({
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="newest">Newest first</SelectItem>
-          <SelectItem value="oldest">Oldest first</SelectItem>
-          <SelectItem value="highest">Highest rated</SelectItem>
-          <SelectItem value="lowest">Lowest rated</SelectItem>
+          <SelectItem value="newest">{t("reviews.filters.newest")}</SelectItem>
+          <SelectItem value="oldest">{t("reviews.filters.oldest")}</SelectItem>
+          <SelectItem value="highest">{t("reviews.filters.highest")}</SelectItem>
+          <SelectItem value="lowest">{t("reviews.filters.lowest")}</SelectItem>
         </SelectContent>
       </Select>
 
@@ -55,11 +60,11 @@ export function ReviewFilters({
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All time</SelectItem>
-          <SelectItem value="7d">Last 7 days</SelectItem>
-          <SelectItem value="30d">Last 30 days</SelectItem>
-          <SelectItem value="90d">Last 90 days</SelectItem>
-          <SelectItem value="year">This year</SelectItem>
+          <SelectItem value="all">{t("reviews.filters.allTime")}</SelectItem>
+          <SelectItem value="7d">{t("reviews.filters.last7Days")}</SelectItem>
+          <SelectItem value="30d">{t("reviews.filters.last30Days")}</SelectItem>
+          <SelectItem value="90d">{t("reviews.filters.last90Days")}</SelectItem>
+          <SelectItem value="year">{t("reviews.filters.thisYear")}</SelectItem>
         </SelectContent>
       </Select>
 
@@ -68,12 +73,12 @@ export function ReviewFilters({
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All ratings</SelectItem>
-          <SelectItem value="5">5 stars</SelectItem>
-          <SelectItem value="4">4 stars</SelectItem>
-          <SelectItem value="3">3 stars</SelectItem>
-          <SelectItem value="2">2 stars</SelectItem>
-          <SelectItem value="1">1 star</SelectItem>
+          <SelectItem value="all">{t("reviews.filters.allRatings")}</SelectItem>
+          <SelectItem value="5">{t("reviews.filters.stars", { count: 5 })}</SelectItem>
+          <SelectItem value="4">{t("reviews.filters.stars", { count: 4 })}</SelectItem>
+          <SelectItem value="3">{t("reviews.filters.stars", { count: 3 })}</SelectItem>
+          <SelectItem value="2">{t("reviews.filters.stars", { count: 2 })}</SelectItem>
+          <SelectItem value="1">{t("reviews.filters.oneStar")}</SelectItem>
         </SelectContent>
       </Select>
 
@@ -82,7 +87,7 @@ export function ReviewFilters({
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All territories</SelectItem>
+          <SelectItem value="all">{t("reviews.filters.allTerritories")}</SelectItem>
           {territories.map((t) => (
             <SelectItem key={t} value={t}>
               {territoryName(t)}
@@ -98,7 +103,7 @@ export function ReviewFilters({
           onCheckedChange={onHideRespondedChange}
         />
         <Label htmlFor="hide-responded" className="text-sm">
-          Hide responded
+          {t("reviews.filters.hideResponded")}
         </Label>
       </div>
     </div>

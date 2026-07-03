@@ -60,6 +60,9 @@ import { useChangeBuffer } from "@/lib/change-buffer-context";
 import { useReviewChanges } from "@/lib/review-changes-context";
 import { useRefresh } from "@/lib/refresh-context";
 import { localeName, sortLocales } from "@/lib/asc/locale-names";
+import { useTranslations } from "@/lib/i18n/locale-context";
+import { useReviewFieldLabel, useReviewSectionLabels } from "@/lib/i18n/use-review-field-labels";
+import { useAscLabels } from "@/lib/i18n/use-asc-labels";
 import {
   getVersionPlatforms,
   getVersionsByPlatform,
@@ -67,7 +70,6 @@ import {
   getPreReleasePlatforms,
   getPreReleasesByPlatform,
   resolvePreReleaseVersion,
-  stateLabel,
   isValidVersionString,
   hasInvalidVersionChars,
   TEXT_EDITABLE_STATES,
@@ -108,6 +110,8 @@ function filterPickerVersions(versions: AscVersion[]): AscVersion[] {
 }
 
 export function HeaderVersionPicker() {
+  const t = useTranslations();
+  const { platformLabel, versionStateLabel } = useAscLabels();
   const { appId } = useParams<{ appId?: string }>();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -214,7 +218,7 @@ export function HeaderVersionPicker() {
       await refresh();
       router.push(`/dashboard/apps/${appId}/store-listing?version=${data.versionId}`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to create version");
+      toast.error(err instanceof Error ? err.message : t("versionPicker.createVersionFailed"));
     } finally {
       setCreating(false);
     }
@@ -232,7 +236,7 @@ export function HeaderVersionPicker() {
       <Popover open={platformPickerOpen} onOpenChange={setPlatformPickerOpen}>
         <PopoverTrigger asChild>
           <Button variant="outline" className="h-8 gap-1.5 px-2.5 text-sm">
-            {PLATFORM_LABELS[currentPlatform] ?? currentPlatform}
+            {platformLabel(currentPlatform)}
             <CaretDown size={12} className="text-muted-foreground" />
           </Button>
         </PopoverTrigger>
@@ -243,7 +247,7 @@ export function HeaderVersionPicker() {
                 {platforms.map((p) => (
                   <CommandItem
                     key={p}
-                    value={PLATFORM_LABELS[p] ?? p}
+                    value={platformLabel(p)}
                     onSelect={() => {
                       handlePlatformChange(p);
                       setPlatformPickerOpen(false);
@@ -253,7 +257,7 @@ export function HeaderVersionPicker() {
                       <Check size={14} className="text-foreground" />
                     )}
                     <span className={p !== currentPlatform ? "pl-[22px]" : ""}>
-                      {PLATFORM_LABELS[p] ?? p}
+                      {platformLabel(p)}
                     </span>
                   </CommandItem>
                 ))}
@@ -269,7 +273,7 @@ export function HeaderVersionPicker() {
                       }}
                     >
                       <Plus size={14} className="text-muted-foreground" />
-                      {"New platform\u2026"}
+                      {t("versionPicker.newPlatform")}
                     </CommandItem>
                   </CommandGroup>
                 </>
@@ -295,7 +299,7 @@ export function HeaderVersionPicker() {
           <PopoverContent className="w-64 p-0" align="start">
             <Command>
               <CommandList>
-                <CommandEmpty>No versions found.</CommandEmpty>
+                <CommandEmpty>{t("versionPicker.noVersionsFound")}</CommandEmpty>
                 <CommandGroup>
                   {isTestFlight
                     ? (platformVersions as ReturnType<typeof getPreReleasesByPlatform>).map((v) => (
@@ -318,7 +322,7 @@ export function HeaderVersionPicker() {
                     : (platformVersions as AscVersion[]).map((v) => (
                         <CommandItem
                           key={v.id}
-                          value={`${v.attributes.versionString} ${stateLabel(v.attributes.appVersionState)}`}
+                          value={`${v.attributes.versionString} ${versionStateLabel(v.attributes.appVersionState)}`}
                           onSelect={() => {
                             navigate(v.id);
                             setPickerOpen(false);
@@ -334,7 +338,7 @@ export function HeaderVersionPicker() {
                             <span
                               className={`size-1.5 shrink-0 rounded-full ${STATE_DOT_COLORS[v.attributes.appVersionState] ?? "bg-muted-foreground"}`}
                             />
-                            {stateLabel(v.attributes.appVersionState)}
+                            {versionStateLabel(v.attributes.appVersionState)}
                           </span>
                         </CommandItem>
                       ))}
@@ -350,7 +354,7 @@ export function HeaderVersionPicker() {
                         }}
                       >
                         <Plus size={14} className="text-muted-foreground" />
-                        {"New version\u2026"}
+                        {t("versionPicker.newVersion")}
                       </CommandItem>
                     </CommandGroup>
                   </>
@@ -378,6 +382,7 @@ export function HeaderVersionPicker() {
 }
 
 export function HeaderVersionActions() {
+  const t = useTranslations();
   const { appId } = useParams<{ appId?: string }>();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -454,7 +459,7 @@ export function HeaderVersionActions() {
       await refresh();
       router.push(`/dashboard/apps/${appId}/store-listing?version=${data.versionId}`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to create version");
+      toast.error(err instanceof Error ? err.message : t("versionPicker.createVersionFailed"));
     } finally {
       setCreating(false);
     }
@@ -469,7 +474,7 @@ export function HeaderVersionActions() {
           onClick={() => guardNavigation(openDialog)}
         >
           <Plus size={14} />
-          New version
+          {t("versionPicker.newVersionButton")}
         </Button>
       )}
       {showSave && isDirty && !isSaving && (
@@ -479,7 +484,7 @@ export function HeaderVersionActions() {
           className="h-8 text-sm"
           onClick={onDiscard}
         >
-          Discard
+          {t("reviewChanges.discard")}
         </Button>
       )}
       {showSave && (!readOnly || isDirty) && (
@@ -490,7 +495,7 @@ export function HeaderVersionActions() {
           onClick={onSave}
         >
           {isSaving && <Spinner className="size-3.5" />}
-          {isSaving ? "Saving\u2026" : pageSegment === "nominations" ? "Save draft" : "Save"}
+          {isSaving ? t("versionPicker.saving") : pageSegment === "nominations" ? t("versionPicker.saveDraft") : t("versionPicker.save")}
           {!isSaving && (
             <kbd className="ml-1 text-[10px] opacity-50 font-sans">&#8984;S</kbd>
           )}
@@ -513,34 +518,17 @@ export function HeaderVersionActions() {
   );
 }
 
-const REVIEW_FIELD_LABELS: Record<string, string> = {
-  description: "Description",
-  keywords: "Keywords",
-  whatsNew: "What's new",
-  promotionalText: "Promotional text",
-  supportUrl: "Support URL",
-  marketingUrl: "Marketing URL",
-  name: "Name",
-  subtitle: "Subtitle",
-  privacyPolicyUrl: "Privacy policy URL",
-  privacyChoicesUrl: "Privacy choices URL",
-  copyright: "Copyright",
-  releaseType: "Release type",
-  scheduledDate: "Scheduled date",
-  phasedRelease: "Phased release",
-  buildId: "Build",
-  notes: "Notes",
-  demoAccountRequired: "Sign-in required",
-  demoAccountName: "Demo username",
-  demoAccountPassword: "Demo password",
-  contactFirstName: "First name",
-  contactLastName: "Last name",
-  contactPhone: "Phone",
-  contactEmail: "Email",
-};
+const REVIEW_MODE_LABELS = {
+  changes: "reviewChanges.modeDiff",
+  before: "reviewChanges.modeCurrent",
+  after: "reviewChanges.modeUpdated",
+} as const;
 
 /** Left-side filters for the review-changes page (renders next to breadcrumb). */
 export function HeaderReviewFilters() {
+  const t = useTranslations();
+  const fieldLabel = useReviewFieldLabel();
+  const sectionLabels = useReviewSectionLabels();
   const { appId } = useParams<{ appId?: string }>();
   const pathname = usePathname();
   const { changes } = useChangeBuffer();
@@ -558,12 +546,6 @@ export function HeaderReviewFilters() {
   if (appChanges.length === 0) return null;
 
   // Collect fields grouped by section
-  const SECTION_LABELS: Record<string, string> = {
-    "store-listing": "Store listing",
-    details: "App details",
-    keywords: "Keywords",
-    review: "App review",
-  };
   const skipKeys = new Set(["locales", "localeIds", "phasedReleaseId", "_reviewDetailId"]);
   const sectionFields: { section: string; fields: string[] }[] = [];
   const sectionOrder = ["store-listing", "details", "keywords", "review"];
@@ -578,7 +560,7 @@ export function HeaderReviewFilters() {
     }
     sectionFields.push({
       section: sec,
-      fields: [...fieldSet].sort((a, b) => (REVIEW_FIELD_LABELS[a] ?? a).localeCompare(REVIEW_FIELD_LABELS[b] ?? b)),
+      fields: [...fieldSet].sort((a, b) => fieldLabel(a).localeCompare(fieldLabel(b))),
     });
   }
 
@@ -603,7 +585,7 @@ export function HeaderReviewFilters() {
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            {v === "changes" ? "Diff" : v === "before" ? "Current" : "Updated"}
+            {t(REVIEW_MODE_LABELS[v])}
           </button>
         ))}
       </div>
@@ -611,7 +593,7 @@ export function HeaderReviewFilters() {
       <Popover open={fieldOpen} onOpenChange={setFieldOpen}>
         <PopoverTrigger asChild>
           <Button variant="outline" className="h-8 gap-1.5 px-2.5 text-sm">
-            {fieldFilter === "all" ? "All fields" : REVIEW_FIELD_LABELS[fieldFilter] ?? fieldFilter}
+            {fieldFilter === "all" ? t("reviewChanges.allFields") : fieldLabel(fieldFilter)}
             <CaretDown size={12} className="text-muted-foreground" />
           </Button>
         </PopoverTrigger>
@@ -621,15 +603,15 @@ export function HeaderReviewFilters() {
               <CommandGroup>
                 <CommandItem value="all" onSelect={() => { setFieldFilter("all"); setFieldOpen(false); }}>
                   <Check size={14} className={fieldFilter === "all" ? "opacity-100" : "opacity-0"} />
-                  All fields
+                  {t("reviewChanges.allFields")}
                 </CommandItem>
               </CommandGroup>
               {sectionFields.map((group) => (
-                <CommandGroup key={group.section} heading={SECTION_LABELS[group.section] ?? group.section}>
+                <CommandGroup key={group.section} heading={sectionLabels[group.section as keyof typeof sectionLabels] ?? group.section}>
                   {group.fields.map((f) => (
                     <CommandItem key={f} value={`${group.section}:${f}`} onSelect={() => { setFieldFilter(f); setFieldOpen(false); }}>
                       <Check size={14} className={fieldFilter === f ? "opacity-100" : "opacity-0"} />
-                      {REVIEW_FIELD_LABELS[f] ?? f}
+                      {fieldLabel(f)}
                     </CommandItem>
                   ))}
                 </CommandGroup>
@@ -641,20 +623,20 @@ export function HeaderReviewFilters() {
       <Popover open={localeOpen} onOpenChange={setLocaleOpen}>
         <PopoverTrigger asChild>
           <Button variant="outline" className="h-8 gap-1.5 px-2.5 text-sm">
-            {localeFilter === "all" ? "All locales" : localeName(localeFilter)}
+            {localeFilter === "all" ? t("reviewChanges.allLocales") : localeName(localeFilter)}
             {localeFilter !== "all" && <span className="text-muted-foreground">{localeFilter}</span>}
             <CaretDown size={12} className="text-muted-foreground" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-64 p-0" align="start">
           <Command>
-            <CommandInput placeholder="Search locales..." />
+            <CommandInput placeholder={t("reviewChanges.searchLocales")} />
             <CommandList>
-              <CommandEmpty>No locale found.</CommandEmpty>
+              <CommandEmpty>{t("reviewChanges.noLocaleFound")}</CommandEmpty>
               <CommandGroup>
                 <CommandItem value="all" onSelect={() => { setLocaleFilter("all"); setLocaleOpen(false); }}>
                   <Check size={14} className={localeFilter === "all" ? "opacity-100" : "opacity-0"} />
-                  All locales
+                  {t("reviewChanges.allLocales")}
                 </CommandItem>
                 {allLocales.map((loc) => (
                   <CommandItem key={loc} value={`${localeName(loc)} ${loc}`} onSelect={() => { setLocaleFilter(loc); setLocaleOpen(false); }}>
@@ -674,6 +656,7 @@ export function HeaderReviewFilters() {
 
 /** Right-side buttons for the review-changes page (renders in actions area). */
 function HeaderReviewChangesActions({ appId }: { appId: string }) {
+  const t = useTranslations();
   const { changes, discardAll, publishAll } = useChangeBuffer();
   const { updateVersion } = useVersions();
   const [publishing, setPublishing] = useState(false);
@@ -688,7 +671,7 @@ function HeaderReviewChangesActions({ appId }: { appId: string }) {
     try {
       const ok = await publishAll(appId);
       if (ok) {
-        toast.success("All changes pushed to App Store Connect");
+        toast.success(t("reviewChanges.pushSuccess"));
         // Apply published data to version cache so UI reflects changes immediately
         for (const change of snapshot) {
           if (change.section === "store-listing" || change.section === "keywords") {
@@ -758,10 +741,10 @@ function HeaderReviewChangesActions({ appId }: { appId: string }) {
           }
         }
       } else {
-        toast.error("Some changes failed to publish – check the remaining items");
+        toast.error(t("reviewChanges.pushPartialFail"));
       }
     } catch {
-      toast.error("Publish failed");
+      toast.error(t("reviewChanges.pushFailed"));
     } finally {
       setPublishing(false);
     }
@@ -772,24 +755,24 @@ function HeaderReviewChangesActions({ appId }: { appId: string }) {
   return (
     <>
       <Button variant="outline" size="sm" className="h-8 text-sm" onClick={() => setConfirmDiscard(true)}>
-        Discard all
+        {t("reviewChanges.discardAll")}
       </Button>
       <Button size="sm" className="h-8 text-sm" onClick={handlePublish} disabled={publishing}>
         {publishing && <Spinner className="size-3.5 mr-1.5" />}
-        Push to App Store Connect
+        {t("reviewChanges.pushToAsc")}
       </Button>
       <AlertDialog open={confirmDiscard} onOpenChange={setConfirmDiscard}>
         <AlertDialogContent size="sm">
           <AlertDialogHeader>
-            <AlertDialogTitle>Discard all changes?</AlertDialogTitle>
+            <AlertDialogTitle>{t("reviewChanges.discardAllTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              This will remove all pending changes. This action cannot be undone.
+              {t("reviewChanges.discardAllDescription")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction variant="destructive" onClick={() => discardAll(appId)}>
-              Discard all
+              {t("reviewChanges.discardAll")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -817,6 +800,8 @@ function CreateVersionDialog({
   creating: boolean;
   onSubmit: () => void;
 }) {
+  const t = useTranslations();
+  const { platformLabel } = useAscLabels();
   const trimmed = versionString.trim();
   const valid = trimmed !== "" && isValidVersionString(trimmed);
 
@@ -824,11 +809,11 @@ function CreateVersionDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>New App Store version</DialogTitle>
+          <DialogTitle>{t("versionPicker.newAppStoreVersion")}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-2">
           <div className="grid gap-2">
-            <Label htmlFor="version-string">Version</Label>
+            <Label htmlFor="version-string">{t("versionPicker.version")}</Label>
             <Input
               id="version-string"
               placeholder="e.g. 1.2.0"
@@ -845,7 +830,7 @@ function CreateVersionDialog({
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="platform-select">Platform</Label>
+            <Label htmlFor="platform-select">{t("versionPicker.platform")}</Label>
             <Select value={platform} onValueChange={onPlatformChange}>
               <SelectTrigger id="platform-select">
                 <SelectValue />
@@ -853,7 +838,7 @@ function CreateVersionDialog({
               <SelectContent>
                 {Object.entries(PLATFORM_LABELS).map(([value, label]) => (
                   <SelectItem key={value} value={value}>
-                    {label}
+                    {platformLabel(value)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -862,7 +847,7 @@ function CreateVersionDialog({
         </div>
         {trimmed !== "" && hasInvalidVersionChars(trimmed) && (
           <p className="text-sm text-destructive">
-            Use digits and dots only (e.g. 1.2.0)
+            {t("versionPicker.versionInvalid")}
           </p>
         )}
         <Button
@@ -870,7 +855,7 @@ function CreateVersionDialog({
           disabled={!valid || !platform || creating}
         >
           {creating && <Spinner className="size-3.5" />}
-          {creating ? "Creating\u2026" : "Create"}
+          {creating ? t("versionPicker.creating") : t("versionPicker.create")}
         </Button>
       </DialogContent>
     </Dialog>

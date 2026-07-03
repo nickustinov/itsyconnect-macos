@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld("electron", {
     node: process.versions.node,
   },
   ready: () => ipcRenderer.send("app-ready"),
+  getSystemLocale: () => ipcRenderer.invoke("get-system-locale") as Promise<string>,
   onNavigate: (cb: (path: string) => void) => {
     const handler = (_: unknown, path: string) => cb(path);
     ipcRenderer.on("navigate", handler);

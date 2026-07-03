@@ -1,14 +1,17 @@
 "use client";
 
 import { CheckCircle, Circle } from "@phosphor-icons/react";
+import { useTranslations } from "@/lib/i18n/locale-context";
 import { LIMITS, type NominationFormData } from "./nomination-constants";
 
 export function NominationChecklist({ form }: { form: NominationFormData }) {
+  const t = useTranslations();
+
   const items = [
-    { label: "Name", ok: form.name.trim().length > 0 && form.name.length <= LIMITS.name },
-    { label: "Description", ok: form.description.trim().length > 0 && form.description.length <= LIMITS.description },
-    { label: "Publish date", ok: !!form.publishStartDate },
-    { label: "Related apps", ok: form.relatedAppIds.length > 0 },
+    { label: t("nominations.form.name"), ok: form.name.trim().length > 0 && form.name.length <= LIMITS.name },
+    { label: t("nominations.form.description"), ok: form.description.trim().length > 0 && form.description.length <= LIMITS.description },
+    { label: t("nominations.form.publishDate"), ok: !!form.publishStartDate },
+    { label: t("nominations.form.relatedApps"), ok: form.relatedAppIds.length > 0 },
   ];
 
   return (

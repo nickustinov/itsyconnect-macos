@@ -8,6 +8,7 @@ import { CreateGroupDialog } from "@/components/create-group-dialog";
 import { CircleNotch, Plus, X } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import type { TFGroup } from "@/lib/asc/testflight";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 export function GroupsSection({
   appId,
@@ -28,6 +29,7 @@ export function GroupsSection({
   onGroupsChanged: () => void;
   linkSuffix: string;
 }) {
+  const t = useTranslations();
   const [removing, setRemoving] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [createGroupOpen, setCreateGroupOpen] = useState(false);
@@ -42,12 +44,12 @@ export function GroupsSection({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? "Failed to add group");
+        throw new Error(data.error ?? t("testflight.addGroupFailed"));
       }
-      toast.success("Build added to group");
+      toast.success(t("testflight.buildAddedToGroup"));
       onGroupAdded(groupId);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to add group");
+      toast.error(err instanceof Error ? err.message : t("testflight.addGroupFailed"));
     } finally {
       setAdding(false);
     }
@@ -63,12 +65,12 @@ export function GroupsSection({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? "Failed to remove group");
+        throw new Error(data.error ?? t("testflight.removeGroupFailed"));
       }
-      toast.success("Build removed from group");
+      toast.success(t("testflight.buildRemovedFromGroup"));
       onGroupRemoved(groupId);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to remove group");
+      toast.error(err instanceof Error ? err.message : t("testflight.removeGroupFailed"));
     } finally {
       setRemoving(null);
     }
@@ -77,12 +79,12 @@ export function GroupsSection({
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="section-title">Groups</h3>
+        <h3 className="section-title">{t("testflight.groups")}</h3>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" disabled={adding}>
               <Plus size={14} className="mr-1.5" />
-              Add to group
+              {t("testflight.addToGroup")}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -97,14 +99,14 @@ export function GroupsSection({
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => setCreateGroupOpen(true)}>
               <Plus size={14} className="text-muted-foreground" />
-              {"Add group\u2026"}
+              {t("testflight.addGroup")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
       {buildGroups.length === 0 ? (
         <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-          No groups assigned to this build.
+          {t("testflight.noGroupsOnBuild")}
         </div>
       ) : (
         <div className="space-y-1">
@@ -122,7 +124,7 @@ export function GroupsSection({
                 </span>
                 <span className="text-sm font-medium">{g.name}</span>
                 <span className="ml-auto text-xs text-muted-foreground">
-                  {g.testerCount} testers
+                  {t("testflight.testersCount", { count: g.testerCount })}
                 </span>
               </Link>
               <Button

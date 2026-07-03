@@ -29,7 +29,9 @@ import { ReviewFilters } from "../apps/[appId]/reviews/_components/review-filter
 import { ReviewCard } from "../apps/[appId]/reviews/_components/review-card";
 import { useReviewActions } from "../apps/[appId]/reviews/_components/use-review-actions";
 import { ReviewActionDialogs } from "../apps/[appId]/reviews/_components/review-action-dialogs";
-import { getVersionPlatforms, PLATFORM_LABELS } from "@/lib/asc/version-types";
+import { getVersionPlatforms } from "@/lib/asc/version-types";
+import { useTranslations } from "@/lib/i18n/locale-context";
+import { useAscLabels } from "@/lib/i18n/use-asc-labels";
 
 /** A review tagged with the app and platform it belongs to (all merged into one feed). */
 type CenterReview = Review & {
@@ -58,6 +60,8 @@ function sortReviews(list: CenterReview[], sortBy: string): CenterReview[] {
 }
 
 export default function ReviewCenterPage() {
+  const t = useTranslations();
+  const { platformLabel } = useAscLabels();
   const { apps, loading: appsLoading } = useApps();
   const { configured: aiConfigured } = useAIStatus();
   const { guidance: reviewGuidance, setGuidance: setReviewGuidance, saveGuidance: saveReviewGuidance } = useAiGuidance("reviews");
@@ -254,7 +258,7 @@ export default function ReviewCenterPage() {
   }
 
   if (apps.length === 0) {
-    return <EmptyState icon={AppWindow} title="No apps yet" />;
+    return <EmptyState icon={AppWindow} title={t("reviewCenter.noApps")} />;
   }
 
   return (
@@ -265,7 +269,7 @@ export default function ReviewCenterPage() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All apps</SelectItem>
+            <SelectItem value="all">{t("reviewCenter.allApps")}</SelectItem>
             {apps.map((a) => (
               <SelectItem key={a.id} value={a.id}>
                 {a.name}
@@ -280,10 +284,10 @@ export default function ReviewCenterPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All platforms</SelectItem>
+              <SelectItem value="all">{t("reviewCenter.allPlatforms")}</SelectItem>
               {availablePlatforms.map((p) => (
                 <SelectItem key={p} value={p}>
-                  {PLATFORM_LABELS[p] ?? p}
+                  {platformLabel(p)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -312,14 +316,14 @@ export default function ReviewCenterPage() {
             onClick={() => markSeen(reviews.map((r) => r.id))}
           >
             <Check size={14} className="mr-1.5" />
-            Mark all as seen
+            {t("reviewCenter.markAllSeen")}
           </Button>
         )}
       </div>
 
       {filtered.length === 0 ? (
         <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-          No unseen reviews – you&apos;re all caught up.
+          {t("reviewCenter.emptyCaughtUp")}
         </div>
       ) : (
         <PaginatedList
@@ -340,7 +344,7 @@ export default function ReviewCenterPage() {
                     key={review.id}
                     review={review}
                     app={{ name: review.appName, iconUrl: review.iconUrl }}
-                    platform={review.platform ? PLATFORM_LABELS[review.platform] ?? review.platform : undefined}
+                    platform={review.platform ? platformLabel(review.platform) : undefined}
                     foreign={foreign}
                     translated={translated || false}
                     isTranslating={!!actions.translating[review.id]}

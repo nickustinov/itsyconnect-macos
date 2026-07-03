@@ -39,20 +39,9 @@ import type {
   NominationType,
   NominationState,
 } from "@/lib/asc/nominations";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 // ── Helpers ──────────────────────────────────────────────────────────
-
-const TYPE_LABELS: Record<NominationType, string> = {
-  APP_LAUNCH: "App launch",
-  APP_ENHANCEMENTS: "App enhancements",
-  NEW_CONTENT: "New content",
-};
-
-const STATE_LABELS: Record<NominationState, string> = {
-  DRAFT: "Draft",
-  SUBMITTED: "Submitted",
-  ARCHIVED: "Archived",
-};
 
 const STATE_COLOURS: Record<NominationState, string> = {
   DRAFT: "bg-yellow-500",
@@ -71,8 +60,21 @@ function formatDate(iso: string): string {
 // ── Page ─────────────────────────────────────────────────────────────
 
 export default function NominationsPage() {
+  const t = useTranslations();
   const { appId } = useParams<{ appId: string }>();
   const router = useRouter();
+
+  const TYPE_LABELS: Record<NominationType, string> = {
+    APP_LAUNCH: t("nominations.types.APP_LAUNCH"),
+    APP_ENHANCEMENTS: t("nominations.types.APP_ENHANCEMENTS"),
+    NEW_CONTENT: t("nominations.types.NEW_CONTENT"),
+  };
+
+  const STATE_LABELS: Record<NominationState, string> = {
+    DRAFT: t("nominations.states.DRAFT"),
+    SUBMITTED: t("nominations.states.SUBMITTED"),
+    ARCHIVED: t("nominations.states.ARCHIVED"),
+  };
 
   // Data
   const [nominations, setNominations] = useState<AscNomination[]>([]);
@@ -108,13 +110,13 @@ export default function NominationsPage() {
         setNominations(data.nominations);
       } catch (err) {
         setError(
-          err instanceof Error ? err.message : "Failed to fetch nominations",
+          err instanceof Error ? err.message : t("nominations.fetchFailed"),
         );
       } finally {
         setLoading(false);
       }
     },
-    [],
+    [t],
   );
 
   useEffect(() => {
@@ -152,13 +154,13 @@ export default function NominationsPage() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? "Failed to delete nomination");
+        throw new Error(data.error ?? t("nominations.deleteFailed"));
       }
-      toast.success("Nomination deleted");
+      toast.success(t("nominations.deleteSuccess"));
       setDeleteTarget(null);
       await fetchNominations(true);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete");
+      toast.error(err instanceof Error ? err.message : t("nominations.deleteFailed"));
     } finally {
       setDeleting(false);
     }
@@ -179,12 +181,12 @@ export default function NominationsPage() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? `Failed to ${archive ? "archive" : "unarchive"}`);
+        throw new Error(data.error ?? (archive ? t("nominations.archiveFailed") : t("nominations.toast.unarchiveFailed")));
       }
-      toast.success(archive ? "Nomination archived" : "Nomination unarchived");
+      toast.success(archive ? t("nominations.archiveSuccess") : t("nominations.unarchiveSuccess"));
       await fetchNominations(true);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to update");
+      toast.error(err instanceof Error ? err.message : (archive ? t("nominations.archiveFailed") : t("nominations.toast.unarchiveFailed")));
     } finally {
       setArchivingId(null);
     }
@@ -208,10 +210,10 @@ export default function NominationsPage() {
     return (
       <EmptyState
         icon={Trophy}
-        title="No nominations"
+        title={t("nominations.emptyTitle")}
         description={
           <>
-            Nominate your app for featuring on the App Store to reach more users.
+            {t("nominations.emptyDescriptionLong")}
             <br /><br />
             <Button
               size="sm"
@@ -220,7 +222,7 @@ export default function NominationsPage() {
               }
             >
               <Plus size={14} className="mr-1.5" />
-              New nomination
+              {t("nominations.newNomination")}
             </Button>
           </>
         }
@@ -238,10 +240,10 @@ export default function NominationsPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All states</SelectItem>
-              <SelectItem value="DRAFT">Draft</SelectItem>
-              <SelectItem value="SUBMITTED">Submitted</SelectItem>
-              <SelectItem value="ARCHIVED">Archived</SelectItem>
+              <SelectItem value="all">{t("nominations.filterAllStates")}</SelectItem>
+              <SelectItem value="DRAFT">{t("nominations.filterDraft")}</SelectItem>
+              <SelectItem value="SUBMITTED">{t("nominations.filterSubmitted")}</SelectItem>
+              <SelectItem value="ARCHIVED">{t("nominations.filterArchived")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -252,14 +254,14 @@ export default function NominationsPage() {
           }
         >
           <Plus size={14} className="mr-1.5" />
-          New nomination
+          {t("nominations.newNomination")}
         </Button>
       </div>
 
       {/* List */}
       {filtered.length === 0 ? (
         <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-          No nominations match the current filter.
+          {t("nominations.emptyNoMatch")}
         </div>
       ) : (
         <div className="space-y-3">
@@ -297,13 +299,13 @@ export default function NominationsPage() {
                     </p>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span>
-                        Publish: {formatDate(nom.attributes.publishStartDate)}
+                        {t("nominations.publish")} {formatDate(nom.attributes.publishStartDate)}
                         {nom.attributes.publishEndDate &&
                           ` – ${formatDate(nom.attributes.publishEndDate)}`}
                       </span>
                       {nom.attributes.submittedDate && (
                         <span>
-                          Submitted: {formatDate(nom.attributes.submittedDate)}
+                          {t("nominations.submitted")} {formatDate(nom.attributes.submittedDate)}
                         </span>
                       )}
                     </div>
@@ -321,7 +323,7 @@ export default function NominationsPage() {
                         }}
                       >
                         {archivingId === nom.id ? <CircleNotch size={14} className="animate-spin" /> : <Archive size={14} />}
-                        Archive
+                        {t("nominations.archive")}
                       </Button>
                     )}
                     {nom.attributes.state === "ARCHIVED" && (
@@ -336,7 +338,7 @@ export default function NominationsPage() {
                         }}
                       >
                         {archivingId === nom.id ? <CircleNotch size={14} className="animate-spin" /> : <ArrowCounterClockwise size={14} />}
-                        Unarchive
+                        {t("nominations.unarchive")}
                       </Button>
                     )}
                     {nom.attributes.state === "DRAFT" && (
@@ -367,14 +369,15 @@ export default function NominationsPage() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete nomination</AlertDialogTitle>
+            <AlertDialogTitle>{t("nominations.deleteTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete &ldquo;{deleteTarget?.attributes.name}
-              &rdquo;? This cannot be undone.
+              {t("nominations.deleteConfirmDescription", {
+                name: deleteTarget?.attributes.name ?? "",
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting}>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={deleting}
@@ -383,7 +386,7 @@ export default function NominationsPage() {
               {deleting && (
                 <CircleNotch size={14} className="mr-1.5 animate-spin" />
               )}
-              Delete
+              {t("testflight.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

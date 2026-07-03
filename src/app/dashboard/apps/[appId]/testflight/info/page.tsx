@@ -33,6 +33,7 @@ import type {
   TFBetaLicenseAgreement,
 } from "@/lib/asc/testflight";
 import { useTabNavigation } from "@/lib/hooks/use-tab-navigation";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 interface BetaLocaleFields {
   description: string;
@@ -76,6 +77,7 @@ function buildLocaleIds(
 }
 
 export default function TestFlightInfoPage() {
+  const t = useTranslations();
   const tabRef = useTabNavigation();
   const { appId } = useParams<{ appId: string }>();
   const searchParams = useSearchParams();
@@ -122,7 +124,7 @@ export default function TestFlightInfoPage() {
   };
 
   const bulkFields: BulkField[] = [
-    { key: "description", label: "Description", charLimit: 4000 },
+    { key: "description", label: t("storeListing.fields.description"), charLimit: 4000 },
   ];
 
   const [bulkMode, setBulkMode] = useState<"translate" | "copy" | null>(null);
@@ -150,7 +152,7 @@ export default function TestFlightInfoPage() {
       const res = await fetch(`/api/apps/${appId}/testflight/info${qs}`);
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? `Failed to fetch info (${res.status})`);
+        throw new Error(data.error ?? t("testflight.fetchInfoFailed"));
       }
       const data = await res.json();
       const fetchedInfo: TFBetaAppInfo = data.info;
@@ -190,11 +192,11 @@ export default function TestFlightInfoPage() {
 
       setDirty(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch info");
+      setError(err instanceof Error ? err.message : t("testflight.fetchInfoFailed"));
     } finally {
       setLoading(false);
     }
-  }, [appId, primaryLocale, setDirty, setLocales, setSelectedLocale]);
+  }, [appId, primaryLocale, setDirty, setLocales, setSelectedLocale, t]);
 
   useEffect(() => {
     fetchData();
@@ -271,7 +273,7 @@ export default function TestFlightInfoPage() {
           }),
         }).then(async (res) => {
           const data = await res.json();
-          if (!res.ok && !data.errors) throw new Error(data.error ?? "Save failed");
+          if (!res.ok && !data.errors) throw new Error(data.error ?? t("common.saveFailed"));
           if (data.errors?.length > 0) {
             syncErrors.push(...(data.errors as SyncError[]));
           }
@@ -302,7 +304,7 @@ export default function TestFlightInfoPage() {
             if (!res.ok) {
               const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
               throw new ApiError(
-                (data.error as string) ?? "Failed to save review details",
+                (data.error as string) ?? t("testflight.saveReviewFailed"),
                 {
                   ascErrors: data.ascErrors as AscErrorEntry[] | undefined,
                   ascMethod: data.ascMethod as string | undefined,
@@ -328,7 +330,7 @@ export default function TestFlightInfoPage() {
             if (!res.ok) {
               const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
               throw new ApiError(
-                (data.error as string) ?? "Failed to save license agreement",
+                (data.error as string) ?? t("testflight.saveLicenseFailed"),
                 {
                   ascErrors: data.ascErrors as AscErrorEntry[] | undefined,
                   ascMethod: data.ascMethod as string | undefined,
@@ -351,7 +353,7 @@ export default function TestFlightInfoPage() {
             ascPath: err.ascPath,
           });
         } else {
-          toast.error(err instanceof Error ? err.message : "Save failed");
+          toast.error(err instanceof Error ? err.message : t("common.saveFailed"));
         }
         return;
       }
@@ -361,7 +363,7 @@ export default function TestFlightInfoPage() {
         return;
       }
 
-      toast.success("Beta app info saved");
+      toast.success(t("testflight.toastBetaSaved"));
 
       // Update original snapshot with real IDs from created locales
       const ids: Record<string, string> = { ...originalLocaleIdsRef.current };
@@ -378,7 +380,7 @@ export default function TestFlightInfoPage() {
 
       setDirty(false);
     });
-  }, [appId, localeData, review, licenseAgreement, licenseText, registerSave, setDirty, showAscError, showSyncErrors]);
+  }, [appId, localeData, review, licenseAgreement, licenseText, registerSave, setDirty, showAscError, showSyncErrors, t]);
 
   // Register discard handler for the header Discard button
   useEffect(() => {
@@ -418,12 +420,12 @@ export default function TestFlightInfoPage() {
     <div ref={tabRef} className="space-y-8">
       {/* Beta app information */}
       <section className="space-y-4">
-        <h3 className="section-title">Beta app information</h3>
+        <h3 className="section-title">{t("testflight.betaAppInfo")}</h3>
 
         {/* Description */}
         <div className="space-y-2">
           <div className="flex items-center gap-1">
-            <label className="text-sm text-muted-foreground">Description{localeTag}</label>
+            <label className="text-sm text-muted-foreground">{t("storeListing.fields.description")}{localeTag}</label>
             <MagicWandButton
               value={current.description}
               onChange={(v) => updateField("description", v)}
@@ -437,7 +439,7 @@ export default function TestFlightInfoPage() {
               <Textarea
                 value={current.description}
                 onChange={(e) => updateField("description", e.target.value)}
-                placeholder="Describe what testers should try..."
+                placeholder={t("testflight.describePlaceholder")}
                 className="border-0 p-0 shadow-none focus-visible:ring-0 resize-none text-sm min-h-0 dark:bg-transparent"
               />
             </CardContent>
@@ -450,7 +452,7 @@ export default function TestFlightInfoPage() {
         {/* URLs */}
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">Feedback email{localeTag}</label>
+            <label className="text-sm text-muted-foreground">{t("testflight.feedbackEmail")}{localeTag}</label>
             <Input
               value={current.feedbackEmail}
               onChange={(e) => updateField("feedbackEmail", e.target.value)}
@@ -459,7 +461,7 @@ export default function TestFlightInfoPage() {
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">Marketing URL{localeTag}</label>
+            <label className="text-sm text-muted-foreground">{t("storeListing.fields.marketingUrl")}{localeTag}</label>
             <Input
               dir="ltr"
               value={current.marketingUrl}
@@ -469,7 +471,7 @@ export default function TestFlightInfoPage() {
             />
           </div>
           <div className="space-y-2 sm:col-span-2">
-            <label className="text-sm text-muted-foreground">Privacy policy URL{localeTag}</label>
+            <label className="text-sm text-muted-foreground">{t("appDetails.privacyPolicyUrl")}{localeTag}</label>
             <Input
               dir="ltr"
               value={current.privacyPolicyUrl}
@@ -506,12 +508,12 @@ export default function TestFlightInfoPage() {
 
       {/* Beta app review information */}
       <section className="space-y-4">
-        <h3 className="section-title">Beta app review information</h3>
+        <h3 className="section-title">{t("testflight.betaAppReviewInfo")}</h3>
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Contact fields */}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <label className="text-sm text-muted-foreground">First name</label>
+              <label className="text-sm text-muted-foreground">{t("appReview.firstName")}</label>
               <Input
                 value={review?.contactFirstName ?? ""}
                 onChange={(e) => updateReviewField("contactFirstName", e.target.value)}
@@ -519,7 +521,7 @@ export default function TestFlightInfoPage() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm text-muted-foreground">Last name</label>
+              <label className="text-sm text-muted-foreground">{t("appReview.lastName")}</label>
               <Input
                 value={review?.contactLastName ?? ""}
                 onChange={(e) => updateReviewField("contactLastName", e.target.value)}
@@ -527,7 +529,7 @@ export default function TestFlightInfoPage() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm text-muted-foreground">Phone</label>
+              <label className="text-sm text-muted-foreground">{t("appReview.phone")}</label>
               <Input
                 value={review?.contactPhone ?? ""}
                 onChange={(e) => updateReviewField("contactPhone", e.target.value)}
@@ -535,7 +537,7 @@ export default function TestFlightInfoPage() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm text-muted-foreground">Email</label>
+              <label className="text-sm text-muted-foreground">{t("appReview.email")}</label>
               <Input
                 value={review?.contactEmail ?? ""}
                 onChange={(e) => updateReviewField("contactEmail", e.target.value)}
@@ -547,13 +549,13 @@ export default function TestFlightInfoPage() {
 
           {/* Review notes */}
           <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">Review notes</label>
+            <label className="text-sm text-muted-foreground">{t("testflight.reviewNotes")}</label>
             <Card className="gap-0 py-0">
               <CardContent className="px-5 py-4">
                 <Textarea
                   value={review?.notes ?? ""}
                   onChange={(e) => updateReviewField("notes", e.target.value)}
-                  placeholder="Notes for the App Review team..."
+                  placeholder={t("testflight.reviewNotesPlaceholder")}
                   className="border-0 p-0 shadow-none focus-visible:ring-0 resize-none text-sm min-h-0 dark:bg-transparent"
                 />
               </CardContent>
@@ -573,27 +575,27 @@ export default function TestFlightInfoPage() {
               onCheckedChange={(v) => updateReviewField("demoAccountRequired", v)}
             />
             <Label htmlFor="sign-in-required" className="text-sm">
-              Sign-in required
+              {t("appReview.signInRequired")}
             </Label>
           </div>
           {review?.demoAccountRequired && (
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <label className="text-sm text-muted-foreground">Demo username</label>
+                <label className="text-sm text-muted-foreground">{t("testflight.demoUsername")}</label>
                 <Input
                   value={review.demoAccountName ?? ""}
                   onChange={(e) => updateReviewField("demoAccountName", e.target.value)}
-                  placeholder="demo@example.com"
+                  placeholder={t("appReview.usernamePlaceholder")}
                   className="text-sm"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm text-muted-foreground">Demo password</label>
+                <label className="text-sm text-muted-foreground">{t("testflight.demoPassword")}</label>
                 <Input
                   value={review.demoAccountPassword ?? ""}
                   onChange={(e) => updateReviewField("demoAccountPassword", e.target.value)}
                   type="password"
-                  placeholder="Password"
+                  placeholder={t("appReview.password")}
                   className="text-sm"
                 />
               </div>
@@ -604,13 +606,13 @@ export default function TestFlightInfoPage() {
 
       {/* License agreement */}
       <section className="space-y-2 pb-8">
-        <h3 className="section-title">License agreement</h3>
+        <h3 className="section-title">{t("testflight.licenseAgreement")}</h3>
         <Card className="gap-0 py-0">
           <CardContent className="px-5 py-4">
             <Textarea
               value={licenseText}
               onChange={(e) => updateLicenseText(e.target.value)}
-              placeholder="Enter your license agreement text..."
+              placeholder={t("testflight.licensePlaceholder")}
               className="border-0 p-0 shadow-none focus-visible:ring-0 resize-none text-sm min-h-0 dark:bg-transparent"
             />
           </CardContent>

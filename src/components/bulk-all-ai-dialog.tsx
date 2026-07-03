@@ -22,6 +22,7 @@ import { GuidanceField } from "@/components/guidance-field";
 import { useBulkAI, resultKey } from "@/lib/hooks/use-bulk-ai";
 import type { BulkField } from "@/lib/hooks/use-bulk-ai";
 import { useAiGuidance } from "@/lib/hooks/use-ai-guidance";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 interface BulkAllAIDialogProps {
   open: boolean;
@@ -85,6 +86,7 @@ export function BulkAllAIDialog({
   appName,
   onApply,
 }: BulkAllAIDialogProps) {
+  const t = useTranslations();
   const targetLocales = locales.filter((l) => l !== primaryLocale);
   const singleField = fields.length === 1;
 
@@ -202,8 +204,8 @@ export function BulkAllAIDialog({
   const baseLabel = localeName(primaryLocale);
   const title =
     mode === "translate"
-      ? `Translate from ${baseLabel} to all languages`
-      : `Copy from ${baseLabel} to all languages`;
+      ? t("bulkAi.translateFromToAll", { source: baseLabel })
+      : t("bulkAi.copyFromToAll", { source: baseLabel });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -214,9 +216,9 @@ export function BulkAllAIDialog({
 
         {authError && (
           <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 mb-3 text-sm text-destructive">
-            Your API key is invalid or revoked.{" "}
+            {t("bulkAi.authError")}{" "}
             <a href="/settings/ai" className="underline font-medium">
-              Update it in AI settings
+              {t("bulkAi.updateAiSettings")}
             </a>.
           </div>
         )}
@@ -228,7 +230,7 @@ export function BulkAllAIDialog({
                 {!singleField && (
                   <div className="space-y-0.5">
                     <p className="px-2 pb-1 text-xs font-medium text-muted-foreground">
-                      Fields
+                      {t("bulkAi.fields")}
                     </p>
                     {fields.map((field) => (
                       <label
@@ -242,7 +244,7 @@ export function BulkAllAIDialog({
                         <span className="text-sm">{field.label}</span>
                         {field.key === "keywords" && (
                           <span className="text-xs text-muted-foreground">
-                            – overwrites per-language keywords
+                            {t("bulkAi.keywordsOverwrite")}
                           </span>
                         )}
                       </label>
@@ -252,7 +254,7 @@ export function BulkAllAIDialog({
                 <div className="space-y-0.5">
                   {!singleField && (
                     <p className="px-2 pb-1 text-xs font-medium text-muted-foreground">
-                      Languages
+                      {t("bulkAi.languages")}
                     </p>
                   )}
                   {targetLocales.map((loc) => (
@@ -284,14 +286,14 @@ export function BulkAllAIDialog({
             <div className="flex shrink-0 items-center justify-between pt-4">
               <label className="flex items-center gap-2 cursor-pointer">
                 <Checkbox checked={configAllChecked} onCheckedChange={toggleAll} />
-                <span className="text-sm text-muted-foreground">Select all</span>
+                <span className="text-sm text-muted-foreground">{t("keywords.selectAll")}</span>
               </label>
               <div className="flex items-center gap-2">
                 <Button variant="outline" onClick={() => onOpenChange(false)}>
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
                 <Button disabled={configCheckedCount === 0 || configFieldCount === 0} onClick={handleStart}>
-                  {mode === "translate" ? "Translate" : "Copy"}
+                  {mode === "translate" ? t("bulkAi.translate") : t("bulkAi.copy")}
                 </Button>
               </div>
             </div>
@@ -330,7 +332,7 @@ export function BulkAllAIDialog({
                         {fr?.status === "done" && fr.overLimit && (
                           <span className="inline-flex items-center gap-1 text-xs text-destructive">
                             <Warning size={12} />
-                            Too long
+                            {t("bulkAi.tooLong")}
                           </span>
                         )}
                         {mode === "translate" && (
@@ -338,7 +340,7 @@ export function BulkAllAIDialog({
                             type="button"
                             onClick={() => retryLocale(loc)}
                             disabled={isLoading}
-                            title="Re-translate this language"
+                            title={t("bulkAi.retranslateLocale")}
                             className="inline-flex items-center justify-center rounded p-1 text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <ArrowClockwise size={12} />
@@ -352,13 +354,13 @@ export function BulkAllAIDialog({
                       </div>
                     ) : isError ? (
                       <div className="ml-8 flex h-8 items-center justify-center rounded border border-destructive/30 bg-muted/40 text-xs text-destructive">
-                        Failed
+                        {t("keywords.failed")}
                       </div>
                     ) : fr?.status === "done" ? (
                       <div className="ml-8">
                         <div className="max-h-24 overflow-y-auto rounded border bg-muted/40 px-2 py-1.5 text-xs whitespace-pre-wrap">
                           {after || (
-                            <span className="italic text-muted-foreground">Empty</span>
+                            <span className="italic text-muted-foreground">{t("reviewChanges.empty")}</span>
                           )}
                         </div>
                         {after && <CharCount value={after} limit={runFields[0].charLimit} />}
@@ -407,7 +409,7 @@ export function BulkAllAIDialog({
                             retryLocale(loc);
                           }}
                           disabled={status === "loading"}
-                          title="Re-translate this language"
+                          title={t("bulkAi.retranslateLocale")}
                           className="inline-flex items-center justify-center rounded p-1 text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <ArrowClockwise size={12} />
@@ -435,12 +437,12 @@ export function BulkAllAIDialog({
                                 />
                               )}
                               {isError && (
-                                <span className="text-xs text-destructive">Failed</span>
+                                <span className="text-xs text-destructive">{t("keywords.failed")}</span>
                               )}
                               {fr?.status === "done" && fr.overLimit && (
                                 <span className="inline-flex items-center gap-1 text-xs text-destructive">
                                   <Warning size={10} />
-                                  Too long
+                                  {t("bulkAi.tooLong")}
                                 </span>
                               )}
                               {mode === "translate" && (
@@ -448,7 +450,7 @@ export function BulkAllAIDialog({
                                   type="button"
                                   onClick={() => retryField(loc, field.key)}
                                   disabled={isLoading}
-                                  title="Re-translate this field"
+                                  title={t("bulkAi.retranslateField")}
                                   className="ml-auto inline-flex items-center justify-center rounded p-1 text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                   <ArrowClockwise size={10} />
@@ -464,13 +466,13 @@ export function BulkAllAIDialog({
                               </div>
                             ) : isError ? (
                               <div className="flex h-8 items-center justify-center rounded border border-destructive/30 bg-muted/40 text-xs text-destructive">
-                                Failed
+                                {t("keywords.failed")}
                               </div>
                             ) : (
                               <div>
                                 <div className="max-h-24 overflow-y-auto rounded border bg-muted/40 px-2 py-1.5 text-xs whitespace-pre-wrap">
                                   {after || (
-                                    <span className="italic text-muted-foreground">Empty</span>
+                                    <span className="italic text-muted-foreground">{t("reviewChanges.empty")}</span>
                                   )}
                                 </div>
                                 {after && <CharCount value={after} limit={field.charLimit} />}
@@ -489,16 +491,18 @@ export function BulkAllAIDialog({
 
         <div className="flex shrink-0 items-center justify-between pt-4">
           <span className="text-sm text-muted-foreground">
-            {runCheckedCount} of {runLocales.length} selected
+            {t("bulkAi.selectedOf", { selected: runCheckedCount, total: runLocales.length })}
           </span>
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button disabled={!anyApplicable} onClick={handleApply}>
               {allFinished || mode === "copy"
-                ? `Apply ${runCheckedCount} language${runCheckedCount !== 1 ? "s" : ""}`
-                : "Translating\u2026"}
+                ? runCheckedCount === 1
+                  ? t("bulkAi.applyLanguages", { count: runCheckedCount })
+                  : t("bulkAi.applyLanguagesPlural", { count: runCheckedCount })
+                : t("bulkAi.translating")}
             </Button>
           </div>
         </div>

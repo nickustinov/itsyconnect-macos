@@ -22,8 +22,10 @@ import { analyzeStorefront } from "../_components/keyword-analysis";
 import { OverviewCard } from "../_components/overview-card";
 import { LocaleCard } from "../_components/locale-card";
 import { StorefrontPicker } from "../_components/storefront-picker";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 export default function KeywordsStorefrontPage() {
+  const t = useTranslations();
   const {
     app, editedLocalizations, infoLocalizations, readOnly, loading, noVersions,
     handleKeywordsChange, getTitle, getSubtitle, getDescription,
@@ -57,8 +59,8 @@ export default function KeywordsStorefrontPage() {
   if (noVersions) {
     return (
       <EmptyState
-        title="No versions"
-        description="Create a version to start analysing keywords."
+        title={t("storeListing.noVersions")}
+        description={t("keywords.noVersionsDescription")}
       />
     );
   }
@@ -84,15 +86,19 @@ export default function KeywordsStorefrontPage() {
             handleKeywordsChange(locale, kw);
           }
         }}
-        header={<p className="text-sm font-medium">{sfInfo?.name} App Store</p>}
+        header={<p className="text-sm font-medium">{t("keywords.storefrontAppStore", { name: sfInfo?.name ?? "" })}</p>}
       >
         <p className="text-sm text-muted-foreground">
-          Indexes keywords from{" "}
-          {sfAnalysis.indexedLocales.length} locale{sfAnalysis.indexedLocales.length > 1 ? "s" : ""}.
+          {sfAnalysis.indexedLocales.length === 1
+            ? t("keywords.indexesFromLocales", { count: sfAnalysis.indexedLocales.length })
+            : t("keywords.indexesFromLocalesPlural", { count: sfAnalysis.indexedLocales.length })}
           {sfAnalysis.missingLocales.length > 0 && (
             <>
-              {" "}You have {sfAnalysis.activeLocales.length} of{" "}
-              {sfAnalysis.indexedLocales.length} localized.
+              {" "}
+              {t("keywords.localizedCount", {
+                active: sfAnalysis.activeLocales.length,
+                total: sfAnalysis.indexedLocales.length,
+              })}
             </>
           )}
         </p>
@@ -101,7 +107,7 @@ export default function KeywordsStorefrontPage() {
       {/* Locale cards */}
       {sfAnalysis.localeData.length > 0 && (
         <section className="space-y-3">
-          <h3 className="section-title">Indexed locales</h3>
+          <h3 className="section-title">{t("keywords.indexedLocales")}</h3>
           {sfAnalysis.localeData.map((ld) => (
             <LocaleCard
               key={ld.locale}
@@ -123,15 +129,13 @@ export default function KeywordsStorefrontPage() {
       {sfAnalysis.missingLocales.length > 0 && (
         <section className="space-y-3">
           <div className="flex items-center gap-2">
-            <h3 className="section-title">Untapped locales</h3>
+            <h3 className="section-title">{t("keywords.untappedLocales")}</h3>
             <Tooltip>
               <TooltipTrigger>
                 <Info size={16} className="text-muted-foreground" />
               </TooltipTrigger>
               <TooltipContent side="right" className="max-w-xs">
-                These locales are indexed by {sfInfo?.name} but your app has no
-                localizations for them. Add keywords in store listing to unlock
-                +100 chars of keyword budget per locale.
+                {t("keywords.untappedTooltip", { storefront: sfInfo?.name ?? "" })}
               </TooltipContent>
             </Tooltip>
           </div>
@@ -146,11 +150,13 @@ export default function KeywordsStorefrontPage() {
                       <div>
                         <p className="text-sm font-medium">{localeName(locale)}</p>
                         <p className="text-sm text-muted-foreground">
-                          +100 chars &middot; indexed in {reachCount} storefront{reachCount > 1 ? "s" : ""}
+                          {reachCount === 1
+                            ? t("keywords.charsIndexedIn", { count: reachCount })
+                            : t("keywords.charsIndexedInPlural", { count: reachCount })}
                         </p>
                       </div>
                       <Badge variant="outline" className="text-muted-foreground">
-                        Add in store listing
+                        {t("keywords.addInStoreListing")}
                       </Badge>
                     </div>
                   );
@@ -164,13 +170,11 @@ export default function KeywordsStorefrontPage() {
       {/* Cross-locale duplicates */}
       {sfAnalysis.crossLocaleDuplicates.size > 0 && (
         <section className="space-y-3">
-          <h3 className="section-title">Cross-locale duplicates</h3>
+          <h3 className="section-title">{t("keywords.crossLocaleDuplicates")}</h3>
           <Card className="gap-0 py-0">
             <CardContent className="py-4">
               <p className="text-sm text-muted-foreground mb-3">
-                These keywords appear in multiple locales indexed by this storefront.
-                Apple does not boost rankings from repetition &ndash; replace duplicates
-                with unique terms to maximize coverage.
+                {t("keywords.storefrontDuplicatesHint")}
               </p>
               <div className="space-y-2">
                 {[...sfAnalysis.crossLocaleDuplicates.entries()].map(

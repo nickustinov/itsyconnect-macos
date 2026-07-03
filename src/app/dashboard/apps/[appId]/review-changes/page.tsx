@@ -8,44 +8,8 @@ import { useChangeBuffer } from "@/lib/change-buffer-context";
 import { useReviewChanges } from "@/lib/review-changes-context";
 import { EmptyState } from "@/components/empty-state";
 import { localeName } from "@/lib/asc/locale-names";
-
-const SECTION_LABELS: Record<string, string> = {
-  "store-listing": "Store listing",
-  details: "App details",
-  keywords: "Keywords",
-  review: "App review",
-};
-
-const FIELD_LABELS: Record<string, string> = {
-  description: "Description",
-  keywords: "Keywords",
-  whatsNew: "What's new",
-  promotionalText: "Promotional text",
-  supportUrl: "Support URL",
-  marketingUrl: "Marketing URL",
-  name: "Name",
-  subtitle: "Subtitle",
-  privacyPolicyUrl: "Privacy policy URL",
-  privacyChoicesUrl: "Privacy choices URL",
-  copyright: "Copyright",
-  releaseType: "Release type",
-  scheduledDate: "Scheduled date",
-  phasedRelease: "Phased release",
-  buildId: "Build",
-  contentRights: "Content rights",
-  primaryCategoryId: "Primary category",
-  secondaryCategoryId: "Secondary category",
-  notifUrl: "Notification URL",
-  notifSandboxUrl: "Sandbox notification URL",
-  notes: "Review notes",
-  demoAccountRequired: "Sign-in required",
-  demoAccountName: "Demo account name",
-  demoAccountPassword: "Demo account password",
-  contactFirstName: "First name",
-  contactLastName: "Last name",
-  contactPhone: "Phone",
-  contactEmail: "Email",
-};
+import { useTranslations } from "@/lib/i18n/locale-context";
+import { useReviewFieldLabel, useReviewSectionLabels } from "@/lib/i18n/use-review-field-labels";
 
 import type { ReviewViewMode as ViewMode } from "@/lib/review-changes-context";
 
@@ -134,6 +98,8 @@ function DiffField({ label, oldValue, newValue, mode, onDiscard }: {
   mode: ViewMode;
   onDiscard: () => void;
 }) {
+  const t = useTranslations();
+
   if (oldValue === newValue) return null;
 
   let content: ReactNode;
@@ -141,11 +107,11 @@ function DiffField({ label, oldValue, newValue, mode, onDiscard }: {
   if (mode === "before") {
     content = oldValue
       ? <span>{oldValue}</span>
-      : <span className="italic text-muted-foreground">Empty</span>;
+      : <span className="italic text-muted-foreground">{t("reviewChanges.empty")}</span>;
   } else if (mode === "after") {
     content = newValue
       ? <span>{newValue}</span>
-      : <span className="italic text-muted-foreground">Empty</span>;
+      : <span className="italic text-muted-foreground">{t("reviewChanges.empty")}</span>;
   } else {
     if (!oldValue && newValue) {
       content = <span className="bg-green-500/15 text-green-700 dark:text-green-400">{newValue}</span>;
@@ -192,7 +158,7 @@ function DiffField({ label, oldValue, newValue, mode, onDiscard }: {
           onClick={onDiscard}
           className="text-[11px] text-muted-foreground hover:text-destructive transition-colors"
         >
-          Discard
+          {t("reviewChanges.discard")}
         </button>
       </div>
       <div className="rounded-md border px-3 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap break-all bg-muted/30">
@@ -224,6 +190,7 @@ function SectionDiff({
   fieldFilter: string;
 }) {
   const { discardField } = useChangeBuffer();
+  const fieldLabel = useReviewFieldLabel();
 
   // Collect locale-level diffs
   const localeDiffs: { locale: string; field: string; oldVal: string; newVal: string }[] = [];
@@ -264,7 +231,7 @@ function SectionDiff({
       {localeDiffs.map((d) => (
         <DiffField
           key={`${d.locale}:${d.field}`}
-          label={`${localeName(d.locale)} – ${FIELD_LABELS[d.field] ?? d.field}`}
+          label={`${localeName(d.locale)} – ${fieldLabel(d.field)}`}
           oldValue={d.oldVal}
           newValue={d.newVal}
           mode={mode}
@@ -274,7 +241,7 @@ function SectionDiff({
       {attrDiffs.map((d) => (
         <DiffField
           key={d.key}
-          label={FIELD_LABELS[d.key] ?? d.key}
+          label={fieldLabel(d.key)}
           oldValue={d.oldVal}
           newValue={d.newVal}
           mode={mode}
@@ -288,6 +255,8 @@ function SectionDiff({
 // --- Page ---
 
 export default function ReviewChangesPage() {
+  const t = useTranslations();
+  const sectionLabels = useReviewSectionLabels();
   const { appId } = useParams<{ appId: string }>();
   const { changes, discardSection, discardField } = useChangeBuffer();
   const { mode, localeFilter, fieldFilter, setFieldFilter } = useReviewChanges();
@@ -310,8 +279,8 @@ export default function ReviewChangesPage() {
   if (appChanges.length === 0) {
     return (
       <EmptyState
-        title="You're all caught up"
-        description="No pending changes to push to App Store Connect."
+        title={t("reviewChanges.emptyTitle")}
+        description={t("reviewChanges.emptyDescription")}
       />
     );
   }
@@ -376,7 +345,7 @@ export default function ReviewChangesPage() {
       {grouped.map((group) => (
         <div key={group.section} className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold">{SECTION_LABELS[group.section] ?? group.section}</h2>
+            <h2 className="text-base font-semibold">{sectionLabels[group.section as keyof typeof sectionLabels] ?? group.section}</h2>
             <Button
               variant="ghost"
               size="sm"
@@ -384,7 +353,7 @@ export default function ReviewChangesPage() {
               onClick={() => handleDiscardGroup(group)}
             >
               <Trash size={14} className="mr-1.5" />
-              {isFiltered ? "Discard filtered" : "Discard section"}
+              {isFiltered ? t("reviewChanges.discardFiltered") : t("reviewChanges.discardSection")}
             </Button>
           </div>
           {group.changes.map((change) => (

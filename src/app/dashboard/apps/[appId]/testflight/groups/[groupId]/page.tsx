@@ -39,16 +39,10 @@ import { BUILD_STATUS_DOTS, TESTER_STATUS_DOTS } from "@/lib/asc/display-types";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 import { formatDate } from "@/lib/format";
-
-const TESTER_STATUS_LABELS: Record<string, string> = {
-  INSTALLED: "Installed",
-  ACCEPTED: "Accepted",
-  INVITED: "Invited",
-  NOT_INVITED: "Not invited",
-  REVOKED: "Revoked",
-};
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 export default function GroupDetailPage() {
+  const t = useTranslations();
   const { appId, groupId } = useParams<{ appId: string; groupId: string }>();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -89,7 +83,7 @@ export default function GroupDetailPage() {
       ]);
       if (!groupRes.ok) {
         const data = await groupRes.json().catch(() => ({}));
-        throw new Error(data.error ?? `Failed to fetch group (${groupRes.status})`);
+        throw new Error(data.error ?? t("testflight.fetchGroupFailed"));
       }
       const data = await groupRes.json();
       setGroup(data.group);
@@ -101,11 +95,11 @@ export default function GroupDetailPage() {
         setAllAppBuilds(buildsData.builds ?? []);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch group");
+      setError(err instanceof Error ? err.message : t("testflight.fetchGroupFailed"));
     } finally {
       setLoading(false);
     }
-  }, [appId, groupId]);
+  }, [appId, groupId, t]);
 
   useEffect(() => {
     fetchData();
@@ -130,13 +124,13 @@ export default function GroupDetailPage() {
     const filtered = allAppBuilds.filter((b) => !b.expired && !groupBuildIds.has(b.id));
     const map = new Map<string, TFBuild[]>();
     for (const b of filtered) {
-      const v = b.versionString || "Unknown";
+      const v = b.versionString || t("testflight.unknownVersion");
       const arr = map.get(v);
       if (arr) arr.push(b);
       else map.set(v, [b]);
     }
     return map;
-  }, [allAppBuilds, groupBuildIds]);
+  }, [allAppBuilds, groupBuildIds, t]);
   const versionKeys = useMemo(() => [...buildsByVersion.keys()], [buildsByVersion]);
   const latestVersion = versionKeys[0] ?? null;
   const olderVersions = versionKeys.slice(1);
@@ -154,12 +148,12 @@ export default function GroupDetailPage() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? "Failed to add build");
+        throw new Error(data.error ?? t("testflight.addBuildFailed"));
       }
-      toast.success("Build added to group");
+      toast.success(t("testflight.buildAddedToGroup"));
       fetchData(true);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to add build");
+      toast.error(err instanceof Error ? err.message : t("testflight.addBuildFailed"));
     } finally {
       setAddingBuild(false);
     }
@@ -176,12 +170,14 @@ export default function GroupDetailPage() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? "Failed to remove builds");
+        throw new Error(data.error ?? t("testflight.removeBuildsFailed"));
       }
-      toast.success(`${selectedBuilds.size} build${selectedBuilds.size !== 1 ? "s" : ""} removed from group`);
+      toast.success(selectedBuilds.size === 1
+        ? t("testflight.buildsRemovedFromGroup", { count: selectedBuilds.size })
+        : t("testflight.buildsRemovedFromGroupPlural", { count: selectedBuilds.size }));
       fetchData(true);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to remove builds");
+      toast.error(err instanceof Error ? err.message : t("testflight.removeBuildsFailed"));
     } finally {
       setBulkLoading(false);
     }
@@ -198,12 +194,14 @@ export default function GroupDetailPage() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? "Failed to remove testers");
+        throw new Error(data.error ?? t("testflight.removeTestersFailed"));
       }
-      toast.success(`${selectedTesters.size} tester${selectedTesters.size !== 1 ? "s" : ""} removed from group`);
+      toast.success(selectedTesters.size === 1
+        ? t("testflight.testersRemovedFromGroup", { count: selectedTesters.size })
+        : t("testflight.testersRemovedFromGroupPlural", { count: selectedTesters.size }));
       fetchData(true);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to remove testers");
+      toast.error(err instanceof Error ? err.message : t("testflight.removeTestersFailed"));
     } finally {
       setBulkLoading(false);
     }
@@ -294,7 +292,18 @@ export default function GroupDetailPage() {
   }
 
   if (!group) {
-    return <EmptyState title="Group not found" />;
+    return <EmptyState title={t("testflight.groupNotFound")} />;
+  }
+
+  function testerStatusLabel(state: string): string {
+    const labels: Record<string, string> = {
+      INSTALLED: t("testflight.testerStatus.INSTALLED"),
+      ACCEPTED: t("testflight.testerStatus.ACCEPTED"),
+      INVITED: t("testflight.testerStatus.INVITED"),
+      NOT_INVITED: t("testflight.testerStatus.NOT_INVITED"),
+      REVOKED: t("testflight.testerStatus.REVOKED"),
+    };
+    return labels[state] ?? state;
   }
 
   return (
@@ -309,12 +318,12 @@ export default function GroupDetailPage() {
         </div>
         <div className="flex items-center gap-6 text-sm">
           <div>
-            <p className="text-muted-foreground">Testers</p>
+            <p className="text-muted-foreground">{t("testflight.testers")}</p>
             <p className="font-medium tabular-nums">{testers.length}</p>
           </div>
           <div className="h-8 border-l" />
           <div>
-            <p className="text-muted-foreground">Builds</p>
+            <p className="text-muted-foreground">{t("nav.items.builds")}</p>
             <p className="font-medium tabular-nums">{builds.length}</p>
           </div>
         </div>
@@ -323,7 +332,7 @@ export default function GroupDetailPage() {
       {/* Public link */}
       {!group.isInternal && (
         <section className="space-y-3">
-          <h3 className="section-title">Public link</h3>
+          <h3 className="section-title">{t("testflight.publicLink")}</h3>
           <div className="flex items-center gap-3">
             <Switch
               id="public-link"
@@ -331,7 +340,7 @@ export default function GroupDetailPage() {
               onCheckedChange={setPublicLinkEnabled}
             />
             <Label htmlFor="public-link" className="text-sm">
-              {publicLinkEnabled ? "Enabled" : "Disabled"}
+              {publicLinkEnabled ? t("common.enabled") : t("common.disabled")}
             </Label>
           </div>
           {publicLinkEnabled && group.publicLink && (
@@ -345,7 +354,7 @@ export default function GroupDetailPage() {
                 className="shrink-0"
                 onClick={() => {
                   navigator.clipboard.writeText(group.publicLink!);
-                  toast.success("Link copied to clipboard");
+                  toast.success(t("testflight.linkCopied"));
                 }}
               >
                 <Copy size={16} />
@@ -358,19 +367,19 @@ export default function GroupDetailPage() {
       {/* Builds */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="section-title">Builds</h3>
+          <h3 className="section-title">{t("nav.items.builds")}</h3>
           {hasAvailableBuilds && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" disabled={addingBuild}>
                   <Plus size={14} className="mr-1.5" />
-                  Add build
+                  {t("testflight.addBuild")}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-72 max-h-80 overflow-y-auto">
                 {latestVersion && (
                   <>
-                    <DropdownMenuLabel>Version {latestVersion}</DropdownMenuLabel>
+                    <DropdownMenuLabel>{t("testflight.versionLabel", { version: latestVersion })}</DropdownMenuLabel>
                     {buildsByVersion.get(latestVersion)!.map((b) => (
                       <BuildDropdownItem key={b.id} build={b} onSelect={addBuild} />
                     ))}
@@ -380,11 +389,11 @@ export default function GroupDetailPage() {
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>Older versions</DropdownMenuSubTrigger>
+                      <DropdownMenuSubTrigger>{t("testflight.olderVersions")}</DropdownMenuSubTrigger>
                       <DropdownMenuSubContent className="w-72 max-h-72 overflow-y-auto">
                         {olderVersions.map((version) => (
                           <div key={version}>
-                            <DropdownMenuLabel>Version {version}</DropdownMenuLabel>
+                            <DropdownMenuLabel>{t("testflight.versionLabel", { version })}</DropdownMenuLabel>
                             {buildsByVersion.get(version)!.map((b) => (
                               <BuildDropdownItem key={b.id} build={b} onSelect={addBuild} />
                             ))}
@@ -400,7 +409,7 @@ export default function GroupDetailPage() {
         </div>
         {builds.length === 0 ? (
           <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-            No builds assigned to this group.
+            {t("testflight.noBuildsInGroup")}
           </div>
         ) : (
           <PaginatedList
@@ -418,15 +427,15 @@ export default function GroupDetailPage() {
                         checked={allBuildsSelected ? true : someBuildsSelected ? "indeterminate" : false}
                         onCheckedChange={toggleAllBuilds}
                         onClick={(e) => e.stopPropagation()}
-                        aria-label="Select all builds"
+                        aria-label={t("testflight.selectAllBuilds")}
                       />
                     </TableHead>
-                    <TableHead className="w-24">Build</TableHead>
-                    <TableHead className="w-24">Version</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="w-20 text-right">Sessions</TableHead>
-                    <TableHead className="w-20 text-right">Crashes</TableHead>
-                    <TableHead className="w-28 text-right">Uploaded</TableHead>
+                    <TableHead className="w-24">{t("testflight.build")}</TableHead>
+                    <TableHead className="w-24">{t("testflight.version")}</TableHead>
+                    <TableHead>{t("testflight.status")}</TableHead>
+                    <TableHead className="w-20 text-right">{t("testflight.sessions")}</TableHead>
+                    <TableHead className="w-20 text-right">{t("testflight.crashes")}</TableHead>
+                    <TableHead className="w-28 text-right">{t("testflight.uploaded")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -484,15 +493,15 @@ export default function GroupDetailPage() {
       {/* Testers table */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="section-title">Testers</h3>
+          <h3 className="section-title">{t("testflight.testers")}</h3>
           <Button variant="outline" size="sm" onClick={() => setTesterDialogOpen(true)}>
             <UserPlus size={14} className="mr-1.5" />
-            Add tester
+            {t("testflight.addTester")}
           </Button>
         </div>
         {testers.length === 0 ? (
           <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-            No testers in this group yet.
+            {t("testflight.noTestersInGroup")}
           </div>
         ) : (
           <PaginatedList
@@ -510,14 +519,14 @@ export default function GroupDetailPage() {
                         checked={allTestersSelected ? true : someTestersSelected ? "indeterminate" : false}
                         onCheckedChange={toggleAllTesters}
                         onClick={(e) => e.stopPropagation()}
-                        aria-label="Select all testers"
+                        aria-label={t("testflight.selectAllTesters")}
                       />
                     </TableHead>
-                    <TableHead>Tester</TableHead>
-                    <TableHead className="w-28">Status</TableHead>
-                    <TableHead className="w-20 text-right">Sessions</TableHead>
-                    <TableHead className="w-20 text-right">Crashes</TableHead>
-                    <TableHead className="w-20 text-right">Feedback</TableHead>
+                    <TableHead>{t("testflight.tester")}</TableHead>
+                    <TableHead className="w-28">{t("testflight.status")}</TableHead>
+                    <TableHead className="w-20 text-right">{t("testflight.sessions")}</TableHead>
+                    <TableHead className="w-20 text-right">{t("testflight.crashes")}</TableHead>
+                    <TableHead className="w-20 text-right">{t("testflight.feedback")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -540,10 +549,10 @@ export default function GroupDetailPage() {
                           {isPublicLink ? (
                             <div>
                               <p className="text-sm font-medium text-muted-foreground">
-                                Anonymous
+                                {t("testflight.anonymous")}
                               </p>
                               <p className="text-xs text-muted-foreground">
-                                Public link
+                                {t("testflight.publicLink")}
                               </p>
                             </div>
                           ) : (
@@ -563,7 +572,7 @@ export default function GroupDetailPage() {
                               className={`inline-block size-2 shrink-0 rounded-full ${TESTER_STATUS_DOTS[tester.state] ?? "bg-gray-400"}`}
                             />
                             <span className="text-sm">
-                              {TESTER_STATUS_LABELS[tester.state] ?? tester.state}
+                              {testerStatusLabel(tester.state)}
                             </span>
                           </div>
                         </TableCell>
@@ -592,7 +601,9 @@ export default function GroupDetailPage() {
           <div className="shrink-0 flex items-center justify-between border-t bg-sidebar px-6 py-3">
             <div className="flex items-center gap-3 text-sm">
               <span className="font-medium">
-                {selectedBuilds.size} build{selectedBuilds.size !== 1 ? "s" : ""} selected
+                {selectedBuilds.size === 1
+                  ? t("testflight.buildsSelected", { count: selectedBuilds.size })
+                  : t("testflight.buildsSelectedPlural", { count: selectedBuilds.size })}
               </span>
               <Button
                 variant="link"
@@ -600,7 +611,7 @@ export default function GroupDetailPage() {
                 className="h-auto p-0 text-muted-foreground"
                 onClick={() => setSelectedBuilds(new Set())}
               >
-                Clear
+                {t("testflight.clear")}
               </Button>
             </div>
             <Button
@@ -610,7 +621,7 @@ export default function GroupDetailPage() {
               onClick={bulkRemoveBuilds}
             >
               {bulkLoading ? <Spinner className="mr-1.5" /> : <Minus size={14} className="mr-1.5" />}
-              Remove from group
+              {t("testflight.removeFromGroup")}
             </Button>
           </div>
         </FooterPortal>
@@ -622,7 +633,9 @@ export default function GroupDetailPage() {
           <div className="shrink-0 flex items-center justify-between border-t bg-sidebar px-6 py-3">
             <div className="flex items-center gap-3 text-sm">
               <span className="font-medium">
-                {selectedTesters.size} tester{selectedTesters.size !== 1 ? "s" : ""} selected
+                {selectedTesters.size === 1
+                  ? t("testflight.testersSelected", { count: selectedTesters.size })
+                  : t("testflight.testersSelectedPlural", { count: selectedTesters.size })}
               </span>
               <Button
                 variant="link"
@@ -630,7 +643,7 @@ export default function GroupDetailPage() {
                 className="h-auto p-0 text-muted-foreground"
                 onClick={() => setSelectedTesters(new Set())}
               >
-                Clear
+                {t("testflight.clear")}
               </Button>
             </div>
             <Button
@@ -640,7 +653,7 @@ export default function GroupDetailPage() {
               onClick={bulkRemoveTesters}
             >
               {bulkLoading ? <Spinner className="mr-1.5" /> : <Minus size={14} className="mr-1.5" />}
-              Remove from group
+              {t("testflight.removeFromGroup")}
             </Button>
           </div>
         </FooterPortal>
@@ -703,6 +716,7 @@ function AddTesterDialog({
   existingTesterIds: string[];
   onAdded: () => void;
 }) {
+  const t = useTranslations();
   const [appTesters, setAppTesters] = useState<TFTester[]>([]);
   const [loadingTesters, setLoadingTesters] = useState(false);
   const [search, setSearch] = useState("");
@@ -745,13 +759,13 @@ function AddTesterDialog({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? "Failed to add tester");
+        throw new Error(data.error ?? t("testflight.addTesterFailed"));
       }
-      toast.success("Tester added to group");
+      toast.success(t("testflight.testerAddedToGroup"));
       onAdded();
       onOpenChange(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to add tester");
+      toast.error(err instanceof Error ? err.message : t("testflight.addTesterFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -761,7 +775,7 @@ function AddTesterDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add tester to group</DialogTitle>
+          <DialogTitle>{t("testflight.addTesterTitle")}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-3">
@@ -770,7 +784,7 @@ function AddTesterDialog({
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search testers…"
+              placeholder={t("testflight.searchTesters")}
               className="pl-8"
             />
           </div>
@@ -781,7 +795,7 @@ function AddTesterDialog({
               </div>
             ) : filteredTesters.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">
-                {search ? "No matching testers" : "No available testers"}
+                {search ? t("testflight.noMatchingTesters") : t("testflight.noAvailableTesters")}
               </p>
             ) : (
               filteredTesters.map((t) => (

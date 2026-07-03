@@ -1,4 +1,7 @@
+"use client";
+
 import { Lock } from "@phosphor-icons/react";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 const REVIEW_STATES = new Set(["WAITING_FOR_REVIEW", "IN_REVIEW"]);
 
@@ -9,13 +12,15 @@ export function ReadOnlyBanner({
   state: string;
   liveMessage?: string;
 }) {
+  const t = useTranslations();
+
   let message: string;
   if (REVIEW_STATES.has(state)) {
-    message = "This version is in review – changes are locked until the review completes.";
+    message = t("banners.readOnlyInReview");
   } else if (state === "PENDING_DEVELOPER_RELEASE") {
-    message = "This version is approved and pending release – metadata is locked.";
+    message = t("banners.readOnlyPendingRelease");
   } else {
-    message = liveMessage ?? "This version is live – metadata is locked.";
+    message = liveMessage ?? t("banners.readOnlyLive");
   }
 
   return (

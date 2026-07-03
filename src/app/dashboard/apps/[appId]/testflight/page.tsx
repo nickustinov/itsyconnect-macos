@@ -45,8 +45,10 @@ import { resolvePreReleaseVersion, PLATFORM_LABELS } from "@/lib/asc/version-typ
 import { useRegisterRefresh } from "@/lib/refresh-context";
 import type { TFBuild, TFGroup } from "@/lib/asc/testflight";
 import { formatDate } from "@/lib/format";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 export default function TestFlightBuildsPage() {
+  const t = useTranslations();
   const { appId } = useParams<{ appId: string }>();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -98,7 +100,7 @@ export default function TestFlightBuildsPage() {
         setGroups(groupsData.groups);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch builds");
+      setError(err instanceof Error ? err.message : t("testflight.fetchFailed"));
     } finally {
       setLoading(false);
     }
@@ -199,11 +201,13 @@ export default function TestFlightBuildsPage() {
     const ok = results.filter((r) => r.status === "fulfilled").length;
     const failed = results.filter((r) => r.status === "rejected").length;
     if (failed === 0 && skipped === 0) {
-      toast.success(`${ok} build${ok !== 1 ? "s" : ""} expired`);
+      toast.success(ok === 1
+        ? t("testflight.buildsExpired", { count: ok })
+        : t("testflight.buildsExpiredPlural", { count: ok }));
     } else if (failed === 0) {
-      toast.success(`${ok} expired, ${skipped} skipped (not eligible)`);
+      toast.success(t("testflight.expiredWithSkipped", { ok, skipped }));
     } else {
-      toast.error(`${ok} expired, ${failed} failed, ${skipped} skipped`);
+      toast.error(t("testflight.expiredWithFailed", { ok, failed, skipped }));
     }
     setBulkLoading(false);
     setExpireOpen(false);
@@ -225,9 +229,11 @@ export default function TestFlightBuildsPage() {
     const ok = results.filter((r) => r.status === "fulfilled").length;
     const failed = results.filter((r) => r.status === "rejected").length;
     if (failed === 0) {
-      toast.success(`${ok} build${ok !== 1 ? "s" : ""} added to group`);
+      toast.success(ok === 1
+        ? t("testflight.buildsAddedToGroup", { count: ok })
+        : t("testflight.buildsAddedToGroupPlural", { count: ok }));
     } else {
-      toast.error(`${ok} added, ${failed} failed`);
+      toast.error(t("testflight.addedWithFailed", { ok, failed }));
     }
     setBulkLoading(false);
     fetchData(true);
@@ -248,16 +254,18 @@ export default function TestFlightBuildsPage() {
     const ok = results.filter((r) => r.status === "fulfilled").length;
     const failed = results.filter((r) => r.status === "rejected").length;
     if (failed === 0) {
-      toast.success(`${ok} build${ok !== 1 ? "s" : ""} removed from group`);
+      toast.success(ok === 1
+        ? t("testflight.buildsRemovedFromGroup", { count: ok })
+        : t("testflight.buildsRemovedFromGroupPlural", { count: ok }));
     } else {
-      toast.error(`${ok} removed, ${failed} failed`);
+      toast.error(t("testflight.removedWithFailed", { ok, failed }));
     }
     setBulkLoading(false);
     fetchData(true);
   }
 
   if (!app) {
-    return <EmptyState title="App not found" />;
+    return <EmptyState title={t("app.notFound")} />;
   }
 
   if (loading) {
@@ -276,11 +284,11 @@ export default function TestFlightBuildsPage() {
     return (
       <EmptyState
         icon={Package}
-        title="No builds"
+        title={t("testflight.noBuilds")}
         description={
           versionString
-            ? `No builds found for version ${versionString}. Upload a build from Xcode to see it here.`
-            : "Upload a build from Xcode to see it here."
+            ? `${t("testflight.noBuildsDescription")} (${versionString})`
+            : t("testflight.noBuildsDescription")
         }
       />
     );
@@ -291,19 +299,19 @@ export default function TestFlightBuildsPage() {
       {/* Stats row */}
       <div className="flex items-center gap-6 text-sm">
         <div>
-          <p className="text-muted-foreground">Total builds</p>
+          <p className="text-muted-foreground">{t("testflight.totalBuilds")}</p>
           <p className="font-medium tabular-nums">{stats.total}</p>
         </div>
         <div className="h-8 border-l" />
         <div>
-          <p className="text-muted-foreground">First build</p>
+          <p className="text-muted-foreground">{t("testflight.firstBuild")}</p>
           <p className="font-medium tabular-nums">
             {stats.firstDate ? formatDate(stats.firstDate.toISOString()) : "–"}
           </p>
         </div>
         <div className="h-8 border-l" />
         <div>
-          <p className="text-muted-foreground">Latest</p>
+          <p className="text-muted-foreground">{t("testflight.latest")}</p>
           <p className="font-medium tabular-nums">
             {stats.latestDate
               ? formatDate(stats.latestDate.toISOString())
@@ -327,19 +335,19 @@ export default function TestFlightBuildsPage() {
                     checked={allSelected ? true : someSelected ? "indeterminate" : false}
                     onCheckedChange={toggleAll}
                     onClick={(e) => e.stopPropagation()}
-                    aria-label="Select all builds"
+                    aria-label={t("testflight.selectAllBuilds")}
                   />
                 </TableHead>
-                <TableHead>Build</TableHead>
-                <TableHead>Version</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Groups</TableHead>
-                <TableHead className="text-right">Installs</TableHead>
-                <TableHead className="text-right">Sessions</TableHead>
-                <TableHead className="text-right">Crashes</TableHead>
-                <TableHead className="text-right">Invites</TableHead>
-                <TableHead className="text-right">Feedback</TableHead>
-                <TableHead className="text-right">Uploaded</TableHead>
+                <TableHead>{t("testflight.build")}</TableHead>
+                <TableHead>{t("testflight.version")}</TableHead>
+                <TableHead>{t("testflight.status")}</TableHead>
+                <TableHead>{t("testflight.groups")}</TableHead>
+                <TableHead className="text-right">{t("testflight.installs")}</TableHead>
+                <TableHead className="text-right">{t("testflight.sessions")}</TableHead>
+                <TableHead className="text-right">{t("testflight.crashes")}</TableHead>
+                <TableHead className="text-right">{t("testflight.invites")}</TableHead>
+                <TableHead className="text-right">{t("testflight.feedback")}</TableHead>
+                <TableHead className="text-right">{t("testflight.uploaded")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -394,7 +402,7 @@ export default function TestFlightBuildsPage() {
                       )}
                       {!build.expired && build.expirationDate && build.status === "Testing" && (
                         <p className="text-xs text-muted-foreground">
-                          Expires {formatDate(build.expirationDate)}
+                          {t("testflight.expiresOn", { date: formatDate(build.expirationDate) })}
                         </p>
                       )}
                     </TableCell>
@@ -448,7 +456,9 @@ export default function TestFlightBuildsPage() {
           <div className="shrink-0 flex items-center justify-between border-t bg-sidebar px-6 py-3">
             <div className="flex items-center gap-3 text-sm">
               <span className="font-medium">
-                {selected.size} build{selected.size !== 1 ? "s" : ""} selected
+                {selected.size === 1
+                  ? t("testflight.buildsSelected", { count: selected.size })
+                  : t("testflight.buildsSelectedPlural", { count: selected.size })}
               </span>
               <Button
                 variant="link"
@@ -456,7 +466,7 @@ export default function TestFlightBuildsPage() {
                 className="h-auto p-0 text-muted-foreground"
                 onClick={() => setSelected(new Set())}
               >
-                Clear
+                {t("testflight.clear")}
               </Button>
             </div>
             <div className="flex items-center gap-2">
@@ -464,7 +474,7 @@ export default function TestFlightBuildsPage() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" disabled={bulkLoading}>
                     <Plus size={14} className="mr-1.5" />
-                    Add to group
+                    {t("testflight.addToGroup")}
                     <CaretDown size={12} className="ml-1" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -477,7 +487,7 @@ export default function TestFlightBuildsPage() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => setCreateGroupOpen(true)}>
                     <Plus size={14} className="text-muted-foreground" />
-                    {"Add group\u2026"}
+                    {t("testflight.addGroup")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -489,7 +499,7 @@ export default function TestFlightBuildsPage() {
                     disabled={bulkLoading || relevantGroups.length === 0}
                   >
                     <Minus size={14} className="mr-1.5" />
-                    Remove from group
+                    {t("testflight.removeFromGroup")}
                     <CaretDown size={12} className="ml-1" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -508,7 +518,7 @@ export default function TestFlightBuildsPage() {
                 onClick={() => setExpireOpen(true)}
               >
                 {bulkLoading ? <Spinner className="mr-1.5" /> : <Prohibit size={14} className="mr-1.5" />}
-                Expire
+                {t("testflight.expire")}
               </Button>
             </div>
           </div>
@@ -526,16 +536,24 @@ export default function TestFlightBuildsPage() {
       <AlertDialog open={expireOpen} onOpenChange={setExpireOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Expire {selected.size} build{selected.size !== 1 ? "s" : ""}?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {selected.size === 1
+                ? t("testflight.expireTitle", { count: selected.size })
+                : t("testflight.expireTitlePlural", { count: selected.size })}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              This is irreversible. Testers will no longer be able to install {selected.size === 1 ? "this build" : "these builds"}.
+              {selected.size === 1
+                ? t("testflight.expireDescription")
+                : t("testflight.expireDescriptionPlural")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={bulkLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={bulkLoading}>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction onClick={bulkExpire} disabled={bulkLoading}>
               {bulkLoading && <Spinner className="mr-1.5" />}
-              Expire {selected.size === 1 ? "build" : "builds"}
+              {selected.size === 1
+                ? t("testflight.expireBuild")
+                : t("testflight.expireBuilds")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

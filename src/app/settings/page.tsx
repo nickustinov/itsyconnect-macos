@@ -9,10 +9,12 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/component
 import { CheckCircle, XCircle, Copy, Check, CaretRight } from "@phosphor-icons/react";
 import { Spinner } from "@/components/ui/spinner";
 import { IS_MAS } from "@/lib/platform";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 type UpdateState = "idle" | "checking" | "up-to-date" | "available" | "downloaded" | "error";
 
 export default function GeneralPage() {
+  const t = useTranslations();
   const [mounted, setMounted] = useState(false);
   const [autoCheck, setAutoCheck] = useState(true);
   const [updateState, setUpdateState] = useState<UpdateState>("idle");
@@ -46,7 +48,7 @@ export default function GeneralPage() {
     window.electron?.updates.getAutoCheck().then((v) => setAutoCheck(v));
     return window.electron?.updates.onStatus((status) => {
       setUpdateState(status.state as UpdateState);
-      if (status.state === "error") setErrorMessage(status.message ?? "Unknown error");
+      if (status.state === "error") setErrorMessage(status.message ?? t("common.unknownError"));
     });
   }, []);
 
@@ -106,7 +108,7 @@ export default function GeneralPage() {
     <div className="space-y-8">
       {isElectron && !IS_MAS && (
         <section className="space-y-4">
-          <h3 className="section-title">Updates</h3>
+          <h3 className="section-title">{t("settings.general.updates")}</h3>
           <div className="flex items-center gap-3">
             <Switch
               id="auto-check-updates"
@@ -114,7 +116,7 @@ export default function GeneralPage() {
               onCheckedChange={handleAutoCheckChange}
             />
             <Label htmlFor="auto-check-updates" className="text-sm">
-              Automatically check for updates
+              {t("settings.general.autoCheckUpdates")}
             </Label>
           </div>
           <div className="flex items-center gap-3">
@@ -127,25 +129,25 @@ export default function GeneralPage() {
               {updateState === "checking" ? (
                 <>
                   <Spinner className="size-3.5" />
-                  Checking…
+                  {t("settings.general.checking")}
                 </>
               ) : (
-                "Check now"
+                t("settings.general.checkNow")
               )}
             </Button>
             {updateState === "up-to-date" && (
               <span className="flex items-center gap-1.5 text-sm text-green-600">
-                <CheckCircle size={16} weight="fill" /> Up to date
+                <CheckCircle size={16} weight="fill" /> {t("settings.general.upToDate")}
               </span>
             )}
             {updateState === "available" && (
               <span className="text-sm text-muted-foreground">
-                Downloading update…
+                {t("settings.general.downloading")}
               </span>
             )}
             {updateState === "downloaded" && (
               <span className="text-sm text-muted-foreground">
-                Update ready – restart to install
+                {t("settings.general.updateReady")}
               </span>
             )}
             {updateState === "error" && (
@@ -159,7 +161,7 @@ export default function GeneralPage() {
 
       {!reviewModeLoading && (
         <section className="space-y-2">
-          <h3 className="section-title">Diff mode</h3>
+          <h3 className="section-title">{t("settings.general.diffMode")}</h3>
           <div className="flex items-center gap-3">
             <Switch
               id="review-before-saving"
@@ -167,11 +169,11 @@ export default function GeneralPage() {
               onCheckedChange={handleReviewModeToggle}
             />
             <Label htmlFor="review-before-saving" className="text-sm">
-              Enable diff mode
+              {t("settings.general.enableDiffMode")}
             </Label>
           </div>
           <p className="text-xs text-muted-foreground">
-            Accumulate changes locally and review before pushing to App Store Connect.
+            {t("settings.general.diffModeHint")}
           </p>
         </section>
       )}
@@ -195,35 +197,35 @@ interface McpClientConfig {
   name: string;
   key: string;
   snippet: (port: number) => string;
-  description: string;
+  descriptionKey: "settings.general.runInTerminal" | "settings.general.addToCodex" | "settings.general.addToCursor" | "settings.general.addToOpencode";
 }
 
 const MCP_CLIENTS: McpClientConfig[] = [
   {
     name: "Claude Code",
     key: "claude-code",
-    description: "Run in your terminal:",
+    descriptionKey: "settings.general.runInTerminal",
     snippet: (port) =>
       `claude mcp add --transport http itsyconnect http://127.0.0.1:${port}/mcp`,
   },
   {
     name: "Codex",
     key: "codex",
-    description: "Add to ~/.codex/config.toml:",
+    descriptionKey: "settings.general.addToCodex",
     snippet: (port) =>
       `[mcp.itsyconnect]\ntype = "remote"\nurl = "http://127.0.0.1:${port}/mcp"`,
   },
   {
     name: "Cursor",
     key: "cursor",
-    description: "Add to ~/.cursor/mcp.json:",
+    descriptionKey: "settings.general.addToCursor",
     snippet: (port) =>
       JSON.stringify({ mcpServers: { itsyconnect: { url: `http://127.0.0.1:${port}/mcp` } } }, null, 2),
   },
   {
     name: "OpenCode",
     key: "opencode",
-    description: "Add to opencode.json under mcp:",
+    descriptionKey: "settings.general.addToOpencode",
     snippet: (port) =>
       JSON.stringify({ itsyconnect: { type: "remote", url: `http://127.0.0.1:${port}/mcp` } }, null, 2),
   },
@@ -246,30 +248,32 @@ function McpSection({
   onPortBlur: () => void;
   onCopy: (name: string, text: string) => void;
 }) {
+  const t = useTranslations();
+
   return (
     <section className="space-y-2">
-      <h3 className="section-title">MCP server</h3>
+      <h3 className="section-title">{t("settings.general.mcpServer")}</h3>
       <div className="flex items-center gap-3">
         <Switch id="mcp-enabled" checked={enabled} onCheckedChange={onToggle} />
         <Label htmlFor="mcp-enabled" className="text-sm">
-          Enable MCP server
+          {t("settings.general.enableMcpServer")}
         </Label>
       </div>
       <p className="text-xs text-muted-foreground">
-        Expose an MCP server so AI coding assistants can interact with your App Store Connect data.
+        {t("settings.general.mcpServerHint")}
         {" "}
         <button
           type="button"
           onClick={() => window.open("https://github.com/nickustinov/itsyconnect-macos/blob/main/docs/MCP.md", "_blank")}
           className="underline underline-offset-4 hover:text-foreground"
         >
-          Learn more
+          {t("settings.general.learnMore")}
         </button>
       </p>
       {enabled && (
         <div className="space-y-4">
           <div className="flex items-center gap-3">
-            <Label className="w-12 text-sm">Port</Label>
+            <Label className="w-12 text-sm">{t("settings.general.port")}</Label>
             <Input
               type="number"
               value={port}
@@ -282,9 +286,9 @@ function McpSection({
           </div>
           <div className="space-y-1">
             <p className="text-sm text-muted-foreground">
-              Connect your AI coding tool:
+              {t("settings.general.connectAiTool")}
             </p>
-            {MCP_CLIENTS.map(({ name, key, description, snippet }) => {
+            {MCP_CLIENTS.map(({ name, key, descriptionKey, snippet }) => {
               const text = snippet(port);
               const isCopied = copiedSnippet === key;
               return (
@@ -294,7 +298,7 @@ function McpSection({
                     {name}
                   </CollapsibleTrigger>
                   <CollapsibleContent className="pl-6 pt-1 pb-2">
-                    <p className="mb-1.5 text-xs text-muted-foreground">{description}</p>
+                    <p className="mb-1.5 text-xs text-muted-foreground">{t(descriptionKey)}</p>
                     <div className="relative">
                       <pre className="rounded-md border bg-muted/50 p-3 pr-10 font-mono text-xs overflow-x-auto whitespace-pre-wrap break-all">
                         {text}

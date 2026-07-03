@@ -20,12 +20,7 @@ import {
 import { CaretDown, Check, Plus, X } from "@phosphor-icons/react";
 import { localeName, LOCALE_NAMES } from "@/lib/asc/locale-names";
 import type { SectionName } from "@/lib/section-locales-context";
-
-const SECTION_LABELS: Record<SectionName, string> = {
-  "store-listing": "store listing",
-  details: "details",
-  "testflight-info": "TestFlight info",
-};
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 interface LocalePickerProps {
   locales: string[];
@@ -55,7 +50,14 @@ export function LocalePicker({
   readOnly,
   localesWithContent,
 }: LocalePickerProps) {
+  const t = useTranslations();
   const [open, setOpen] = useState(false);
+
+  const sectionLabels: Record<SectionName, string> = {
+    "store-listing": t("localePicker.sectionStoreListing"),
+    details: t("localePicker.sectionDetails"),
+    "testflight-info": t("localePicker.sectionTestflightInfo"),
+  };
 
   const activeSet = useMemo(() => new Set(locales), [locales]);
 
@@ -78,13 +80,13 @@ export function LocalePicker({
       if (missing.length > 0) {
         result.push({
           section: sec,
-          label: SECTION_LABELS[sec],
+          label: sectionLabels[sec],
           codes: missing,
         });
       }
     }
     return result;
-  }, [otherSectionLocales, activeSet, availableLocalesProp]);
+  }, [otherSectionLocales, activeSet, availableLocalesProp, sectionLabels]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -97,9 +99,9 @@ export function LocalePicker({
       </PopoverTrigger>
       <PopoverContent className="w-72 p-0" align="start">
         <Command>
-          <CommandInput placeholder="Search locales..." />
+          <CommandInput placeholder={t("localePicker.searchLocales")} />
           <CommandList>
-            <CommandEmpty>No locales found.</CommandEmpty>
+            <CommandEmpty>{t("localePicker.noLocalesFound")}</CommandEmpty>
 
             {/* Active locales */}
             <CommandGroup>
@@ -135,7 +137,7 @@ export function LocalePicker({
                         variant="secondary"
                         className="px-1.5 py-0 text-[10px] leading-4"
                       >
-                        primary
+                        {t("localePicker.primary")}
                       </Badge>
                     )}
                     {!readOnly &&
@@ -168,7 +170,7 @@ export function LocalePicker({
                 {suggestions.map((sug) => (
                   <CommandGroup
                     key={sug.section}
-                    heading={`Used in ${sug.label}`}
+                    heading={t("localePicker.usedIn", { section: sug.label })}
                   >
                     {sug.codes.map((code) => (
                       <CommandItem
@@ -194,7 +196,7 @@ export function LocalePicker({
                       >
                         <Plus size={14} className="text-muted-foreground" />
                         <span className="text-muted-foreground">
-                          Add all from {sug.label}
+                          {t("localePicker.addAllFrom", { section: sug.label })}
                         </span>
                       </CommandItem>
                     )}
@@ -207,7 +209,7 @@ export function LocalePicker({
                   const remaining = addableCodes.filter((c) => !sugSet.has(c));
                   if (remaining.length === 0) return null;
                   return (
-                    <CommandGroup heading={suggestions.length > 0 ? "All locales" : "Add locale"}>
+                    <CommandGroup heading={suggestions.length > 0 ? t("localePicker.allLocales") : t("localePicker.addLocale")}>
                       {remaining.map((code) => (
                         <CommandItem
                           key={`add-${code}`}

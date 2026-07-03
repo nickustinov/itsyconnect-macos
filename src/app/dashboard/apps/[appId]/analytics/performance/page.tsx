@@ -15,6 +15,7 @@ import { Warning } from "@phosphor-icons/react";
 import { useAnalytics } from "@/lib/analytics-context";
 import { AnalyticsStateGuard } from "@/components/analytics-state-guard";
 import { EmptyState } from "@/components/empty-state";
+import { useTranslations } from "@/lib/i18n/locale-context";
 import type { PerfMetricSeries } from "@/lib/asc/analytics";
 
 // Chart colour palette for dynamic dataset keys
@@ -119,6 +120,7 @@ function buildChartData(group: MetricGroup): {
 // ---------- Page ----------
 
 export default function PerformancePage() {
+  const t = useTranslations();
   const { data } = useAnalytics();
 
   const perfMetrics = data?.perfMetrics ?? [];
@@ -130,8 +132,8 @@ export default function PerformancePage() {
     return (
       <AnalyticsStateGuard>
       <EmptyState
-        title="No performance data"
-        description="Requires enough users with diagnostics sharing enabled."
+        title={t("analytics.noPerformanceTitle")}
+        description={t("analytics.noPerformanceDescription")}
       />
       </AnalyticsStateGuard>
     );

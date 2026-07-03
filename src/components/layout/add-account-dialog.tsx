@@ -14,6 +14,7 @@ import {
 import { CheckCircle, XCircle } from "@phosphor-icons/react";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
+import { useTranslations } from "@/lib/i18n/locale-context";
 
 interface AddAccountDialogProps {
   open: boolean;
@@ -26,7 +27,8 @@ export function AddAccountDialog({
   onOpenChange,
   onSuccess,
 }: AddAccountDialogProps) {
-  const [name, setName] = useState("My team");
+  const t = useTranslations();
+  const [name, setName] = useState("");
   const [issuerId, setIssuerId] = useState("");
   const [keyId, setKeyId] = useState("");
   const [keyIdFromFile, setKeyIdFromFile] = useState(false);
@@ -39,7 +41,7 @@ export function AddAccountDialog({
   const [testError, setTestError] = useState("");
 
   function reset() {
-    setName("My team");
+    setName("");
     setIssuerId("");
     setKeyId("");
     setKeyIdFromFile(false);
@@ -74,11 +76,11 @@ export function AddAccountDialog({
       } else {
         const data = await res.json().catch(() => ({}));
         setTestStatus("error");
-        setTestError(data.error || "Connection failed");
+        setTestError(data.error || t("common.connectionFailed"));
       }
     } catch {
       setTestStatus("error");
-      setTestError("Network error");
+      setTestError(t("common.networkError"));
     }
   }
 
@@ -100,7 +102,7 @@ export function AddAccountDialog({
         !trimmed.startsWith("-----BEGIN PRIVATE KEY-----") ||
         !trimmed.endsWith("-----END PRIVATE KEY-----")
       ) {
-        setKeyError("Invalid key file – expected a .p8 private key from Apple.");
+        setKeyError(t("common.invalidKeyFile"));
         return;
       }
 
@@ -129,7 +131,7 @@ export function AddAccountDialog({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: name.trim() || "My team",
+          name: name.trim() || t("nav.myTeam"),
           issuerId: issuerId.trim(),
           keyId: keyId.trim(),
           privateKey,
@@ -137,15 +139,15 @@ export function AddAccountDialog({
       });
 
       if (res.ok) {
-        toast.success("Team added");
+        toast.success(t("addTeam.teamAdded"));
         reset();
         onSuccess();
       } else {
         const data = await res.json().catch(() => ({}));
-        toast.error(data.error || "Failed to add team");
+        toast.error(data.error || t("addTeam.addFailed"));
       }
     } catch {
-      toast.error("Network error");
+      toast.error(t("common.networkError"));
     }
 
     setSaving(false);
@@ -167,27 +169,27 @@ export function AddAccountDialog({
     >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add team</DialogTitle>
+          <DialogTitle>{t("addTeam.title")}</DialogTitle>
           <DialogDescription>
-            Connect another Apple developer account.
+            {t("addTeam.description")}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">Team name</label>
+            <label className="text-sm text-muted-foreground">{t("addTeam.teamName")}</label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="My team"
+              placeholder={t("nav.myTeam")}
               className="text-sm"
               autoFocus
             />
             <p className="text-xs text-muted-foreground">
-              A label to identify this developer account.
+              {t("addTeam.teamNameHint")}
             </p>
           </div>
           <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">Issuer ID</label>
+            <label className="text-sm text-muted-foreground">{t("addTeam.issuerId")}</label>
             <Input
               value={issuerId}
               onChange={(e) => setIssuerId(e.target.value)}
@@ -195,12 +197,12 @@ export function AddAccountDialog({
               className="font-mono text-sm"
             />
             <p className="text-xs text-muted-foreground">
-              Requires a key with Admin access.
+              {t("addTeam.adminAccessHint")}
             </p>
           </div>
           <div className="space-y-2">
             <label className="text-sm text-muted-foreground">
-              Private key (.p8)
+              {t("addTeam.privateKey")}
             </label>
             <Input
               type="file"
@@ -219,33 +221,33 @@ export function AddAccountDialog({
                 {testStatus === "testing" && (
                   <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <Spinner className="size-3.5" />
-                    Testing connection…
+                    {t("common.testingConnection")}
                   </p>
                 )}
                 {testStatus === "ok" && (
                   <p className="flex items-center gap-1.5 text-xs text-green-600">
                     <CheckCircle size={14} weight="fill" />
-                    Connected – key ID{" "}
+                    {t("common.connectedKeyId")}{" "}
                     <span className="font-mono">{keyId}</span>
                   </p>
                 )}
                 {testStatus === "error" && (
                   <p className="flex items-center gap-1.5 text-xs text-destructive">
                     <XCircle size={14} weight="fill" />
-                    {testError || "Connection failed – check your credentials."}
+                    {testError || t("common.connectionFailedCheck")}
                     {" "}
                     <button
                       type="button"
                       className="underline underline-offset-2 hover:text-destructive/80"
                       onClick={() => testConnection(issuerId.trim(), keyId.trim(), privateKey)}
                     >
-                      Test again
+                      {t("common.testAgain")}
                     </button>
                   </p>
                 )}
                 {testStatus === "idle" && !keyIdFromFile && (
                   <p className="text-xs text-muted-foreground">
-                    Key loaded. Enter the key ID below to continue.
+                    {t("common.keyLoadedEnterId")}
                   </p>
                 )}
               </>
@@ -253,7 +255,7 @@ export function AddAccountDialog({
           </div>
           {privateKey && !keyIdFromFile && !keyError && (
             <div className="space-y-2">
-              <label className="text-sm text-muted-foreground">Key ID</label>
+              <label className="text-sm text-muted-foreground">{t("addTeam.keyId")}</label>
               <Input
                 value={keyId}
                 onChange={(e) => setKeyId(e.target.value)}
@@ -267,10 +269,10 @@ export function AddAccountDialog({
               {saving ? (
                 <>
                   <Spinner />
-                  Adding…
+                  {t("addTeam.adding")}
                 </>
               ) : (
-                "Add team"
+                t("addTeam.addTeam")
               )}
             </Button>
           </DialogFooter>
