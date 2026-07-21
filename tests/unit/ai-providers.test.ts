@@ -52,7 +52,7 @@ describe("isReasoningModel", () => {
 
   it("returns false for non-reasoning models", () => {
     expect(isReasoningModel("anthropic", "claude-sonnet-4-6")).toBe(false);
-    expect(isReasoningModel("google", "gemini-3-pro-preview")).toBe(false);
+    expect(isReasoningModel("google", "gemini-3.6-flash")).toBe(false);
     expect(isReasoningModel("deepseek", "deepseek-chat")).toBe(false);
     expect(isReasoningModel("xai", "grok-4-1")).toBe(false);
     expect(isReasoningModel("mistral", "mistral-large-latest")).toBe(false);
