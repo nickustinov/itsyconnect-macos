@@ -126,6 +126,20 @@ export function parseTsv(raw: string): Array<Record<string, string>> {
   });
 }
 
+/**
+ * Append every element of `source` to `target`.
+ *
+ * Use this instead of `target.push(...source)`: the spread passes each element
+ * as a separate argument, so it exceeds the engine's argument-count limit once
+ * `source` holds roughly 100k+ elements. V8 reports that as
+ * "RangeError: Maximum call stack size exceeded", which is misleading – it is
+ * an argument-count limit, not stack recursion. Analytics snapshot instances
+ * routinely exceed it (a single App Downloads instance can hold 300k+ rows).
+ */
+export function pushAll<T>(target: T[], source: readonly T[]): void {
+  for (const item of source) target.push(item);
+}
+
 // ---------- Helpers ----------
 
 export function emptyAnalyticsData(): AnalyticsData {

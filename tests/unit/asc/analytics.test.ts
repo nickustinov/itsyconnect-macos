@@ -4119,3 +4119,63 @@ describe("buildAnalyticsData – accumulation across refreshes", () => {
     expect(consoleLogSpy).not.toHaveBeenCalledWith(expect.stringContaining("Backfill app-nogap"));
   });
 });
+
+describe("large snapshot instances", () => {
+  it("ingests an instance whose row count exceeds the spread argument limit", async () => {
+    mockCacheGet.mockReturnValue(null);
+    // The console spies are shared across the file and keep earlier tests'
+    // calls, so clear before asserting on what this test logs.
+    consoleWarnSpy.mockClear();
+
+    // A ONE_TIME_SNAPSHOT instance carries the app's whole history in one
+    // segment. Real accounts reach 300k+ rows; anything above roughly 100k
+    // used to be dropped by `rows.push(...parseTsv(tsv))` with
+    // "RangeError: Maximum call stack size exceeded", and the failure was only
+    // logged as a warning – the report silently lost that instance's history.
+    //
+    // Every row shares one data date, so the second call site (appending one
+    // date's rows to the deduped array) is exercised too — though only on the
+    // fixed code, since on main the first spread throws before reaching it.
+    const ROW_COUNT = 150_000;
+    const rows = Array.from({ length: ROW_COUNT }, () => [
+      "2026-02-01",
+      "First-time download",
+      "1",
+    ]);
+    const hugeTsv = tsvString(["Date", "Download Type", "Counts"], rows);
+
+    mockAscFetch.mockImplementation(async (url: string) => {
+      if (url.includes("/analyticsReportRequests") && !url.includes("/reports")) {
+        return reportRequestsResponse(["req-huge"]);
+      }
+      if (url.includes("/reports?filter")) {
+        return reportsResponse([
+          { id: "rpt-huge", name: "App Downloads Standard", category: "COMMERCE" },
+        ]);
+      }
+      if (url.includes("/instances?")) {
+        return instancesResponse([{ id: "inst-huge", processingDate: "2026-02-02" }]);
+      }
+      if (url.includes("/segments")) {
+        return segmentsResponse([{ id: "seg-huge", url: "https://s3.example.com/huge.tsv" }]);
+      }
+      return { data: [] };
+    });
+    mockFetch.mockResolvedValue(makeFetchResponse(hugeTsv));
+
+    const result = await buildAnalyticsData("app-huge-instance");
+
+    // Every row survives: no instance was skipped.
+    expect(result.dailyDownloads).toHaveLength(1);
+    expect(result.dailyDownloads[0]).toEqual({
+      date: "2026-02-01",
+      firstTime: ROW_COUNT,
+      redownload: 0,
+      update: 0,
+    });
+    expect(consoleWarnSpy).not.toHaveBeenCalledWith(
+      expect.stringContaining("instance download failed"),
+      expect.anything(),
+    );
+  });
+});

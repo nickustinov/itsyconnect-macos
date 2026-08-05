@@ -8,6 +8,7 @@ import {
   PERF_METRICS_TTL,
   findDateGaps,
   parseTsv,
+  pushAll,
   type AscReportRequest,
   type AscReport,
   type AscReportInstance,
@@ -346,7 +347,9 @@ async function downloadInstanceRows(
   const rows: Array<Record<string, string>> = [];
   for (const seg of segResp.data) {
     const tsv = await downloadSegment(seg.attributes.url);
-    rows.push(...parseTsv(tsv));
+    // pushAll, not push(...): snapshot instances can hold 300k+ rows, which
+    // exceeds the engine's argument-count limit when spread into push().
+    pushAll(rows, parseTsv(tsv));
   }
   return rows;
 }
@@ -498,7 +501,9 @@ export async function fetchReportData(
     for (const [date, rows] of rowsByDate) {
       if (!seenDataDates.has(date)) {
         seenDataDates.add(date);
-        deduped.push(...rows);
+        // Same argument-count limit as above – a single date can hold enough
+        // rows to exceed it once territory/source/version dimensions multiply.
+        pushAll(deduped, rows);
       }
     }
   }
