@@ -4,6 +4,7 @@ import { zhCN } from "./locales/zh-CN";
 import { fr } from "./locales/fr";
 import { de } from "./locales/de";
 import { ru } from "./locales/ru";
+import { ja } from "./locales/ja";
 
 const catalogs: Record<SupportedLocale, Messages> = {
   en: en as Messages,
@@ -11,6 +12,7 @@ const catalogs: Record<SupportedLocale, Messages> = {
   fr,
   de,
   ru,
+  ja,
 };
 
 export function getMessages(locale: SupportedLocale): Messages {

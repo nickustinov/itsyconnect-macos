@@ -1,6 +1,6 @@
 import type { en } from "./locales/en";
 
-export type SupportedLocale = "en" | "zh-CN" | "fr" | "de" | "ru";
+export type SupportedLocale = "en" | "zh-CN" | "fr" | "de" | "ru" | "ja";
 
 /** User-facing preference – "system" resolves against the OS locale. */
 export type LocalePreference = "system" | SupportedLocale;
@@ -26,4 +26,5 @@ export const SUPPORTED_LOCALES: readonly SupportedLocale[] = [
   "fr",
   "de",
   "ru",
+  "ja",
 ];

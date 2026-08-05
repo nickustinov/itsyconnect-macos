@@ -33,7 +33,7 @@ describe("matchSupportedLocale", () => {
   });
 
   it("returns null for unsupported locales", () => {
-    expect(matchSupportedLocale("ja")).toBeNull();
+    expect(matchSupportedLocale("it")).toBeNull();
     expect(matchSupportedLocale("ko-KR")).toBeNull();
   });
 });
@@ -54,13 +54,25 @@ describe("resolveLocale", () => {
   });
 
   it("falls back to English when system locale has no match", () => {
-    expect(resolveLocale("system", "ja")).toBe("en");
+    expect(resolveLocale("system", "it")).toBe("en");
     expect(resolveLocale("system", "zh-TW")).toBe("en");
   });
 
   it("walks comma-separated locale lists", () => {
-    expect(resolveLocale("system", "ja,zh-CN,en-US")).toBe("zh-CN");
-    expect(resolveLocale("system", "ja,de,en-US")).toBe("de");
-    expect(resolveLocale("system", "ja,ko,en-US")).toBe("en");
+    expect(resolveLocale("system", "it,zh-CN,en-US")).toBe("zh-CN");
+    expect(resolveLocale("system", "it,de,en-US")).toBe("de");
+    expect(resolveLocale("system", "it,ko,en-US")).toBe("en");
+  });
+});
+
+describe("Japanese locale", () => {
+  it("matches ja and regional variants", () => {
+    expect(matchSupportedLocale("ja")).toBe("ja");
+    expect(matchSupportedLocale("ja-JP")).toBe("ja");
+    expect(matchSupportedLocale("JA_jp")).toBe("ja");
+  });
+
+  it("resolves system preference to ja for a Japanese system locale", () => {
+    expect(resolveLocale("system", "ja-JP")).toBe("ja");
   });
 });

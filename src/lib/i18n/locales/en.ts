@@ -20,6 +20,7 @@ export const en = {
       languageFr: "Français",
       languageDe: "Deutsch",
       languageRu: "Русский",
+      languageJa: "日本語",
       languageSystemHint:
         "Follow system uses your macOS language when a matching translation is available, otherwise English.",
     },

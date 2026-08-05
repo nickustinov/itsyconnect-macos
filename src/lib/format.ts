@@ -5,6 +5,7 @@ const DATE_LOCALES: Record<string, string> = {
   fr: "fr",
   de: "de",
   ru: "ru",
+  ja: "ja",
 };
 
 let dateLocale = "en-GB";
