@@ -14,6 +14,7 @@ import {
   buildShortenPrompt,
 } from "@/lib/ai/prompts";
 import { errorJson, parseBody } from "@/lib/api-helpers";
+import { noThinkingOptions, samplingTemperature } from "@/lib/ai/provider-options";
 import { getAIGuidance, type GuidanceScope } from "@/lib/app-preferences";
 
 /** Review replies/appeals use their own guidance bucket; everything else uses translation guidance. */
@@ -33,28 +34,6 @@ const BASE_SYSTEM =
 function buildSystem(guidance: string): string {
   if (!guidance) return BASE_SYSTEM;
   return `${BASE_SYSTEM}\n\nThe user has provided standing instructions for tone and style. Follow them wherever they do not conflict with the rules above:\n${guidance}`;
-}
-
-/**
- * Provider-specific options to minimise reasoning/thinking overhead.
- * Our use cases (translation, copywriting, keywords) don't benefit from
- * chain-of-thought, so we disable or minimise it for every provider.
- */
-function noThinkingOptions(
-  providerId: string,
-  modelId: string,
-): Record<string, Record<string, string | number | Record<string, string | number>>> {
-  switch (providerId) {
-    case "openai":
-      return { openai: { reasoningEffort: "low" } };
-    case "google":
-      if (modelId.startsWith("gemini-3")) {
-        return { google: { thinkingConfig: { thinkingLevel: "low" } } };
-      }
-      return { google: { thinkingConfig: { thinkingBudget: 0 } } };
-    default:
-      return {};
-  }
 }
 
 /** Control / zero-width / BOM characters that LLMs sometimes emit into single-line fields. */
@@ -242,7 +221,7 @@ export async function POST(request: Request) {
       model,
       system,
       prompt,
-      temperature: needsVariety ? 0.9 : 0,
+      temperature: samplingTemperature(providerId, modelId, needsVariety ? 0.9 : 0),
       providerOptions: noThinkingOptions(providerId, modelId),
     });
 
@@ -294,7 +273,8 @@ export async function POST(request: Request) {
           );
           const { text: retry } = await generateText({
             model, system,
-            prompt: retryPrompt, temperature: 0,
+            prompt: retryPrompt,
+            temperature: samplingTemperature(providerId, modelId, 0),
             providerOptions: noThinkingOptions(providerId, modelId),
           });
           if (!looksConversational(retry)) {
@@ -320,7 +300,7 @@ export async function POST(request: Request) {
           const { text: retry } = await generateText({
             model, system,
             prompt: buildShortenPrompt(cleaned, charLimit, field ?? ""),
-            temperature: 0,
+            temperature: samplingTemperature(providerId, modelId, 0),
             providerOptions: noThinkingOptions(providerId, modelId),
           });
           const retryClean = singleLineField

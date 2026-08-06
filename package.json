@@ -1,8 +1,8 @@
 {
   "name": "itsyconnect-macos",
-  "version": "1.13.0",
+  "version": "1.14.1",
   "private": true,
-  "license": "AGPL-3.0-only",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/nickustinov/itsyconnect-macos"
@@ -19,8 +19,7 @@
     "electron:compile": "tsc -p electron/tsconfig.json",
     "electron:prepare": "bash ./scripts/prepare-electron.sh",
     "electron:dev": "npm rebuild better-sqlite3 && npm run electron:compile && electron .",
-    "electron:make:dmg": "npm run electron:compile && next build && npm run electron:prepare && electron-forge make --targets=@electron-forge/maker-dmg",
-    "electron:make:mas": "MAS=1 npm run electron:compile && MAS=1 next build && npm run electron:prepare && MAS=1 electron-forge make --platform=mas --arch=universal"
+    "electron:make:dmg": "npm run electron:compile && next build && npm run electron:prepare && electron-forge make --targets=@electron-forge/maker-dmg"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.49",
@@ -59,7 +58,6 @@
   "devDependencies": {
     "@electron-forge/cli": "^7.11.1",
     "@electron-forge/maker-dmg": "^7.11.1",
-    "@electron-forge/maker-pkg": "^7.11.1",
     "@electron-forge/maker-zip": "^7.11.1",
     "@tailwindcss/postcss": "^4",
     "@types/better-sqlite3": "^7.6.13",

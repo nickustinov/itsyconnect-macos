@@ -266,7 +266,7 @@ describe("translate-and-upload-screenshot route", () => {
     expect(mockLocaleName).toHaveBeenCalledWith("ar-SA");
     expect(mockGenerateContent).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: "gemini-3-pro-image-preview",
+        model: "gemini-3-pro-image",
         contents: [
           expect.objectContaining({
             parts: [

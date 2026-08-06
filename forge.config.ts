@@ -1,22 +1,17 @@
 import type { ForgeConfig } from "@electron-forge/shared-types";
 import { MakerDMG } from "@electron-forge/maker-dmg";
 import { MakerZIP } from "@electron-forge/maker-zip";
-import MakerPKG from "@electron-forge/maker-pkg";
 import { APP_VERSION, BUILD_NUMBER } from "./src/lib/version";
 
-const isMAS = process.env.MAS === "1";
-const isMasDev = process.env.MAS_DEV === "1";
-const makers = isMAS
-  ? [new MakerPKG({ name: "Itsyconnect" })]
-  : [
-      new MakerDMG({
-        format: "ULFO",
-        name: "Itsyconnect",
-        icon: "public/icon.icns",
-        overwrite: true,
-      }),
-      new MakerZIP({}),
-    ];
+const makers = [
+  new MakerDMG({
+    format: "ULFO",
+    name: "Itsyconnect",
+    icon: "public/icon.icns",
+    overwrite: true,
+  }),
+  new MakerZIP({}),
+];
 
 const config: ForgeConfig = {
   packagerConfig: {
@@ -26,31 +21,14 @@ const config: ForgeConfig = {
     buildVersion: BUILD_NUMBER,
     icon: "public/icon",
     asar: false,
-    ...(isMAS ? { extendInfo: { ElectronTeamID: "R892A93W42" } } : {}),
-    osxSign: isMAS
+    osxSign: process.env.APPLE_TEAM_ID ? {} : undefined,
+    osxNotarize: process.env.APPLE_ID
       ? {
-          identity: isMasDev
-            ? "Apple Development: Nikolajs Ustinovs (95YH3V335V)"
-            : "3rd Party Mac Developer Application: Nikolajs Ustinovs (R892A93W42)",
-          provisioningProfile: isMasDev
-            ? "provisioning.dev.provisionprofile"
-            : "provisioning.dist.provisionprofile",
-          optionsForFile: (filePath: string) => ({
-            entitlements: filePath.includes("/Frameworks/")
-              ? "entitlements.mas.child.plist"
-              : "entitlements.mas.plist",
-          }),
+          appleId: process.env.APPLE_ID,
+          appleIdPassword: process.env.APPLE_ID_PASSWORD!,
+          teamId: process.env.APPLE_TEAM_ID!,
         }
-      : process.env.APPLE_TEAM_ID ? {} : undefined,
-    osxNotarize: isMAS
-      ? undefined
-      : process.env.APPLE_ID
-        ? {
-            appleId: process.env.APPLE_ID,
-            appleIdPassword: process.env.APPLE_ID_PASSWORD!,
-            teamId: process.env.APPLE_TEAM_ID!,
-          }
-        : undefined,
+      : undefined,
     osxUniversal: {
       // Native modules live under `.next/standalone/node_modules`.
       // Use an explicit pattern that matches hidden `.next` paths during

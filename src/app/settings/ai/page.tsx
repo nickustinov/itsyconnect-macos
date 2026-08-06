@@ -25,7 +25,7 @@ import {
 export default function AISettingsPage() {
   const t = useTranslations();
   const [providerId, setProviderId] = useState("anthropic");
-  const [modelId, setModelId] = useState("claude-sonnet-4-6");
+  const [modelId, setModelId] = useState("claude-sonnet-5");
   const [baseUrl, setBaseUrl] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [showKey, setShowKey] = useState(false);
@@ -299,6 +299,14 @@ export default function AISettingsPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              {/* Stored models that are no longer in the picker stay selectable
+                  so existing settings render (and keep working) until the user
+                  switches to a current model. */}
+              {modelId && !provider.models.some((m) => m.id === modelId) && (
+                <SelectItem value={modelId}>
+                  <span className="font-mono text-xs">{modelId}</span>
+                </SelectItem>
+              )}
               {provider.models.map((m) => (
                 <SelectItem key={m.id} value={m.id}>
                   {m.name}

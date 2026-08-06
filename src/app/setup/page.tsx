@@ -79,7 +79,7 @@ export default function SetupPage() {
 
   // Step 3 – AI
   const [providerId, setProviderId] = useState("anthropic");
-  const [modelId, setModelId] = useState("claude-sonnet-4-6");
+  const [modelId, setModelId] = useState("claude-sonnet-5");
   const [baseUrl, setBaseUrl] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [showKey, setShowKey] = useState(false);

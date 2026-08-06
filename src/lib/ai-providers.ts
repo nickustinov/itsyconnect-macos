@@ -1,7 +1,7 @@
 export interface AIModel {
   id: string;
   name: string;
-  /** Reasoning models don't support sampling parameters like temperature. */
+  /** Reasoning models reject sampling parameters like temperature. */
   reasoning?: boolean;
 }
 
@@ -18,9 +18,9 @@ export const AI_PROVIDERS: AIProvider[] = [
     name: "Anthropic",
     envVar: "ANTHROPIC_API_KEY",
     models: [
-      { id: "claude-sonnet-4-6", name: "Claude Sonnet 4.6" },
+      { id: "claude-sonnet-5", name: "Claude Sonnet 5", reasoning: true },
       { id: "claude-haiku-4-5", name: "Claude Haiku 4.5" },
-      { id: "claude-opus-4-6", name: "Claude Opus 4.6" },
+      { id: "claude-opus-4-8", name: "Claude Opus 4.8", reasoning: true },
     ],
   },
   {
@@ -28,9 +28,9 @@ export const AI_PROVIDERS: AIProvider[] = [
     name: "OpenAI",
     envVar: "OPENAI_API_KEY",
     models: [
-      { id: "gpt-5.2", name: "GPT-5.2", reasoning: true },
-      { id: "gpt-5", name: "GPT-5", reasoning: true },
-      { id: "gpt-5-mini", name: "GPT-5 Mini", reasoning: true },
+      { id: "gpt-5.6-sol", name: "GPT-5.6 Sol", reasoning: true },
+      { id: "gpt-5.6-terra", name: "GPT-5.6 Terra", reasoning: true },
+      { id: "gpt-5.6-luna", name: "GPT-5.6 Luna", reasoning: true },
     ],
   },
   {
@@ -38,10 +38,9 @@ export const AI_PROVIDERS: AIProvider[] = [
     name: "Google",
     envVar: "GOOGLE_GENERATIVE_AI_API_KEY",
     models: [
-      { id: "gemini-3-pro-preview", name: "Gemini 3 Pro" },
-      { id: "gemini-3-flash-preview", name: "Gemini 3 Flash" },
-      { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro" },
-      { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash" },
+      { id: "gemini-3.1-pro-preview", name: "Gemini 3.1 Pro" },
+      { id: "gemini-3.6-flash", name: "Gemini 3.6 Flash" },
+      { id: "gemini-3.5-flash-lite", name: "Gemini 3.5 Flash-Lite" },
     ],
   },
   {
@@ -49,9 +48,8 @@ export const AI_PROVIDERS: AIProvider[] = [
     name: "xAI",
     envVar: "XAI_API_KEY",
     models: [
-      { id: "grok-4-1", name: "Grok 4.1" },
-      { id: "grok-4", name: "Grok 4" },
-      { id: "grok-3", name: "Grok 3" },
+      { id: "grok-4.5", name: "Grok 4.5" },
+      { id: "grok-4.3", name: "Grok 4.3" },
     ],
   },
   {
@@ -69,8 +67,8 @@ export const AI_PROVIDERS: AIProvider[] = [
     name: "DeepSeek",
     envVar: "DEEPSEEK_API_KEY",
     models: [
-      { id: "deepseek-chat", name: "DeepSeek Chat" },
-      { id: "deepseek-reasoner", name: "DeepSeek Reasoner", reasoning: true },
+      { id: "deepseek-v4-flash", name: "DeepSeek V4 Flash" },
+      { id: "deepseek-v4-pro", name: "DeepSeek V4 Pro" },
     ],
   },
   {

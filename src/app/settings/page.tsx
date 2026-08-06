@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { CheckCircle, XCircle, Copy, Check, CaretRight } from "@phosphor-icons/react";
 import { Spinner } from "@/components/ui/spinner";
-import { IS_MAS } from "@/lib/platform";
 import { useTranslations } from "@/lib/i18n/locale-context";
 
 type UpdateState = "idle" | "checking" | "up-to-date" | "available" | "downloaded" | "error";
@@ -44,7 +43,6 @@ export default function GeneralPage() {
   }, []);
 
   useEffect(() => {
-    if (IS_MAS) return;
     window.electron?.updates.getAutoCheck().then((v) => setAutoCheck(v));
     return window.electron?.updates.onStatus((status) => {
       setUpdateState(status.state as UpdateState);
@@ -106,7 +104,7 @@ export default function GeneralPage() {
 
   return (
     <div className="space-y-8">
-      {isElectron && !IS_MAS && (
+      {isElectron && (
         <section className="space-y-4">
           <h3 className="section-title">{t("settings.general.updates")}</h3>
           <div className="flex items-center gap-3">
@@ -178,7 +176,7 @@ export default function GeneralPage() {
         </section>
       )}
 
-      {!mcpLoading && !IS_MAS && (
+      {!mcpLoading && (
         <McpSection
           enabled={mcpEnabled}
           port={mcpPort}

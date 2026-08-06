@@ -8,7 +8,7 @@ import { localeName } from "@/lib/asc/locale-names";
 import { uploadScreenshot, createScreenshotSet, invalidateScreenshotCache } from "@/lib/asc/screenshot-mutations";
 import { listScreenshotSets } from "@/lib/asc/screenshots";
 
-const SCREENSHOT_MODEL = "gemini-3-pro-image-preview";
+const SCREENSHOT_MODEL = "gemini-3-pro-image";
 const ALLOWED_HOST = "is1-ssl.mzstatic.com";
 const THUMBNAIL_HEIGHT = 600;
 

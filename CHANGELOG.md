@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.14.1
+
+- Fix analytics silently losing history on high-volume accounts – report instances with roughly 100k+ rows (typically the historical snapshot carrying an app's full history) hit an engine argument limit and were skipped with only a console warning, so charts started weeks ago instead of at launch; all rows are now ingested (thanks @yaaayaaa)
+
+## 1.14.0
+
+- Refresh the AI model lists for every provider – Anthropic (Claude Sonnet 5, Opus 4.8), OpenAI (GPT-5.6 Sol/Terra/Luna), Google (Gemini 3.1 Pro, 3.6 Flash, 3.5 Flash-Lite), xAI (Grok 4.5, 4.3), and DeepSeek (V4 Flash, V4 Pro – the old aliases retire on 24 July 2026)
+- Keep previously selected models working – a saved model that is no longer in the picker still runs and stays selectable in Settings until you switch, and sampling parameters are automatically omitted for models that reject them (new Claude and GPT models), preventing failed requests
+- Fix screenshot translation – the underlying image model was discontinued by Google; translation now uses its replacement, Gemini 3 Pro Image
+- Remove the broken Grok 4.1 option – the ID was never a valid xAI API model
+- The app is now MIT-licensed (previously AGPL-3.0) and has contribution guidelines (CONTRIBUTING.md)
+- Drop Mac App Store build support – Itsyconnect is distributed as a signed and notarized DMG only, which simplifies the build and removes MAS-only code paths
+
 ## 1.13.0
 
 - Add internationalization – the app is now available in English, Simplified Chinese, French, German, and Russian; it follows your macOS language automatically or can be set explicitly in Settings → Appearance (thanks @kaiser143 for the groundwork)

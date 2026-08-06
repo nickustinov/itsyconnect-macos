@@ -9,7 +9,6 @@ import http from "node:http";
 import { initLogger, getLogPath, getLogDir } from "./logger";
 
 const isDev = !app.isPackaged;
-const isMAS = !!(process as NodeJS.Process & { mas?: boolean }).mas || process.env.MAS === "1";
 let nextProcess: ChildProcess | null = null;
 
 function installProcessErrorLogging(): void {
@@ -217,7 +216,7 @@ function waitForServer(port: number, timeout = 30_000): Promise<void> {
   });
 }
 
-// --- Auto-updater (direct distribution only – excluded from MAS builds) ---
+// --- Auto-updater ---
 
 let checkSource: "menu" | "settings" | "auto" = "auto";
 let updateInterval: ReturnType<typeof setInterval> | null = null;
@@ -231,9 +230,9 @@ function sendUpdateStatus(status: { state: string; message?: string; notes?: str
 }
 
 function setupAutoUpdater(): void {
-  if (isDev || isMAS) return;
+  if (isDev) return;
 
-  // Lazy-import autoUpdater so MAS builds never touch the module
+  // Lazy-import autoUpdater so dev builds never touch the module
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const updater: Electron.AutoUpdater = require("electron").autoUpdater;
   autoUpdater = updater;
@@ -312,18 +311,14 @@ function setupMenu(): void {
       label: appName,
       submenu: [
         { role: "about", label: `About ${appName}` },
-        ...(!isMAS
-          ? [
-              {
-                label: "Check for updates\u2026",
-                icon: sfIcon("arrow.triangle.2.circlepath"),
-                click: () => {
-                  checkSource = "menu";
-                  autoUpdater?.checkForUpdates();
-                },
-              },
-            ]
-          : []),
+        {
+          label: "Check for updates\u2026",
+          icon: sfIcon("arrow.triangle.2.circlepath"),
+          click: () => {
+            checkSource = "menu";
+            autoUpdater?.checkForUpdates();
+          },
+        },
         {
           label: "Settings\u2026",
           icon: sfIcon("gearshape"),
@@ -552,33 +547,31 @@ if (!gotLock) {
 
     ipcMain.handle("get-system-locale", () => app.getLocale());
 
-    // --- Update IPC handlers (direct distribution only) ---
+    // --- Update IPC handlers ---
 
-    if (!isMAS) {
-      ipcMain.on("check-for-updates", () => {
-        checkSource = "settings";
-        autoUpdater?.checkForUpdates();
-      });
+    ipcMain.on("check-for-updates", () => {
+      checkSource = "settings";
+      autoUpdater?.checkForUpdates();
+    });
 
-      ipcMain.handle("get-auto-check-updates", () => {
-        return loadSettings().autoCheckUpdates;
-      });
+    ipcMain.handle("get-auto-check-updates", () => {
+      return loadSettings().autoCheckUpdates;
+    });
 
-      ipcMain.on("install-update", () => {
-        autoUpdater?.quitAndInstall();
-      });
+    ipcMain.on("install-update", () => {
+      autoUpdater?.quitAndInstall();
+    });
 
-      ipcMain.on("set-auto-check-updates", (_, enabled: boolean) => {
-        const settings = loadSettings();
-        settings.autoCheckUpdates = enabled;
-        saveSettings(settings);
-        if (enabled) {
-          startUpdateInterval();
-        } else {
-          stopUpdateInterval();
-        }
-      });
-    }
+    ipcMain.on("set-auto-check-updates", (_, enabled: boolean) => {
+      const settings = loadSettings();
+      settings.autoCheckUpdates = enabled;
+      saveSettings(settings);
+      if (enabled) {
+        startUpdateInterval();
+      } else {
+        stopUpdateInterval();
+      }
+    });
 
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) {

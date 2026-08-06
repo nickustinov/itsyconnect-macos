@@ -5,6 +5,7 @@ import { getAISettings } from "@/lib/ai/settings";
 import { ensureLocalModelLoaded, isLocalOpenAIProvider } from "@/lib/ai/local-provider";
 import { buildAnalyticsInsightsPrompt } from "@/lib/ai/prompts";
 import { generateObjectWithRepair } from "@/lib/ai/structured-output";
+import { noThinkingOptions, samplingTemperature } from "@/lib/ai/provider-options";
 import { hasCredentials } from "@/lib/asc/client";
 import { isDemoMode, getDemoAnalytics } from "@/lib/demo";
 import type { AnalyticsData } from "@/lib/asc/analytics";
@@ -127,30 +128,15 @@ export async function POST(
   // 3. Build prompt
   const prompt = buildAnalyticsInsightsPrompt(data);
 
-  // Provider-specific options to minimise reasoning overhead
-  function noThinkingOptions(): Record<string, Record<string, string | number | Record<string, string | number>>> {
-    switch (providerId) {
-      case "openai":
-        return { openai: { reasoningEffort: "low" } };
-      case "google":
-        if (modelId.startsWith("gemini-3")) {
-          return { google: { thinkingConfig: { thinkingLevel: "low" } } };
-        }
-        return { google: { thinkingConfig: { thinkingBudget: 0 } } };
-      default:
-        return {};
-    }
-  }
-
   try {
     const { object: insights } = await generateObjectWithRepair({
       model,
       schema: analyticsInsightSchema,
       system: "You are an app analytics expert. Analyse App Store Connect metrics and extract structured insights. Be concise, data-driven, and actionable.",
       prompt,
-      temperature: 0,
+      temperature: samplingTemperature(providerId, modelId, 0),
       providerId,
-      providerOptions: noThinkingOptions(),
+      providerOptions: noThinkingOptions(providerId, modelId),
       maxOutputTokens: isLocalOpenAIProvider(providerId) ? 400 : undefined,
       sectionAliases: {
         highlights: ["highlights"],

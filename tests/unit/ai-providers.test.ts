@@ -43,23 +43,26 @@ describe("AI_PROVIDERS", () => {
 });
 
 describe("isReasoningModel", () => {
-  it("returns true for known reasoning models", () => {
-    expect(isReasoningModel("openai", "gpt-5")).toBe(true);
-    expect(isReasoningModel("openai", "gpt-5-mini")).toBe(true);
-    expect(isReasoningModel("openai", "gpt-5.2")).toBe(true);
-    expect(isReasoningModel("deepseek", "deepseek-reasoner")).toBe(true);
+  it("returns true for models that reject sampling parameters", () => {
+    expect(isReasoningModel("openai", "gpt-5.6-sol")).toBe(true);
+    expect(isReasoningModel("openai", "gpt-5.6-terra")).toBe(true);
+    expect(isReasoningModel("openai", "gpt-5.6-luna")).toBe(true);
+    expect(isReasoningModel("anthropic", "claude-sonnet-5")).toBe(true);
+    expect(isReasoningModel("anthropic", "claude-opus-4-8")).toBe(true);
   });
 
-  it("returns false for non-reasoning models", () => {
-    expect(isReasoningModel("anthropic", "claude-sonnet-4-6")).toBe(false);
-    expect(isReasoningModel("google", "gemini-3-pro-preview")).toBe(false);
-    expect(isReasoningModel("deepseek", "deepseek-chat")).toBe(false);
-    expect(isReasoningModel("xai", "grok-4-1")).toBe(false);
+  it("returns false for models that accept sampling parameters", () => {
+    expect(isReasoningModel("anthropic", "claude-haiku-4-5")).toBe(false);
+    expect(isReasoningModel("google", "gemini-3.1-pro-preview")).toBe(false);
+    expect(isReasoningModel("deepseek", "deepseek-v4-flash")).toBe(false);
+    expect(isReasoningModel("xai", "grok-4.5")).toBe(false);
     expect(isReasoningModel("mistral", "mistral-large-latest")).toBe(false);
   });
 
   it("returns false for unknown provider or model", () => {
     expect(isReasoningModel("unknown", "model")).toBe(false);
     expect(isReasoningModel("openai", "unknown-model")).toBe(false);
+    // Legacy stored models that are no longer in the picker keep temperature
+    expect(isReasoningModel("anthropic", "claude-sonnet-4-6")).toBe(false);
   });
 });
