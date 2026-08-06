@@ -560,6 +560,7 @@ function pickPendingVersions(versions: AscVersion[]): AscVersion[] {
 }
 
 function AppCardStats({ data }: { data: AnalyticsData }) {
+  const t = useTranslations();
   const downloads = data.dailyDownloads.reduce(
     (sum, d) => sum + d.firstTime + d.redownload,
     0,
@@ -585,16 +586,16 @@ function AppCardStats({ data }: { data: AnalyticsData }) {
   return (
     <div className="grid grid-cols-3 gap-3 text-xs tabular-nums">
       <div>
-        <p className="text-muted-foreground">Downloads</p>
+        <p className="text-muted-foreground">{t("dashboard.downloads")}</p>
         <p className="font-medium">{downloads.toLocaleString()}</p>
       </div>
       <div>
-        <p className="text-muted-foreground">Proceeds</p>
+        <p className="text-muted-foreground">{t("dashboard.proceeds")}</p>
         <p className="font-medium">${proceeds.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
       </div>
       {crashFree && (
         <div>
-          <p className="text-muted-foreground">Crash-free</p>
+          <p className="text-muted-foreground">{t("dashboard.crashFree")}</p>
           <p className="font-medium">{crashFree}%</p>
         </div>
       )}

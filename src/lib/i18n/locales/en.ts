@@ -192,6 +192,8 @@ export const en = {
     fetchingAnalytics: "Fetching analytics data – this may take a moment on first load",
     noAnalyticsData: "No analytics data available yet.",
     proceeds: "Proceeds",
+    downloads: "Downloads",
+    crashFree: "Crash-free",
     noDataForRange: "No data for this date range.",
     awaitingData: "Awaiting data from App Store Connect",
     pending: "Pending",
@@ -1095,6 +1097,7 @@ export const en = {
   analyticsRange: {
     lastDay: "Last day",
     lastDays: "Last {days} days",
+    pctFromPreviousPeriod: "{pct} from previous period",
     month: "Month",
     customRange: "Custom range…",
   },

@@ -30,7 +30,7 @@ import {
 } from "@phosphor-icons/react";
 import { formatDateShort } from "@/lib/format";
 import { useAnalytics } from "@/lib/analytics-context";
-import { parseRange, filterByDateRange, previousRange, pctChange, getStoredRange } from "@/lib/analytics-range";
+import { parseRange, filterByDateRange, previousRange, getStoredRange } from "@/lib/analytics-range";
 import { KpiCard } from "@/components/kpi-card";
 import { AnalyticsStateGuard } from "@/components/analytics-state-guard";
 import { EmptyState } from "@/components/empty-state";
@@ -44,6 +44,7 @@ export default function AnalyticsOverviewPage() {
     revenueConfig,
     territoryConfig,
     funnelConfig,
+    formatPctChange,
     t,
   } = useAnalyticsLabels();
   const searchParams = useSearchParams();
@@ -143,25 +144,25 @@ export default function AnalyticsOverviewPage() {
         <KpiCard
           title={t("analytics.impressions")}
           value={totalImpressions.toLocaleString()}
-          subtitle={pctChange(totalImpressions, prevImpressions, engagement.length, prevEngagementData.length)}
+          subtitle={formatPctChange(totalImpressions, prevImpressions, engagement.length, prevEngagementData.length)}
           icon={Eye}
         />
         <KpiCard
           title={t("analytics.totalDownloads")}
           value={totalDownloads.toLocaleString()}
-          subtitle={pctChange(totalDownloads, prevDownloads, downloads.length, prevDownloadsData.length)}
+          subtitle={formatPctChange(totalDownloads, prevDownloads, downloads.length, prevDownloadsData.length)}
           icon={DownloadSimple}
         />
         <KpiCard
           title={t("analytics.proceeds")}
           value={`$${totalRevenue.toLocaleString()}`}
-          subtitle={pctChange(totalRevenue, prevRevenue, revenue.length, prevRevenueData.length)}
+          subtitle={formatPctChange(totalRevenue, prevRevenue, revenue.length, prevRevenueData.length)}
           icon={CurrencyDollar}
         />
         <KpiCard
           title={t("analytics.firstTimeDownloads")}
           value={totalFirstTime.toLocaleString()}
-          subtitle={pctChange(totalFirstTime, prevFirstTime, downloads.length, prevDownloadsData.length)}
+          subtitle={formatPctChange(totalFirstTime, prevFirstTime, downloads.length, prevDownloadsData.length)}
           icon={Timer}
         />
       </div>

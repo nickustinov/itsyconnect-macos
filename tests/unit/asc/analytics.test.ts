@@ -573,8 +573,8 @@ describe("buildAnalyticsData – full pipeline", () => {
     expect(result.dailyVersionSessions).toHaveLength(1);
     expect(result.dailyVersionSessions[0]).toEqual({
       date: "2026-02-01",
-      v100: 100,
-      v200: 200,
+      v1_0_0: 100,
+      v2_0_0: 200,
     });
 
     // Opt-in
@@ -1653,6 +1653,7 @@ describe("aggregation output shapes", () => {
       ["Date", "App Version", "Sessions"],
       [
         ["2026-02-01", "1.2.3", "50"],
+        ["2026-02-01", "1.18.0", "75"],
         ["2026-02-01", "2.0.0", "100"],
       ],
     );
@@ -1681,9 +1682,10 @@ describe("aggregation output shapes", () => {
     expect(result.dailyVersionSessions).toHaveLength(1);
     const entry = result.dailyVersionSessions[0];
     expect(entry.date).toBe("2026-02-01");
-    // "1.2.3" → "v123", "2.0.0" → "v200"
-    expect(entry["v123"]).toBe(50);
-    expect(entry["v200"]).toBe(100);
+    // "1.2.3" → "v1_2_3", "1.18.0" → "v1_18_0", "2.0.0" → "v2_0_0"
+    expect(entry["v1_2_3"]).toBe(50);
+    expect(entry["v1_18_0"]).toBe(75);
+    expect(entry["v2_0_0"]).toBe(100);
   });
 
   it("aggregateDownloadsBySource excludes updates", async () => {
@@ -2465,11 +2467,11 @@ describe("aggregateVersionSessions – missing date or version", () => {
     expect(result.dailyVersionSessions).toHaveLength(2);
     expect(result.dailyVersionSessions[0]).toEqual({
       date: "2026-02-01",
-      v100: 50,
+      v1_0_0: 50,
     });
     expect(result.dailyVersionSessions[1]).toEqual({
       date: "2026-02-02",
-      v100: 80,
+      v1_0_0: 80,
     });
   });
 });
@@ -2779,7 +2781,7 @@ describe("aggregation with empty/missing field values (|| fallback branches)", (
     expect(result.dailyVersionSessions).toHaveLength(1);
     expect(result.dailyVersionSessions[0]).toEqual({
       date: "2026-02-01",
-      v100: 0,
+      v1_0_0: 0,
     });
 
     // aggregateCrashesByVersion: empty App Version → `|| "Unknown"` fallback,

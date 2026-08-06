@@ -160,9 +160,9 @@ function makeDemoAnalytics(appIndex: number) {
 
   const dailyVersionSessions = generateDailyData(30, (date, i) => ({
     date,
-    v230: noisyValue(rng, base * 2, base * 0.7, i),
-    v220: noisyValue(rng, Math.max(10, base * 1.5 - i * 3), base * 0.4, i),
-    v210: noisyValue(rng, Math.max(0, base * 0.6 - i * 2), base * 0.2, i),
+    v2_3_0: noisyValue(rng, base * 2, base * 0.7, i),
+    v2_2_0: noisyValue(rng, Math.max(10, base * 1.5 - i * 3), base * 0.4, i),
+    v2_1_0: noisyValue(rng, Math.max(0, base * 0.6 - i * 2), base * 0.2, i),
   }));
 
   const dailyOptIn = generateDailyData(30, (date, i) => ({

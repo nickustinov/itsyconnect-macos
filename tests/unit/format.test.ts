@@ -5,6 +5,8 @@ import {
   formatDateTime,
   formatDateTimeLong,
   formatDuration,
+  encodeVersionSessionKey,
+  formatVersionSessionLabel,
   isValidUrl,
 } from "@/lib/format";
 
@@ -82,6 +84,24 @@ describe("format", () => {
 
     it("formats exact hours compact", () => {
       expect(formatDuration(3600, true)).toBe("1h");
+    });
+  });
+
+  describe("encodeVersionSessionKey", () => {
+    it("replaces dots with underscores for CSS-safe chart keys", () => {
+      expect(encodeVersionSessionKey("1.18.0")).toBe("v1_18_0");
+      expect(encodeVersionSessionKey("1.2.3")).toBe("v1_2_3");
+    });
+  });
+
+  describe("formatVersionSessionLabel", () => {
+    it("restores the original version string for display", () => {
+      expect(formatVersionSessionLabel("v1_18_0")).toBe("v1.18.0");
+      expect(formatVersionSessionLabel("v1_2_3")).toBe("v1.2.3");
+    });
+
+    it("returns non-version keys unchanged", () => {
+      expect(formatVersionSessionLabel("sessions")).toBe("sessions");
     });
   });
 

@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import type { ChartConfig } from "@/components/ui/chart";
+import { pctChange } from "@/lib/analytics-range";
 import { useTranslations } from "./locale-context";
 
 /** Translated analytics chart configs, KPI labels, and section titles. */
@@ -109,6 +110,14 @@ export function useAnalyticsLabels() {
     [t],
   );
 
+  const formatPctChange = useCallback(
+    (current: number, previous: number, currentDays: number, previousDays: number) =>
+      pctChange(current, previous, currentDays, previousDays, (pct) =>
+        t("analyticsRange.pctFromPreviousPeriod", { pct }),
+      ),
+    [t],
+  );
+
   return {
     downloadsConfig,
     revenueConfig,
@@ -122,6 +131,7 @@ export function useAnalyticsLabels() {
     durationConfig,
     installDeleteConfig,
     optInConfig,
+    formatPctChange,
     t,
   };
 }

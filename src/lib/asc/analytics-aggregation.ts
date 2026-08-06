@@ -1,4 +1,5 @@
 import type { AnalyticsData } from "./analytics-types";
+import { encodeVersionSessionKey } from "@/lib/format";
 
 // ---------- Generic helpers ----------
 
@@ -234,8 +235,7 @@ export function aggregateVersionSessions(
     .map(([date, versions]) => {
       const entry: Record<string, number | string> = { date };
       for (const [version, count] of versions) {
-        // Convert version string to a safe key (e.g., "1.2.0" -> "v1.2.0")
-        entry[`v${version.replace(/\./g, "")}`] = count;
+        entry[encodeVersionSessionKey(version)] = count;
       }
       return entry;
     }) as AnalyticsData["dailyVersionSessions"];

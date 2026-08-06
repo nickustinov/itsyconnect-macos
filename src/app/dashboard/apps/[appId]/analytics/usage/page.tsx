@@ -24,7 +24,7 @@ import {
   ChartLegendContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import { formatDateShort, formatDuration } from "@/lib/format";
+import { formatDateShort, formatDuration, formatVersionSessionLabel } from "@/lib/format";
 import { useAnalytics } from "@/lib/analytics-context";
 import { parseRange, filterByDateRange, getStoredRange } from "@/lib/analytics-range";
 import { AnalyticsStateGuard } from "@/components/analytics-state-guard";
@@ -89,7 +89,7 @@ export default function UsagePage() {
     for (let i = 0; i < versionKeys.length; i++) {
       const key = versionKeys[i];
       config[key] = {
-        label: key.startsWith("v") ? `v${key.slice(1).replace(/(\d)(?=\d)/g, "$1.")}` : key,
+        label: formatVersionSessionLabel(key),
         color: VERSION_COLORS[i % VERSION_COLORS.length],
       };
     }
@@ -251,7 +251,6 @@ export default function UsagePage() {
                     />
                   }
                 />
-                <ChartLegend content={<ChartLegendContent />} />
                 {versionKeys.map((key) => (
                   <Area
                     key={key}
@@ -269,6 +268,17 @@ export default function UsagePage() {
                 })}
               </AreaChart>
             </ChartContainer>
+            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 pt-3">
+              {versionKeys.map((key) => (
+                <div key={key} className="flex items-center gap-1.5 text-xs">
+                  <div
+                    className="h-2 w-2 shrink-0 rounded-[2px]"
+                    style={{ backgroundColor: versionConfig[key]?.color }}
+                  />
+                  <span>{versionConfig[key]?.label}</span>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}

@@ -130,12 +130,16 @@ export function pctChange(
   previous: number,
   currentDays: number,
   previousDays: number,
+  formatLabel?: (pct: string) => string,
 ): string | null {
   if (previous === 0) return null;
   if (previousDays < currentDays * 0.5) return null;
   const pct = ((current - previous) / previous) * 100;
   const sign = pct >= 0 ? "+" : "";
-  return `${sign}${pct.toFixed(1)}% from previous period`;
+  const pctStr = `${sign}${pct.toFixed(1)}%`;
+  return formatLabel
+    ? formatLabel(pctStr)
+    : `${pctStr} from previous period`;
 }
 
 export function filterByDateRange<T extends { date: string }>(

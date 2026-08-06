@@ -77,6 +77,17 @@ export function formatDuration(seconds: number, compact = false): string {
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
+/** Encode an app version for use as a chart data key (dots are not CSS-safe). */
+export function encodeVersionSessionKey(version: string): string {
+  return `v${version.replace(/\./g, "_")}`;
+}
+
+/** Format an encoded version key for display (e.g. v1_18_0 → v1.18.0). */
+export function formatVersionSessionLabel(key: string): string {
+  if (!key.startsWith("v")) return key;
+  return `v${key.slice(1).replace(/_/g, ".")}`;
+}
+
 /** Check if a string is a valid HTTP(S) URL. Empty strings return true (optional fields). */
 export function isValidUrl(s: string): boolean {
   if (!s) return true;
