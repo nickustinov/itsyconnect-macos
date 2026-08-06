@@ -62,7 +62,6 @@ interface AppAnalytics {
 export default function DashboardPage() {
   const t = useTranslations();
   const { platformLabel, versionStateLabel } = useAscLabels();
-  const periodLabel = t("dashboard.fromPreviousPeriod");
   const router = useRouter();
   const searchParams = useSearchParams();
   const { apps, loading } = useApps();
@@ -474,7 +473,7 @@ export default function DashboardPage() {
                   ) : entry?.pending ? (
                     <p className="text-xs text-muted-foreground">{t("dashboard.pending")}</p>
                   ) : entry?.data ? (
-                    <AppCardStats data={entry.data} t={t} />
+                    <AppCardStats data={entry.data} />
                   ) : (
                     <p className="text-xs text-muted-foreground">{t("dashboard.noData")}</p>
                   )}
@@ -560,13 +559,8 @@ function pickPendingVersions(versions: AscVersion[]): AscVersion[] {
   return result;
 }
 
-function AppCardStats({
-  data,
-  t,
-}: {
-  data: AnalyticsData;
-  t: ReturnType<typeof useTranslations>;
-}) {
+function AppCardStats({ data }: { data: AnalyticsData }) {
+  const t = useTranslations();
   const downloads = data.dailyDownloads.reduce(
     (sum, d) => sum + d.firstTime + d.redownload,
     0,
