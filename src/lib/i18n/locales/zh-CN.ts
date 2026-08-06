@@ -198,6 +198,10 @@ export const zhCN: Messages = {
     pending: "处理中",
     noData: "无数据",
     total: "合计",
+    fromPreviousPeriod: "较上一周期",
+    cardDownloads: "下载量",
+    cardProceeds: "收入",
+    cardCrashFree: "无崩溃",
     analyticsGenerating: "正在生成分析报告",
     analyticsGeneratingHint:
       "App Store Connect 正在准备你的分析数据。首次报告通常需要 24–48 小时。数据就绪后将自动显示。",
@@ -386,8 +390,8 @@ export const zhCN: Messages = {
       descriptionPlaceholder: "描述你的 App…",
       keywords: "关键词",
       urls: "URL",
-      supportUrl: "支持 URL",
-      marketingUrl: "营销 URL",
+      supportUrl: "技术支持网址 (URL)",
+      marketingUrl: "营销网址 (URL)",
     },
     keywords: {
       empty: "空",

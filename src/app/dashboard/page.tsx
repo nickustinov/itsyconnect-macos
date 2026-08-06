@@ -62,6 +62,7 @@ interface AppAnalytics {
 export default function DashboardPage() {
   const t = useTranslations();
   const { platformLabel, versionStateLabel } = useAscLabels();
+  const periodLabel = t("dashboard.fromPreviousPeriod");
   const router = useRouter();
   const searchParams = useSearchParams();
   const { apps, loading } = useApps();
@@ -473,7 +474,7 @@ export default function DashboardPage() {
                   ) : entry?.pending ? (
                     <p className="text-xs text-muted-foreground">{t("dashboard.pending")}</p>
                   ) : entry?.data ? (
-                    <AppCardStats data={entry.data} />
+                    <AppCardStats data={entry.data} t={t} />
                   ) : (
                     <p className="text-xs text-muted-foreground">{t("dashboard.noData")}</p>
                   )}
@@ -559,7 +560,13 @@ function pickPendingVersions(versions: AscVersion[]): AscVersion[] {
   return result;
 }
 
-function AppCardStats({ data }: { data: AnalyticsData }) {
+function AppCardStats({
+  data,
+  t,
+}: {
+  data: AnalyticsData;
+  t: ReturnType<typeof useTranslations>;
+}) {
   const downloads = data.dailyDownloads.reduce(
     (sum, d) => sum + d.firstTime + d.redownload,
     0,
@@ -585,16 +592,16 @@ function AppCardStats({ data }: { data: AnalyticsData }) {
   return (
     <div className="grid grid-cols-3 gap-3 text-xs tabular-nums">
       <div>
-        <p className="text-muted-foreground">Downloads</p>
+        <p className="text-muted-foreground">{t("dashboard.cardDownloads")}</p>
         <p className="font-medium">{downloads.toLocaleString()}</p>
       </div>
       <div>
-        <p className="text-muted-foreground">Proceeds</p>
+        <p className="text-muted-foreground">{t("dashboard.cardProceeds")}</p>
         <p className="font-medium">${proceeds.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
       </div>
       {crashFree && (
         <div>
-          <p className="text-muted-foreground">Crash-free</p>
+          <p className="text-muted-foreground">{t("dashboard.cardCrashFree")}</p>
           <p className="font-medium">{crashFree}%</p>
         </div>
       )}

@@ -199,6 +199,10 @@ export const ru: Messages = {
     pending: "Ожидается",
     noData: "Нет данных",
     total: "Всего",
+    fromPreviousPeriod: "по сравнению с предыдущим периодом",
+    cardDownloads: "Загрузки",
+    cardProceeds: "Выручка",
+    cardCrashFree: "Без сбоев",
     analyticsGenerating: "Отчёты аналитики формируются",
     analyticsGeneratingHint:
       "App Store Connect готовит данные аналитики. Первый отчёт обычно занимает 24–48 часов. Данные появятся здесь автоматически, как только будут готовы.",

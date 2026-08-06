@@ -47,6 +47,7 @@ export default function AnalyticsOverviewPage() {
     t,
   } = useAnalyticsLabels();
   const searchParams = useSearchParams();
+  const periodLabel = t("dashboard.fromPreviousPeriod");
   const { appId } = useParams<{ appId: string }>();
   const { markers } = useAppMarkers(appId);
   const { data, lastDate } = useAnalytics();
@@ -143,25 +144,25 @@ export default function AnalyticsOverviewPage() {
         <KpiCard
           title={t("analytics.impressions")}
           value={totalImpressions.toLocaleString()}
-          subtitle={pctChange(totalImpressions, prevImpressions, engagement.length, prevEngagementData.length)}
+          subtitle={pctChange(totalImpressions, prevImpressions, engagement.length, prevEngagementData.length, periodLabel)}
           icon={Eye}
         />
         <KpiCard
           title={t("analytics.totalDownloads")}
           value={totalDownloads.toLocaleString()}
-          subtitle={pctChange(totalDownloads, prevDownloads, downloads.length, prevDownloadsData.length)}
+          subtitle={pctChange(totalDownloads, prevDownloads, downloads.length, prevDownloadsData.length, periodLabel)}
           icon={DownloadSimple}
         />
         <KpiCard
           title={t("analytics.proceeds")}
           value={`$${totalRevenue.toLocaleString()}`}
-          subtitle={pctChange(totalRevenue, prevRevenue, revenue.length, prevRevenueData.length)}
+          subtitle={pctChange(totalRevenue, prevRevenue, revenue.length, prevRevenueData.length, periodLabel)}
           icon={CurrencyDollar}
         />
         <KpiCard
           title={t("analytics.firstTimeDownloads")}
           value={totalFirstTime.toLocaleString()}
-          subtitle={pctChange(totalFirstTime, prevFirstTime, downloads.length, prevDownloadsData.length)}
+          subtitle={pctChange(totalFirstTime, prevFirstTime, downloads.length, prevDownloadsData.length, periodLabel)}
           icon={Timer}
         />
       </div>
