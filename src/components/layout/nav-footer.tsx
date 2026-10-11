@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/sidebar";
 import { AddAccountDialog } from "./add-account-dialog";
 import { useTranslations } from "@/lib/i18n/locale-context";
+import { useApps } from "@/lib/apps-context";
 
 interface Account {
   id: string;
@@ -40,6 +41,7 @@ export function NavFooter() {
   const { isMobile } = useSidebar();
   const { guardNavigation } = useFormDirty();
   const t = useTranslations();
+  const { refresh: refreshApps } = useApps();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [switching, setSwitching] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -71,7 +73,7 @@ export function NavFooter() {
         method: "POST",
       });
       if (res.ok) {
-        await fetchAccounts();
+        await Promise.all([fetchAccounts(), refreshApps()]);
         router.push("/dashboard?entry=1");
         router.refresh();
       }
@@ -87,7 +89,7 @@ export function NavFooter() {
 
   async function handleAccountAdded() {
     setDialogOpen(false);
-    await fetchAccounts();
+    await Promise.all([fetchAccounts(), refreshApps()]);
     guardNavigation(() => {
       router.push("/dashboard?entry=1");
       router.refresh();
