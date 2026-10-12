@@ -22,6 +22,7 @@ export const de: Messages = {
       languageFr: "Français",
       languageDe: "Deutsch",
       languageRu: "Русский",
+      languageJa: "日本語",
       languageSystemHint:
         "System verwendet Ihre macOS-Sprache, sofern eine passende Übersetzung verfügbar ist, andernfalls Englisch.",
     },

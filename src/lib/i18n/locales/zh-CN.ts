@@ -22,6 +22,7 @@ export const zhCN: Messages = {
       languageFr: "Français",
       languageDe: "Deutsch",
       languageRu: "Русский",
+      languageJa: "日本語",
       languageSystemHint:
         "跟随系统会优先使用与 macOS 语言匹配的翻译，找不到匹配项时使用英文。",
     },

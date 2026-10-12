@@ -7,6 +7,7 @@ const LANGUAGE_MAP: Record<string, SupportedLocale> = {
   fr: "fr",
   de: "de",
   ru: "ru",
+  ja: "ja",
 };
 
 /**

@@ -42,7 +42,7 @@ describe("resolveLocaleFromRequest", () => {
   it("defaults to English when nothing matches", () => {
     expect(resolveLocaleFromRequest({})).toBe("en");
     expect(
-      resolveLocaleFromRequest({ acceptLanguage: "ja" }),
+      resolveLocaleFromRequest({ acceptLanguage: "it" }),
     ).toBe("en");
   });
 });

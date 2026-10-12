@@ -12,20 +12,12 @@ import {
 import { Globe, Monitor, Moon, Sun } from "@phosphor-icons/react";
 import { useLocale, useTranslations } from "@/lib/i18n/locale-context";
 import type { LocalePreference } from "@/lib/i18n/types";
+import { LANGUAGE_OPTIONS } from "./language-options";
 
 const THEME_OPTIONS = [
   { value: "system", labelKey: "settings.appearance.themeSystem" as const, icon: Monitor },
   { value: "light", labelKey: "settings.appearance.themeLight" as const, icon: Sun },
   { value: "dark", labelKey: "settings.appearance.themeDark" as const, icon: Moon },
-] as const;
-
-const LANGUAGE_OPTIONS = [
-  { value: "system", labelKey: "settings.appearance.languageSystem" as const, icon: Monitor },
-  { value: "en", labelKey: "settings.appearance.languageEn" as const, icon: Globe },
-  { value: "zh-CN", labelKey: "settings.appearance.languageZhCN" as const, icon: Globe },
-  { value: "fr", labelKey: "settings.appearance.languageFr" as const, icon: Globe },
-  { value: "de", labelKey: "settings.appearance.languageDe" as const, icon: Globe },
-  { value: "ru", labelKey: "settings.appearance.languageRu" as const, icon: Globe },
 ] as const;
 
 export default function AppearancePage() {
