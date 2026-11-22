@@ -199,6 +199,10 @@ export const fr: Messages = {
     pending: "En attente",
     noData: "Aucune donnée",
     total: "Total",
+    fromPreviousPeriod: "par rapport à la période précédente",
+    cardDownloads: "Téléchargements",
+    cardProceeds: "Recettes",
+    cardCrashFree: "Sans crash",
     analyticsGenerating: "Les rapports analytiques sont en cours de génération",
     analyticsGeneratingHint:
       "App Store Connect prépare vos données analytiques. Cela prend généralement 24 à 48 heures pour le premier rapport. Les données apparaîtront ici automatiquement dès qu’elles seront prêtes.",

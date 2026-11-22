@@ -197,6 +197,10 @@ export const en = {
     pending: "Pending",
     noData: "No data",
     total: "Total",
+    fromPreviousPeriod: "from previous period",
+    cardDownloads: "Downloads",
+    cardProceeds: "Proceeds",
+    cardCrashFree: "Crash-free",
     analyticsGenerating: "Analytics reports are being generated",
     analyticsGeneratingHint:
       "App Store Connect is preparing your analytics data. This typically takes 24–48 hours for the first report. Data will appear here automatically once it's ready.",
