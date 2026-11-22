@@ -45,7 +45,10 @@ export function useAnalyticsLabels() {
     (): ChartConfig => ({
       search: { label: t("analytics.appStoreSearch"), color: "var(--color-chart-1)" },
       browse: { label: t("analytics.appStoreBrowse"), color: "var(--color-chart-2)" },
+      appReferrer: { label: t("analytics.appReferrer"), color: "var(--color-chart-6)" },
       webReferrer: { label: t("analytics.webReferrer"), color: "var(--color-chart-3)" },
+      appClip: { label: t("analytics.appClip"), color: "var(--color-chart-7)" },
+      institutionalPurchase: { label: t("analytics.institutionalPurchase"), color: "var(--color-chart-8)" },
       unavailable: { label: t("analytics.unavailable"), color: "var(--color-chart-4)" },
       count: { label: t("analytics.totalDownloads") },
     }),
@@ -64,7 +67,10 @@ export function useAnalyticsLabels() {
     (): ChartConfig => ({
       search: { label: t("analytics.search"), color: "var(--color-chart-1)" },
       browse: { label: t("analytics.browse"), color: "var(--color-chart-2)" },
+      appReferrer: { label: t("analytics.appReferrer"), color: "var(--color-chart-6)" },
       webReferrer: { label: t("analytics.webReferrer"), color: "var(--color-chart-3)" },
+      appClip: { label: t("analytics.appClip"), color: "var(--color-chart-7)" },
+      institutionalPurchase: { label: t("analytics.institutionalPurchase"), color: "var(--color-chart-8)" },
       unavailable: { label: t("analytics.unavailable"), color: "var(--color-chart-4)" },
     }),
     [t],

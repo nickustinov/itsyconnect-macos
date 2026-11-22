@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { hasCredentials } from "@/lib/asc/client";
-import { cacheGet, cacheGetMeta } from "@/lib/cache";
-import { buildAnalyticsData, getReportInitiatedAt, type AnalyticsData } from "@/lib/asc/analytics";
+import { cacheGetMeta } from "@/lib/cache";
+import { buildAnalyticsData, getCachedAnalytics, getReportInitiatedAt } from "@/lib/asc/analytics";
 import { isDemoMode, getDemoAnalytics } from "@/lib/demo";
 
 export async function GET(
@@ -18,7 +18,7 @@ export async function GET(
     return NextResponse.json({ data: null, meta: null });
   }
 
-  const data = cacheGet<AnalyticsData>(`analytics:${appId}`, true);
+  const data = getCachedAnalytics(appId);
   if (data) {
     const meta = cacheGetMeta(`analytics:${appId}`);
     return NextResponse.json({ data, meta });

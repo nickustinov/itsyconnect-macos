@@ -1,4 +1,6 @@
 import { localeName } from "@/lib/asc/locale-names";
+import type { AnalyticsData } from "@/lib/asc/analytics-types";
+import { discoverySourceName, sumDiscoverySources, sumTerritories } from "@/lib/asc/analytics-summary";
 
 export interface FieldContext {
   field: string;
@@ -279,11 +281,10 @@ interface AnalyticsDataForPrompt {
   dailyEngagement: Array<{ date: string; impressions: number; pageViews: number }>;
   dailySessions: Array<{ date: string; sessions: number; uniqueDevices: number; avgDuration: number }>;
   dailyInstallsDeletes: Array<{ date: string; installs: number; deletes: number }>;
-  dailyDownloadsBySource: Array<{ date: string; search: number; browse: number; webReferrer: number; unavailable: number }>;
-  dailyTerritoryDownloads: Array<{ date: string; code: string; downloads: number }>;
+  dailyDownloadsBySource: AnalyticsData["dailyDownloadsBySource"];
+  dailyTerritoryDownloads: AnalyticsData["dailyTerritoryDownloads"];
+  dailyTerritoryRevenue: AnalyticsData["dailyTerritoryRevenue"];
   dailyCrashes: Array<{ date: string; crashes: number; uniqueDevices: number }>;
-  territories: Array<{ territory: string; code: string; downloads: number; revenue: number }>;
-  discoverySources: Array<{ source: string; count: number }>;
   crashesByVersion: Array<{ version: string; platform: string; crashes: number; uniqueDevices: number }>;
 }
 
@@ -362,18 +363,19 @@ function summariseAnalytics(data: AnalyticsDataForPrompt): string {
   }
 
   // Discovery sources
-  if (data.discoverySources.length > 0) {
-    const sourceTotal = sum(data.discoverySources.map((s) => s.count));
-    const sourceLines = data.discoverySources
-      .filter((s) => s.count > 0)
-      .map((s) => `${s.source}: ${s.count.toLocaleString()} (${((s.count / sourceTotal) * 100).toFixed(0)}%)`)
+  const sources = sumDiscoverySources(data.dailyDownloadsBySource);
+  if (sources.length > 0) {
+    const sourceTotal = sum(sources.map((s) => s.count));
+    const sourceLines = sources
+      .map((s) => `${discoverySourceName(s.source)}: ${s.count.toLocaleString()} (${((s.count / sourceTotal) * 100).toFixed(0)}%)`)
       .join(", ");
     lines.push(`\nDiscovery sources: ${sourceLines}`);
   }
 
   // Top territories
-  if (data.territories.length > 0) {
-    const top = data.territories.slice(0, 10);
+  const territories = sumTerritories(data.dailyTerritoryDownloads, data.dailyTerritoryRevenue);
+  if (territories.length > 0) {
+    const top = territories.slice(0, 10);
     lines.push(`\nTop territories by downloads: ${top.map((t) => `${t.territory} (${t.downloads.toLocaleString()})`).join(", ")}`);
   }
 

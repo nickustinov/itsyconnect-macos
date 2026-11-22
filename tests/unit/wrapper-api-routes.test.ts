@@ -10,6 +10,7 @@ const mockCacheGetMeta = vi.fn();
 const mockCacheSet = vi.fn();
 const mockCacheInvalidate = vi.fn();
 const mockBuildAnalyticsData = vi.fn();
+const mockGetCachedAnalytics = vi.fn();
 const mockGetReportInitiatedAt = vi.fn();
 const mockListAppInfos = vi.fn();
 const mockUpdateAppAttributes = vi.fn();
@@ -50,6 +51,7 @@ vi.mock("@/lib/cache", () => ({
 
 vi.mock("@/lib/asc/analytics", () => ({
   buildAnalyticsData: (...args: unknown[]) => mockBuildAnalyticsData(...args),
+  getCachedAnalytics: (...args: unknown[]) => mockGetCachedAnalytics(...args),
   getReportInitiatedAt: (...args: unknown[]) => mockGetReportInitiatedAt(...args),
 }));
 
@@ -109,6 +111,8 @@ describe("wrapper API routes", () => {
     mockCacheInvalidate.mockReset();
     mockBuildAnalyticsData.mockReset();
     mockBuildAnalyticsData.mockResolvedValue(undefined);
+    mockGetCachedAnalytics.mockReset();
+    mockGetCachedAnalytics.mockReturnValue(null);
     mockGetReportInitiatedAt.mockReset();
     mockGetReportInitiatedAt.mockReturnValue(null);
     mockListAppInfos.mockReset();
@@ -155,20 +159,20 @@ describe("wrapper API routes", () => {
   it("GET /api/apps/[appId]/analytics returns cached analytics with metadata", async () => {
     const { GET } = await import("@/app/api/apps/[appId]/analytics/route");
     const analytics = { dailyDownloads: [{ date: "2026-03-01", firstTime: 4 }], dailyRevenue: [] };
-    mockCacheGet.mockReturnValue(analytics);
+    mockGetCachedAnalytics.mockReturnValue(analytics);
     mockCacheGetMeta.mockReturnValue({ updatedAt: 123 });
 
     const response = await GET(new Request("http://localhost"), {
       params: Promise.resolve({ appId: "app-1" }),
     });
 
-    expect(mockCacheGet).toHaveBeenCalledWith("analytics:app-1", true);
+    expect(mockGetCachedAnalytics).toHaveBeenCalledWith("app-1");
+    expect(mockCacheGetMeta).toHaveBeenCalledWith("analytics:app-1");
     expect(await response.json()).toEqual({ data: analytics, meta: { updatedAt: 123 } });
   });
 
   it("GET /api/apps/[appId]/analytics returns pending and triggers a background build", async () => {
     const { GET } = await import("@/app/api/apps/[appId]/analytics/route");
-    mockCacheGet.mockReturnValue(null);
     mockGetReportInitiatedAt.mockReturnValue("2026-03-10T00:00:00.000Z");
 
     const response = await GET(new Request("http://localhost"), {
@@ -194,7 +198,6 @@ describe("wrapper API routes", () => {
     expect(await response.json()).toEqual({ data: null, meta: null });
 
     mockHasCredentials.mockReturnValue(true);
-    mockCacheGet.mockReturnValue(null);
     mockGetReportInitiatedAt.mockReturnValue(null);
     response = await GET(new Request("http://localhost"), {
       params: Promise.resolve({ appId: "app-1" }),
@@ -204,7 +207,6 @@ describe("wrapper API routes", () => {
 
   it("GET /api/apps/[appId]/analytics logs error when background build fails", async () => {
     const { GET } = await import("@/app/api/apps/[appId]/analytics/route");
-    mockCacheGet.mockReturnValue(null);
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     mockBuildAnalyticsData.mockRejectedValue(new Error("build failed"));
 

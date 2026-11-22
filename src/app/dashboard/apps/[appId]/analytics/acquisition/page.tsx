@@ -25,19 +25,13 @@ import {
   ChartLegendContent,
 } from "@/components/ui/chart";
 import { formatDateShort } from "@/lib/format";
+import { PAIRED_BAR_GAP } from "@/lib/chart-layout";
+import { DISCOVERY_SOURCES } from "@/lib/asc/analytics-types";
+import { sumDiscoverySources } from "@/lib/asc/analytics-summary";
 import { useAnalytics } from "@/lib/analytics-context";
 import { parseRange, filterByDateRange, getStoredRange } from "@/lib/analytics-range";
 import { AnalyticsStateGuard } from "@/components/analytics-state-guard";
 import { useAnalyticsLabels } from "@/lib/i18n/use-analytics-labels";
-
-// ---------- Fill colours for discovery sources ----------
-
-const SOURCE_FILLS: Record<string, string> = {
-  search: "var(--color-search)",
-  browse: "var(--color-browse)",
-  webReferrer: "var(--color-webReferrer)",
-  unavailable: "var(--color-unavailable)",
-};
 
 // ---------- Page ----------
 
@@ -68,17 +62,22 @@ export default function AcquisitionPage() {
     [data, range],
   );
 
-  // Add fill property client-side if not present
+  // Totals for the selected range, largest first
   const discoverySources = useMemo(
     () =>
-      (data?.discoverySources ?? []).map((s) => ({
+      sumDiscoverySources(downloadsBySource).map((s) => ({
         ...s,
-        fill: s.fill || SOURCE_FILLS[s.source] || "var(--color-chart-1)",
+        fill: `var(--color-${s.source})`,
       })),
-    [data],
+    [downloadsBySource],
   );
 
   const totalSources = discoverySources.reduce((s, d) => s + d.count, 0);
+
+  // Stack only the sources with downloads in the range, in Apple's order
+  const stackedSources = DISCOVERY_SOURCES
+    .map((s) => s.key)
+    .filter((key) => discoverySources.some((s) => s.source === key));
 
   return (
     <AnalyticsStateGuard>
@@ -226,30 +225,15 @@ export default function AcquisitionPage() {
                 }
               />
               <ChartLegend content={<ChartLegendContent />} />
-              <Bar
-                dataKey="search"
-                stackId="1"
-                fill="var(--color-search)"
-                radius={[0, 0, 0, 0]}
-              />
-              <Bar
-                dataKey="browse"
-                stackId="1"
-                fill="var(--color-browse)"
-                radius={[0, 0, 0, 0]}
-              />
-              <Bar
-                dataKey="webReferrer"
-                stackId="1"
-                fill="var(--color-webReferrer)"
-                radius={[0, 0, 0, 0]}
-              />
-              <Bar
-                dataKey="unavailable"
-                stackId="1"
-                fill="var(--color-unavailable)"
-                radius={[4, 4, 0, 0]}
-              />
+              {stackedSources.map((key, i) => (
+                <Bar
+                  key={key}
+                  dataKey={key}
+                  stackId="1"
+                  fill={`var(--color-${key})`}
+                  radius={i === stackedSources.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+                />
+              ))}
               {renderMarkers({
                 markers,
                 visibleDates: downloadsBySource.map((d) => d.date),
@@ -271,7 +255,7 @@ export default function AcquisitionPage() {
               config={webPreviewConfig}
               className="h-[280px] w-full"
             >
-              <BarChart data={webPreview} accessibilityLayer>
+              <BarChart data={webPreview} barGap={PAIRED_BAR_GAP} accessibilityLayer>
                 <CartesianGrid vertical={false} />
                 <XAxis
                   dataKey="date"

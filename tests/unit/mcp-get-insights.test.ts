@@ -100,13 +100,26 @@ function emptyAnalytics() {
     dailyVersionSessions: [],
     dailyOptIn: [],
     dailyWebPreview: [],
-    territories: [],
-    discoverySources: [],
+    dailyTerritoryRevenue: [],
     crashesByVersion: [],
     crashesByDevice: [],
     dailyCrashes: [],
     perfMetrics: [],
     perfRegressions: [],
+  };
+}
+
+function sourceRow(date: string, counts: Record<string, number>) {
+  return {
+    date,
+    search: 0,
+    browse: 0,
+    appReferrer: 0,
+    webReferrer: 0,
+    appClip: 0,
+    institutionalPurchase: 0,
+    unavailable: 0,
+    ...counts,
   };
 }
 
@@ -203,13 +216,16 @@ describe("get_insights", () => {
         dailyCrashes: [
           { date: today(), crashes: 3, uniqueDevices: 2 },
         ],
-        territories: [
-          { territory: "United States", code: "US", downloads: 100, revenue: 200 },
-          { territory: "Germany", code: "DE", downloads: 50, revenue: 80 },
+        dailyTerritoryDownloads: [
+          { date: today(), code: "US", downloads: 100 },
+          { date: today(), code: "DE", downloads: 50 },
         ],
-        discoverySources: [
-          { source: "search", count: 80, fill: "" },
-          { source: "browse", count: 20, fill: "" },
+        dailyTerritoryRevenue: [
+          { date: today(), code: "US", proceeds: 200 },
+          { date: today(), code: "DE", proceeds: 80 },
+        ],
+        dailyDownloadsBySource: [
+          sourceRow(today(), { search: 80, appReferrer: 20 }),
         ],
       });
 
@@ -220,9 +236,37 @@ describe("get_insights", () => {
       expect(text).toContain("180 first-time");
       expect(text).toContain("$270.50");
       expect(text).toContain("Sessions: 500");
-      expect(text).toContain("United States");
-      expect(text).toContain("search");
-      expect(text).toContain("80%");
+      expect(text).toContain("- United States (US): 100 downloads, $200.00");
+      expect(text).toContain("- App Store search: 80 (80%)");
+      expect(text).toContain("- App referrer: 20 (20%)");
+    });
+
+    it("limits territories and discovery sources to the period", async () => {
+      mockBuildAnalyticsData.mockResolvedValue({
+        ...emptyAnalytics(),
+        dailyDownloads: [{ date: today(), firstTime: 10, redownload: 0, update: 0 }],
+        dailyTerritoryDownloads: [
+          { date: today(), code: "US", downloads: 10 },
+          { date: daysAgoDate(60), code: "US", downloads: 500 },
+          { date: daysAgoDate(60), code: "JP", downloads: 300 },
+        ],
+        dailyTerritoryRevenue: [
+          { date: today(), code: "US", proceeds: 5 },
+          { date: daysAgoDate(60), code: "US", proceeds: 900 },
+        ],
+        dailyDownloadsBySource: [
+          sourceRow(today(), { search: 10 }),
+          sourceRow(daysAgoDate(60), { browse: 800 }),
+        ],
+      });
+
+      const result = await toolHandler({ app: "Test", topic: "analytics", period: "week" });
+      const text = (result.content[0] as { text: string }).text;
+
+      expect(text).toContain("- United States (US): 10 downloads, $5.00");
+      expect(text).not.toContain("Japan");
+      expect(text).toContain("- App Store search: 10 (100%)");
+      expect(text).not.toContain("App Store browse");
     });
 
     it("handles empty analytics", async () => {

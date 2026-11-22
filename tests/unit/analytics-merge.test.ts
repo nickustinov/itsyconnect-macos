@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   mergeAnalyticsData,
+  normaliseAnalyticsData,
   emptyAnalyticsData,
   findDateGaps,
   downloadGapSignature,
@@ -51,22 +52,61 @@ describe("mergeAnalyticsData – daily series", () => {
       { date: "2026-01-01", code: "USA", downloads: 7 },
     ]);
   });
+
+  it("merges territory proceeds by date+code and sorts by date then code", () => {
+    const existing = make({
+      dailyTerritoryRevenue: [
+        { date: "2026-01-02", code: "USA", proceeds: 1 },
+        { date: "2026-01-01", code: "USA", proceeds: 5 },
+      ],
+    });
+    const fresh = make({
+      dailyTerritoryRevenue: [
+        { date: "2026-01-01", code: "DEU", proceeds: 2 },
+        { date: "2026-01-01", code: "USA", proceeds: 7 },
+      ],
+    });
+    const merged = mergeAnalyticsData(existing, fresh);
+    expect(merged.dailyTerritoryRevenue).toEqual([
+      { date: "2026-01-01", code: "DEU", proceeds: 2 },
+      { date: "2026-01-01", code: "USA", proceeds: 7 },
+      { date: "2026-01-02", code: "USA", proceeds: 1 },
+    ]);
+  });
+});
+
+describe("normaliseAnalyticsData", () => {
+  it("fills in series missing from data cached by an older version", () => {
+    const old = { ...emptyAnalyticsData(), dailyDownloads: [dl("2026-01-01", 3)] } as Partial<AnalyticsData>;
+    delete old.dailyTerritoryRevenue;
+    const normalised = normaliseAnalyticsData(old as AnalyticsData);
+    expect(normalised.dailyTerritoryRevenue).toEqual([]);
+    expect(normalised.dailyDownloads).toEqual([dl("2026-01-01", 3)]);
+  });
+
+  it("gives older source rows a zero for every source they lack", () => {
+    const old = make({
+      dailyDownloadsBySource: [
+        { date: "2026-01-01", search: 4, browse: 2, webReferrer: 1, unavailable: 0 } as AnalyticsData["dailyDownloadsBySource"][number],
+      ],
+    });
+    expect(normaliseAnalyticsData(old).dailyDownloadsBySource).toEqual([
+      {
+        date: "2026-01-01",
+        search: 4,
+        browse: 2,
+        appReferrer: 0,
+        webReferrer: 1,
+        appClip: 0,
+        institutionalPurchase: 0,
+        unavailable: 0,
+      },
+    ]);
+  });
 });
 
 describe("mergeAnalyticsData – window-cumulative aggregates", () => {
-  it("keeps the existing aggregate when fresh has a smaller total (shorter window)", () => {
-    const existing = make({ territories: [{ territory: "United States", code: "USA", downloads: 100, revenue: 9 }] });
-    const fresh = make({ territories: [{ territory: "United States", code: "USA", downloads: 40, revenue: 4 }] });
-    expect(mergeAnalyticsData(existing, fresh).territories[0].downloads).toBe(100);
-  });
-
-  it("takes the fresh aggregate when its total is larger or equal", () => {
-    const existing = make({ discoverySources: [{ source: "Search", count: 10, fill: "#000" }] });
-    const fresh = make({ discoverySources: [{ source: "Search", count: 25, fill: "#000" }] });
-    expect(mergeAnalyticsData(existing, fresh).discoverySources[0].count).toBe(25);
-  });
-
-  it("merges crash aggregates by total too", () => {
+  it("merges crash aggregates by total", () => {
     const existing = make({
       crashesByVersion: [{ version: "1.0", platform: "IOS", crashes: 50, uniqueDevices: 5 }],
       crashesByDevice: [{ device: "iPhone", crashes: 8, uniqueDevices: 2 }],

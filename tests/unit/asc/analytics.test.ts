@@ -44,7 +44,13 @@ vi.mock("@/db/schema", () => ({
 // Replace global fetch
 vi.stubGlobal("fetch", mockFetch);
 
-import { buildAnalyticsData, parseTsv, fetchPerfPowerMetrics, getReportInitiatedAt } from "@/lib/asc/analytics";
+import {
+  buildAnalyticsData,
+  getCachedAnalytics,
+  parseTsv,
+  fetchPerfPowerMetrics,
+  getReportInitiatedAt,
+} from "@/lib/asc/analytics";
 import { emptyAnalyticsData } from "@/lib/asc/analytics-types";
 import { AscApiError } from "@/lib/asc/client";
 
@@ -144,7 +150,7 @@ describe("buildAnalyticsData", () => {
     mockCacheGet.mockReturnValue(cachedData);
 
     const result = await buildAnalyticsData("app-cached");
-    expect(result).toBe(cachedData);
+    expect(result).toEqual({ ...emptyAnalyticsData(), ...cachedData });
     expect(mockAscFetch).not.toHaveBeenCalled();
     expect(mockCacheGet).toHaveBeenCalledWith("analytics:app-cached");
   });
@@ -556,7 +562,10 @@ describe("buildAnalyticsData – full pipeline", () => {
       date: "2026-02-01",
       search: 10,
       browse: 5,
+      appReferrer: 0,
       webReferrer: 0,
+      appClip: 0,
+      institutionalPurchase: 0,
       unavailable: 0,
     });
 
@@ -568,6 +577,12 @@ describe("buildAnalyticsData – full pipeline", () => {
         { date: "2026-02-02", code: "GB", downloads: 8 },
       ]),
     );
+
+    // Daily territory proceeds
+    expect(result.dailyTerritoryRevenue).toEqual([
+      { date: "2026-02-01", code: "US", proceeds: 45.5 },
+      { date: "2026-02-02", code: "DE", proceeds: 12.3 },
+    ]);
 
     // Version sessions
     expect(result.dailyVersionSessions).toHaveLength(1);
@@ -592,23 +607,6 @@ describe("buildAnalyticsData – full pipeline", () => {
       pageViews: 40,
       appStoreTaps: 12,
     });
-
-    // Territories (first-time + redownload only)
-    expect(result.territories).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ code: "US", downloads: 10 }),
-        expect.objectContaining({ code: "DE", downloads: 5 }),
-        expect.objectContaining({ code: "GB", downloads: 8 }),
-      ]),
-    );
-
-    // Discovery sources (first-time + redownload only)
-    expect(result.discoverySources).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ source: "search", count: 10 }),
-        expect.objectContaining({ source: "browse", count: 5 }),
-      ]),
-    );
 
     // Crashes – Date should have been injected from processingDate
     expect(result.crashesByVersion).toEqual(
@@ -746,6 +744,40 @@ describe("buildAnalyticsData – full pipeline", () => {
 });
 
 describe("buildAnalyticsData – caching tiers", () => {
+  it("brings data cached by an older version up to the current shape", async () => {
+    const old = {
+      ...emptyAnalyticsData(),
+      dailyDownloadsBySource: [{ date: "2026-02-01", search: 3, browse: 1, webReferrer: 2, unavailable: 0 }],
+    } as Record<string, unknown>;
+    delete old.dailyTerritoryRevenue;
+    mockCacheGet.mockImplementation((key: string) => (key === "analytics:app-old-cache" ? old : null));
+
+    const result = await buildAnalyticsData("app-old-cache");
+    expect(result.dailyTerritoryRevenue).toEqual([]);
+    expect(result.dailyDownloadsBySource[0]).toEqual({
+      date: "2026-02-01",
+      search: 3,
+      browse: 1,
+      appReferrer: 0,
+      webReferrer: 2,
+      appClip: 0,
+      institutionalPurchase: 0,
+      unavailable: 0,
+    });
+    expect(mockAscFetch).not.toHaveBeenCalled();
+  });
+
+  it("serves cached analytics to the routes in the current shape", () => {
+    const old = { ...emptyAnalyticsData() } as Record<string, unknown>;
+    delete old.dailyTerritoryRevenue;
+    mockCacheGet.mockImplementation((key: string, includeStale: boolean) =>
+      key === "analytics:app-route-cache" && includeStale ? old : null,
+    );
+
+    expect(getCachedAnalytics("app-route-cache")!.dailyTerritoryRevenue).toEqual([]);
+    expect(getCachedAnalytics("app-missing")).toBeNull();
+  });
+
   it("uses SQLite-cached report request IDs (skips API)", async () => {
     // Analytics cache miss
     mockCacheGet.mockImplementation((key: string) => {
@@ -1726,7 +1758,10 @@ describe("aggregation output shapes", () => {
       date: "2026-02-01",
       search: 10,
       browse: 5,
+      appReferrer: 0,
       webReferrer: 0,
+      appClip: 0,
+      institutionalPurchase: 0,
       unavailable: 0,
     });
   });
@@ -1790,16 +1825,18 @@ describe("aggregation output shapes", () => {
     });
 
     const result = await buildAnalyticsData("app-terr");
-    // US should be first (most downloads), Auto-update excluded
-    expect(result.territories[0]).toEqual(
-      expect.objectContaining({ code: "US", downloads: 150, revenue: 200 }),
-    );
-    expect(result.territories[1]).toEqual(
-      expect.objectContaining({ code: "DE", downloads: 30, revenue: 50 }),
-    );
+    // Auto-update excluded
+    expect(result.dailyTerritoryDownloads).toEqual([
+      { date: "2026-02-01", code: "US", downloads: 150 },
+      { date: "2026-02-01", code: "DE", downloads: 30 },
+    ]);
+    expect(result.dailyTerritoryRevenue).toEqual([
+      { date: "2026-02-01", code: "DE", proceeds: 50 },
+      { date: "2026-02-01", code: "US", proceeds: 200 },
+    ]);
   });
 
-  it("aggregateDiscoverySources maps source names to keys", async () => {
+  it("aggregateDownloadsBySource counts every source type Apple reports", async () => {
     mockCacheGet.mockReturnValue(null);
 
     const tsv = tsvString(
@@ -1807,7 +1844,10 @@ describe("aggregation output shapes", () => {
       [
         ["2026-02-01", "First-time download", "App Store search", "50"],
         ["2026-02-01", "Redownload", "App Store browse", "30"],
+        ["2026-02-01", "First-time download", "App referrer", "25"],
         ["2026-02-01", "First-time download", "Web referrer", "20"],
+        ["2026-02-01", "First-time download", "App Clip", "4"],
+        ["2026-02-01", "First-time download", "Institutional purchase", "3"],
         ["2026-02-01", "First-time download", "Unavailable", "10"],
       ],
     );
@@ -1833,11 +1873,17 @@ describe("aggregation output shapes", () => {
     mockFetch.mockResolvedValue(makeFetchResponse(tsv));
 
     const result = await buildAnalyticsData("app-disc");
-    expect(result.discoverySources).toEqual([
-      { source: "search", count: 50, fill: "var(--color-search)" },
-      { source: "browse", count: 30, fill: "var(--color-browse)" },
-      { source: "webReferrer", count: 20, fill: "var(--color-webReferrer)" },
-      { source: "unavailable", count: 10, fill: "var(--color-unavailable)" },
+    expect(result.dailyDownloadsBySource).toEqual([
+      {
+        date: "2026-02-01",
+        search: 50,
+        browse: 30,
+        appReferrer: 25,
+        webReferrer: 20,
+        appClip: 4,
+        institutionalPurchase: 3,
+        unavailable: 10,
+      },
     ]);
   });
 
@@ -2214,121 +2260,6 @@ describe("findReportId caches all reports from a category", () => {
     );
     expect(commerceCalls.length).toBeGreaterThanOrEqual(1);
     expect(commerceCalls.length).toBeLessThanOrEqual(5);
-  });
-});
-
-describe("aggregateTerritories – Intl.DisplayNames throw fallback", () => {
-  it("falls back to raw code when Intl.DisplayNames.of() throws", async () => {
-    mockCacheGet.mockReturnValue(null);
-
-    // "INVALID" is not a valid ISO 3166 region code, so Intl.DisplayNames.of() throws
-    const tsv = tsvString(
-      ["Date", "Download Type", "Territory", "Counts"],
-      [
-        ["2026-02-01", "First-time download", "INVALID", "7"],
-        ["2026-02-01", "First-time download", "US", "10"],
-      ],
-    );
-
-    const purchaseTsv = tsvString(
-      ["Date", "Territory", "Proceeds in USD", "Sales in USD"],
-      [],
-    );
-
-    mockAscFetch.mockImplementation(async (url: string) => {
-      if (url.includes("/analyticsReportRequests") && !url.includes("/reports")) {
-        return reportRequestsResponse(["req-intl-throw"]);
-      }
-      if (url.includes("/reports?filter")) {
-        const category = url.match(/filter\[category\]=([^&]+)/)?.[1] ?? "";
-        if (category === "COMMERCE") {
-          return reportsResponse([
-            { id: "rpt-intl-dl", name: "App Downloads Standard", category: "COMMERCE" },
-            { id: "rpt-intl-pur", name: "App Store Purchases Standard", category: "COMMERCE" },
-          ]);
-        }
-        return { data: [] };
-      }
-      if (url.includes("/instances?")) {
-        return instancesResponse([
-          {
-            id: `inst-${url.match(/analyticsReports\/([^/]+)/)?.[1]}`,
-            processingDate: "2026-02-01",
-          },
-        ]);
-      }
-      if (url.includes("/segments")) {
-        const instId = url.match(/Instances\/([^/]+)/)?.[1] ?? "";
-        return segmentsResponse([
-          { id: `seg-${instId}`, url: `https://s3.example.com/${instId}.tsv` },
-        ]);
-      }
-      return { data: [] };
-    });
-
-    mockFetch.mockImplementation(async (url: string) => {
-      if (url.includes("rpt-intl-dl")) return makeFetchResponse(tsv);
-      if (url.includes("rpt-intl-pur")) return makeFetchResponse(purchaseTsv);
-      return makeFetchResponse("");
-    });
-
-    const result = await buildAnalyticsData("app-intl-throw");
-
-    // The invalid code should fall back to the raw code string "INVALID"
-    const invalidTerritory = result.territories.find((t) => t.code === "INVALID");
-    expect(invalidTerritory).toBeDefined();
-    expect(invalidTerritory!.territory).toBe("INVALID");
-    expect(invalidTerritory!.downloads).toBe(7);
-
-    // Valid code should still resolve to a display name
-    const usTerritory = result.territories.find((t) => t.code === "US");
-    expect(usTerritory).toBeDefined();
-    expect(usTerritory!.territory).toBe("United States");
-  });
-
-  it("falls back to code when displayNames.of() returns undefined", async () => {
-    // Mock Intl.DisplayNames.prototype.of to return undefined for a specific code
-    const originalOf = Intl.DisplayNames.prototype.of;
-    Intl.DisplayNames.prototype.of = function (code: string) {
-      if (code === "QQ") return undefined;
-      return originalOf.call(this, code);
-    };
-
-    mockCacheGet.mockReturnValue(null);
-
-    const tsv = tsvString(
-      ["Date", "Territory", "Download Type", "Counts"],
-      [["2026-02-01", "QQ", "First-time download", "3"]],
-    );
-
-    mockAscFetch.mockImplementation(async (url: string) => {
-      if (url.includes("/analyticsReportRequests") && !url.includes("/reports")) {
-        return reportRequestsResponse(["req-dn-undef"]);
-      }
-      if (url.includes("/reports?filter")) {
-        return reportsResponse([
-          { id: "rpt-dn-undef", name: "App Downloads Standard", category: "COMMERCE" },
-        ]);
-      }
-      if (url.includes("/instances?")) {
-        return instancesResponse([{ id: "inst-dn-undef", processingDate: "2026-02-01" }]);
-      }
-      if (url.includes("/segments")) {
-        return segmentsResponse([{ id: "seg-dn-undef", url: "https://s3.example.com/dn-undef.tsv" }]);
-      }
-      return { data: [] };
-    });
-
-    mockFetch.mockResolvedValue(makeFetchResponse(tsv));
-
-    const result = await buildAnalyticsData("app-dn-undef");
-
-    const qqTerritory = result.territories.find((t) => t.code === "QQ");
-    expect(qqTerritory).toBeDefined();
-    // displayNames.of("QQ") returns undefined → falls back to "QQ"
-    expect(qqTerritory!.territory).toBe("QQ");
-
-    Intl.DisplayNames.prototype.of = originalOf;
   });
 });
 
@@ -2800,20 +2731,20 @@ describe("aggregation with empty/missing field values (|| fallback branches)", (
     expect(unknownDevice!.crashes).toBe(0);
     expect(unknownDevice!.uniqueDevices).toBe(0);
 
-    // aggregateTerritories: rows with empty Territory are skipped (guard: if (!code) continue),
-    // rows with empty Counts/Downloads trigger `|| "1"` fallback
-    // The row with empty Territory/Counts/Downloads has Download Type "" which doesn't pass
-    // the update filter, so the empty-Territory row is included but skipped by the !code guard.
+    // aggregateDailyTerritoryDownloads: rows with empty Territory are skipped (guard: if (!code) continue).
     // US territory should still be counted from the valid row.
-    const usTerritory = result.territories.find((t) => t.code === "US");
-    expect(usTerritory).toBeDefined();
-    expect(usTerritory!.downloads).toBe(10);
+    expect(result.dailyTerritoryDownloads).toEqual([{ date: "2026-02-01", code: "US", downloads: 10 }]);
 
-    // aggregateDiscoverySources: rows with empty Source Type are skipped (guard: if (!source) continue)
-    // Only "App Store search" from the valid row should be counted
-    const searchSource = result.discoverySources.find((s) => s.source === "search");
-    expect(searchSource).toBeDefined();
-    expect(searchSource!.count).toBe(10);
+    // aggregateDailyTerritoryRevenue: empty proceeds count as 0
+    expect(result.dailyTerritoryRevenue).toEqual([
+      { date: "2026-02-01", code: "DE", proceeds: 10.5 },
+      { date: "2026-02-01", code: "US", proceeds: 0 },
+    ]);
+
+    // aggregateDownloadsBySource: a row with empty Source Type counts toward no source,
+    // so only "App Store search" from the valid row is counted
+    expect(result.dailyDownloadsBySource[0].search).toBe(10);
+    expect(result.dailyDownloadsBySource[0].unavailable).toBe(0);
   });
 
   it("handles download rows where Counts is empty but Downloads has a value", async () => {
@@ -2859,16 +2790,13 @@ describe("aggregation with empty/missing field values (|| fallback branches)", (
     expect(usTerritory).toBeDefined();
     expect(usTerritory!.downloads).toBe(15);
 
-    // Discovery sources should also use the fallback
-    const searchSource = result.discoverySources.find((s) => s.source === "search");
-    expect(searchSource).toBeDefined();
-    expect(searchSource!.count).toBe(15);
+    // Downloads by source should also use the fallback
+    expect(result.dailyDownloadsBySource[0].search).toBe(15);
   });
 
-  it("handles discovery source with unknown source type (|| source fallback)", async () => {
+  it("counts a source type Apple doesn't document toward no source", async () => {
     mockCacheGet.mockReturnValue(null);
 
-    // Use a Source Type not in the sourceKeyMap to trigger the `|| source` fallback
     const tsv = tsvString(
       ["Date", "Download Type", "Source Type", "Counts"],
       [
@@ -2897,11 +2825,19 @@ describe("aggregation with empty/missing field values (|| fallback branches)", (
     mockFetch.mockResolvedValue(makeFetchResponse(tsv));
 
     const result = await buildAnalyticsData("app-unk-src");
-    // The source key should fall through to the raw source name
-    const customSource = result.discoverySources.find((s) => s.source === "Custom Source");
-    expect(customSource).toBeDefined();
-    expect(customSource!.count).toBe(7);
-    expect(customSource!.fill).toBe("var(--color-Custom Source)");
+    expect(result.dailyDownloads[0].firstTime).toBe(7);
+    expect(result.dailyDownloadsBySource).toEqual([
+      {
+        date: "2026-02-01",
+        search: 0,
+        browse: 0,
+        appReferrer: 0,
+        webReferrer: 0,
+        appClip: 0,
+        institutionalPurchase: 0,
+        unavailable: 0,
+      },
+    ]);
   });
 
   it("handles rows with both Counts and Downloads empty (|| '1' fallback)", async () => {
@@ -2971,17 +2907,11 @@ describe("aggregation with empty/missing field values (|| fallback branches)", (
     expect(frDaily).toBeDefined();
     expect(frDaily!.downloads).toBe(2);
 
-    // aggregateTerritories: same territory appearing twice (line 425 truthy branch)
-    const frTerritory = result.territories.find((t) => t.code === "FR");
-    expect(frTerritory).toBeDefined();
-    expect(frTerritory!.downloads).toBe(2);
-    // No revenue data → || 0 fallback (line 456/457)
-    expect(frTerritory!.revenue).toBe(0);
+    // No revenue data → no territory proceeds
+    expect(result.dailyTerritoryRevenue).toEqual([]);
 
-    // aggregateDiscoverySources: same source "App Store search" appears twice (line 476 truthy branch)
-    const searchSource = result.discoverySources.find((s) => s.source === "search");
-    expect(searchSource).toBeDefined();
-    expect(searchSource!.count).toBe(2);
+    // aggregateDownloadsBySource: same source "App Store search" appears twice
+    expect(result.dailyDownloadsBySource[0].search).toBe(2);
   });
 
   it("handles Counts='0' triggering parseInt()||1 fallback", async () => {
@@ -3054,16 +2984,12 @@ describe("aggregation with empty/missing field values (|| fallback branches)", (
     expect(itDaily).toBeDefined();
     expect(itDaily!.downloads).toBe(2);
 
-    // aggregateTerritories: IT should have 2 downloads
-    const itTerritory = result.territories.find((t) => t.code === "IT");
-    expect(itTerritory).toBeDefined();
-    expect(itTerritory!.downloads).toBe(2);
-
-    // aggregateDiscoverySources: search=1, browse=1
-    expect(result.discoverySources).toHaveLength(2);
+    // aggregateDownloadsBySource: search=1, browse=1
+    expect(result.dailyDownloadsBySource[0].search).toBe(1);
+    expect(result.dailyDownloadsBySource[0].browse).toBe(1);
   });
 
-  it("handles territory with empty revenue (revenueByTerritory || 0 fallback)", async () => {
+  it("counts empty proceeds as 0 in territory revenue", async () => {
     mockCacheGet.mockReturnValue(null);
 
     // Download data has a territory, but purchase data has no matching territory
@@ -3120,11 +3046,8 @@ describe("aggregation with empty/missing field values (|| fallback branches)", (
     });
 
     const result = await buildAnalyticsData("app-terr-empty");
-    const jpTerritory = result.territories.find((t) => t.code === "JP");
-    expect(jpTerritory).toBeDefined();
-    expect(jpTerritory!.downloads).toBe(20);
-    // Revenue should be 0 due to empty Proceeds
-    expect(jpTerritory!.revenue).toBe(0);
+    expect(result.dailyTerritoryDownloads).toEqual([{ date: "2026-02-01", code: "JP", downloads: 20 }]);
+    expect(result.dailyTerritoryRevenue).toEqual([{ date: "2026-02-01", code: "JP", proceeds: 0 }]);
   });
 });
 

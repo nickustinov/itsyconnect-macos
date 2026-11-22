@@ -37,19 +37,37 @@ export interface PerfRegression {
   summary: string;
 }
 
+/**
+ * The source types in Apple's App Store Downloads report ("Source Type"), in
+ * chart order, with the key each is stored and charted under.
+ * https://developer.apple.com/documentation/analytics-reports/app-download
+ */
+export const DISCOVERY_SOURCES = [
+  { key: "search", sourceType: "App Store search" },
+  { key: "browse", sourceType: "App Store browse" },
+  { key: "appReferrer", sourceType: "App referrer" },
+  { key: "webReferrer", sourceType: "Web referrer" },
+  { key: "appClip", sourceType: "App Clip" },
+  { key: "institutionalPurchase", sourceType: "Institutional purchase" },
+  { key: "unavailable", sourceType: "Unavailable" },
+] as const;
+
+export type DiscoverySource = (typeof DISCOVERY_SOURCES)[number]["key"];
+
+export type DailySourceDownloads = { date: string } & Record<DiscoverySource, number>;
+
 export interface AnalyticsData {
   dailyDownloads: Array<{ date: string; firstTime: number; redownload: number; update: number }>;
   dailyRevenue: Array<{ date: string; proceeds: number; sales: number }>;
   dailyEngagement: Array<{ date: string; impressions: number; pageViews: number }>;
   dailySessions: Array<{ date: string; sessions: number; uniqueDevices: number; avgDuration: number }>;
   dailyInstallsDeletes: Array<{ date: string; installs: number; deletes: number }>;
-  dailyDownloadsBySource: Array<{ date: string; search: number; browse: number; webReferrer: number; unavailable: number }>;
+  dailyDownloadsBySource: DailySourceDownloads[];
   dailyVersionSessions: Array<{ date: string; [version: string]: number | string }>;
   dailyOptIn: Array<{ date: string; downloading: number; optingIn: number }>;
   dailyWebPreview: Array<{ date: string; pageViews: number; appStoreTaps: number }>;
   dailyTerritoryDownloads: Array<{ date: string; code: string; downloads: number }>;
-  territories: Array<{ territory: string; code: string; downloads: number; revenue: number }>;
-  discoverySources: Array<{ source: string; count: number; fill: string }>;
+  dailyTerritoryRevenue: Array<{ date: string; code: string; proceeds: number }>;
   crashesByVersion: Array<{ version: string; platform: string; crashes: number; uniqueDevices: number }>;
   crashesByDevice: Array<{ device: string; crashes: number; uniqueDevices: number }>;
   dailyCrashes: Array<{ date: string; crashes: number; uniqueDevices: number }>;
@@ -154,13 +172,25 @@ export function emptyAnalyticsData(): AnalyticsData {
     dailyVersionSessions: [],
     dailyOptIn: [],
     dailyWebPreview: [],
-    territories: [],
-    discoverySources: [],
+    dailyTerritoryRevenue: [],
     crashesByVersion: [],
     crashesByDevice: [],
     dailyCrashes: [],
     perfMetrics: [],
     perfRegressions: [],
+  };
+}
+
+/**
+ * Bring analytics cached by an older version up to the current shape: series
+ * added since are empty, and source rows get a zero for sources they lack.
+ */
+export function normaliseAnalyticsData(data: AnalyticsData): AnalyticsData {
+  const zeroSources = Object.fromEntries(DISCOVERY_SOURCES.map((s) => [s.key, 0]));
+  const filled = { ...emptyAnalyticsData(), ...data };
+  return {
+    ...filled,
+    dailyDownloadsBySource: filled.dailyDownloadsBySource.map((row) => ({ ...zeroSources, ...row }) as DailySourceDownloads),
   };
 }
 
@@ -175,9 +205,9 @@ function mergeByKey<T>(existing: T[], fresh: T[], keyOf: (item: T) => string): T
 }
 
 /**
- * Pick the list with the larger total – used for window-cumulative aggregates
- * (territories, discovery sources, crash totals) that can't be merged per-day.
- * A shorter window from Apple never shrinks what we already accumulated.
+ * Pick the list with the larger total – used for window-cumulative crash
+ * totals that can't be merged per-day. A shorter window from Apple never
+ * shrinks what we already accumulated.
  */
 function preferLargerSum<T>(existing: T[], fresh: T[], sumOf: (item: T) => number): T[] {
   const total = (list: T[]) => list.reduce((acc, item) => acc + sumOf(item), 0);
@@ -192,6 +222,9 @@ function preferLargerSum<T>(existing: T[], fresh: T[], sumOf: (item: T) => numbe
 export function mergeAnalyticsData(existing: AnalyticsData, fresh: AnalyticsData): AnalyticsData {
   const byDate = <T extends { date: string }>(e: T[], f: T[]): T[] =>
     mergeByKey(e, f, (r) => r.date).sort((a, b) => a.date.localeCompare(b.date));
+  const byDateAndCode = <T extends { date: string; code: string }>(e: T[], f: T[]): T[] =>
+    mergeByKey(e, f, (r) => `${r.date}:${r.code}`)
+      .sort((a, b) => a.date.localeCompare(b.date) || a.code.localeCompare(b.code));
 
   return {
     dailyDownloads: byDate(existing.dailyDownloads, fresh.dailyDownloads),
@@ -203,14 +236,9 @@ export function mergeAnalyticsData(existing: AnalyticsData, fresh: AnalyticsData
     dailyVersionSessions: byDate(existing.dailyVersionSessions, fresh.dailyVersionSessions),
     dailyOptIn: byDate(existing.dailyOptIn, fresh.dailyOptIn),
     dailyWebPreview: byDate(existing.dailyWebPreview, fresh.dailyWebPreview),
-    dailyTerritoryDownloads: mergeByKey(
-      existing.dailyTerritoryDownloads,
-      fresh.dailyTerritoryDownloads,
-      (r) => `${r.date}:${r.code}`,
-    ).sort((a, b) => a.date.localeCompare(b.date) || a.code.localeCompare(b.code)),
+    dailyTerritoryDownloads: byDateAndCode(existing.dailyTerritoryDownloads, fresh.dailyTerritoryDownloads),
+    dailyTerritoryRevenue: byDateAndCode(existing.dailyTerritoryRevenue, fresh.dailyTerritoryRevenue),
     dailyCrashes: byDate(existing.dailyCrashes, fresh.dailyCrashes),
-    territories: preferLargerSum(existing.territories, fresh.territories, (r) => r.downloads),
-    discoverySources: preferLargerSum(existing.discoverySources, fresh.discoverySources, (r) => r.count),
     crashesByVersion: preferLargerSum(existing.crashesByVersion, fresh.crashesByVersion, (r) => r.crashes),
     crashesByDevice: preferLargerSum(existing.crashesByDevice, fresh.crashesByDevice, (r) => r.crashes),
     perfMetrics: fresh.perfMetrics.length > 0 ? fresh.perfMetrics : existing.perfMetrics,
@@ -259,8 +287,7 @@ export function hasAnyAnalyticsRows(data: AnalyticsData): boolean {
     || data.dailyVersionSessions.length > 0
     || data.dailyOptIn.length > 0
     || data.dailyWebPreview.length > 0
-    || data.territories.length > 0
-    || data.discoverySources.length > 0
+    || data.dailyTerritoryRevenue.length > 0
     || data.crashesByVersion.length > 0
     || data.crashesByDevice.length > 0
     || data.dailyCrashes.length > 0;

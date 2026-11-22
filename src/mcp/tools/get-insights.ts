@@ -4,6 +4,7 @@ import * as z from "zod/v4";
 import { hasCredentials } from "@/lib/asc/client";
 import { listCustomerReviews } from "@/lib/asc/reviews";
 import { buildAnalyticsData, type AnalyticsData } from "@/lib/asc/analytics";
+import { discoverySourceName, sumDiscoverySources, sumTerritories } from "@/lib/asc/analytics-summary";
 import { listFeedback } from "@/lib/asc/testflight/feedback";
 import { listBuilds } from "@/lib/asc/testflight/builds";
 import { listDiagnosticSignatures } from "@/lib/asc/testflight/diagnostics";
@@ -126,20 +127,25 @@ async function buildAnalytics(appId: string, days: number): Promise<string> {
   ];
 
   // Top territories
-  if (data.territories.length > 0) {
+  const territories = sumTerritories(
+    filterByPeriod(data.dailyTerritoryDownloads, days),
+    filterByPeriod(data.dailyTerritoryRevenue, days),
+  );
+  if (territories.length > 0) {
     lines.push("", "### Top territories");
-    for (const t of data.territories.slice(0, 10)) {
+    for (const t of territories.slice(0, 10)) {
       lines.push(`- ${t.territory} (${t.code}): ${formatNumber(t.downloads)} downloads, ${formatCurrency(t.revenue)}`);
     }
   }
 
   // Discovery sources
-  if (data.discoverySources.length > 0) {
-    const total = data.discoverySources.reduce((s, d) => s + d.count, 0);
+  const sources = sumDiscoverySources(filterByPeriod(data.dailyDownloadsBySource, days));
+  if (sources.length > 0) {
+    const total = sumField(sources, (s) => s.count);
     lines.push("", "### Discovery sources");
-    for (const s of data.discoverySources) {
-      const pct = total > 0 ? ((s.count / total) * 100).toFixed(0) : "0";
-      lines.push(`- ${s.source}: ${formatNumber(s.count)} (${pct}%)`);
+    for (const s of sources) {
+      const pct = ((s.count / total) * 100).toFixed(0);
+      lines.push(`- ${discoverySourceName(s.source)}: ${formatNumber(s.count)} (${pct}%)`);
     }
   }
 

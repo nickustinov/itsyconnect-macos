@@ -10,6 +10,7 @@ import {
   emptyAnalyticsData,
   hasAnyAnalyticsRows,
   mergeAnalyticsData,
+  normaliseAnalyticsData,
   downloadGapSignature,
   type AnalyticsData,
 } from "./analytics-types";
@@ -17,8 +18,7 @@ import {
   aggregateDownloads,
   aggregateDownloadsBySource,
   aggregateDailyTerritoryDownloads,
-  aggregateTerritories,
-  aggregateDiscoverySources,
+  aggregateDailyTerritoryRevenue,
   aggregateRevenue,
   aggregateEngagement,
   aggregateSessions,
@@ -53,12 +53,26 @@ export { parseTsv } from "./analytics-types";
 export { fetchPerfPowerMetrics } from "./analytics-reports";
 
 /**
+ * The accumulated analytics in the cache, in the current shape. The cache row is
+ * the long-lived store, so this reads past its TTL.
+ */
+function readAccumulated(cacheKey: string): AnalyticsData | null {
+  const cached = cacheGet<AnalyticsData>(cacheKey, true);
+  return cached ? normaliseAnalyticsData(cached) : null;
+}
+
+/** An app's accumulated analytics, or null before its first build. */
+export function getCachedAnalytics(appId: string): AnalyticsData | null {
+  return readAccumulated(`analytics:${appId}`);
+}
+
+/**
  * Merge freshly fetched analytics into the durably cached (accumulated) data so
- * we never erase history Apple stops returning, then persist. The cache row is
- * the long-lived store; reads ignore staleness so accumulation survives restarts.
+ * we never erase history Apple stops returning, then persist. Reads ignore
+ * staleness so accumulation survives restarts.
  */
 function accumulateAndCache(cacheKey: string, fresh: AnalyticsData, ttlMs: number): AnalyticsData {
-  const existing = cacheGet<AnalyticsData>(cacheKey, true);
+  const existing = readAccumulated(cacheKey);
   const merged = existing ? mergeAnalyticsData(existing, fresh) : fresh;
   cacheSet(cacheKey, merged, ttlMs);
   return merged;
@@ -150,11 +164,10 @@ async function buildPhase(
     dailyInstallsDeletes: aggregateInstallsDeletes(filteredInstallDeletes),
     dailyDownloadsBySource: aggregateDownloadsBySource(filteredDownloads),
     dailyTerritoryDownloads: aggregateDailyTerritoryDownloads(filteredDownloads),
+    dailyTerritoryRevenue: aggregateDailyTerritoryRevenue(filteredPurchases),
     dailyVersionSessions: aggregateVersionSessions(filteredSessions),
     dailyOptIn: aggregateOptIn(filteredOptIn),
     dailyWebPreview: aggregateWebPreview(filteredWebPreview),
-    territories: aggregateTerritories(filteredDownloads, filteredPurchases),
-    discoverySources: aggregateDiscoverySources(filteredDownloads),
     crashesByVersion: aggregateCrashesByVersion(filteredCrashes),
     crashesByDevice: aggregateCrashesByDevice(filteredCrashes),
     dailyCrashes: aggregateDailyCrashes(filteredExpandedCrashes),
@@ -225,7 +238,7 @@ function startBackfill(requestIds: string[], appId: string, cacheKey: string) {
       // download (Apple 500s), use a short TTL so we retry soon (Apple may
       // recover); otherwise the gap is genuinely absent from ASC – record it long
       // so we don't keep re-fetching an unfillable window.
-      const finalData = cacheGet<AnalyticsData>(cacheKey, true);
+      const finalData = readAccumulated(cacheKey);
       if (finalData) {
         const failures = instanceFailureCount(appId);
         const ttl = failures > 0 ? GAP_RETRY_TTL : GAP_PERMANENT_TTL;
@@ -256,7 +269,7 @@ export function buildAnalyticsData(
   const cacheKey = `analytics:${appId}`;
   if (!opts?.force) {
     const cached = cacheGet<AnalyticsData>(cacheKey);
-    if (cached) return Promise.resolve(cached);
+    if (cached) return Promise.resolve(normaliseAnalyticsData(cached));
   }
 
   // Deduplicate concurrent builds for the same app
@@ -287,7 +300,7 @@ async function buildAnalyticsDataInner(
   if (requestIds.length === 0) {
     console.warn(`[analytics] ${appId}: no ONGOING or ONE_TIME_SNAPSHOT report requests`);
     // Don't erase accumulated history on a transient empty result – keep what we have.
-    const existing = cacheGet<AnalyticsData>(cacheKey, true);
+    const existing = readAccumulated(cacheKey);
     if (existing && hasAnyAnalyticsRows(existing)) {
       cacheSet(cacheKey, existing, ANALYTICS_EMPTY_RETRY_TTL);
       return existing;
@@ -325,7 +338,7 @@ async function buildAnalyticsDataInner(
   console.log(`[analytics] ${appId}: phase 1 in ${(phase1Ms / 1000).toFixed(1)}s – ${reports}`);
 
   // Accumulate into the durable cache so a shallow refresh never erases history.
-  const existing = cacheGet<AnalyticsData>(cacheKey, true);
+  const existing = readAccumulated(cacheKey);
   data = existing ? mergeAnalyticsData(existing, data) : data;
 
   const hasRows = hasAnyAnalyticsRows(data);

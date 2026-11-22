@@ -269,19 +269,37 @@ describe("buildAnalyticsInsightsPrompt", () => {
       { date: "2026-03-01", installs: 100, deletes: 10 },
       { date: "2026-03-02", installs: 110, deletes: 15 },
     ],
-    dailyDownloadsBySource: [],
-    dailyTerritoryDownloads: [],
+    dailyDownloadsBySource: [
+      {
+        date: "2026-03-01",
+        search: 200,
+        browse: 100,
+        appReferrer: 0,
+        webReferrer: 0,
+        appClip: 0,
+        institutionalPurchase: 0,
+        unavailable: 0,
+      },
+      {
+        date: "2026-03-02",
+        search: 100,
+        browse: 50,
+        appReferrer: 30,
+        webReferrer: 0,
+        appClip: 0,
+        institutionalPurchase: 0,
+        unavailable: 0,
+      },
+    ],
+    dailyTerritoryDownloads: [
+      { date: "2026-03-01", code: "US", downloads: 300 },
+      { date: "2026-03-02", code: "US", downloads: 200 },
+      { date: "2026-03-01", code: "DE", downloads: 200 },
+    ],
+    dailyTerritoryRevenue: [],
     dailyCrashes: [
       { date: "2026-03-01", crashes: 5, uniqueDevices: 3 },
       { date: "2026-03-02", crashes: 8, uniqueDevices: 6 },
-    ],
-    territories: [
-      { territory: "United States", code: "US", downloads: 500, revenue: 2000 },
-      { territory: "Germany", code: "DE", downloads: 200, revenue: 800 },
-    ],
-    discoverySources: [
-      { source: "Search", count: 300 },
-      { source: "Browse", count: 150 },
     ],
     crashesByVersion: [
       { version: "2.1.0", platform: "iOS", crashes: 10, uniqueDevices: 8 },
@@ -316,8 +334,7 @@ describe("buildAnalyticsInsightsPrompt", () => {
   it("includes territory data", () => {
     const prompt = buildAnalyticsInsightsPrompt(makeData());
 
-    expect(prompt).toContain("United States");
-    expect(prompt).toContain("Germany");
+    expect(prompt).toContain("Top territories by downloads: United States (500), Germany (200)");
   });
 
   it("includes crash data", () => {
@@ -330,8 +347,9 @@ describe("buildAnalyticsInsightsPrompt", () => {
   it("includes discovery sources", () => {
     const prompt = buildAnalyticsInsightsPrompt(makeData());
 
-    expect(prompt).toContain("Search");
-    expect(prompt).toContain("Browse");
+    expect(prompt).toContain(
+      "Discovery sources: App Store search: 300 (63%), App Store browse: 150 (31%), App referrer: 30 (6%)",
+    );
   });
 
   it("includes sessions and duration", () => {
@@ -355,8 +373,8 @@ describe("buildAnalyticsInsightsPrompt", () => {
       dailySessions: [],
       dailyInstallsDeletes: [],
       dailyCrashes: [],
-      territories: [],
-      discoverySources: [],
+      dailyDownloadsBySource: [],
+      dailyTerritoryDownloads: [],
       crashesByVersion: [],
     }));
 
@@ -446,12 +464,14 @@ describe("buildAnalyticsInsightsPrompt", () => {
     expect(prompt).toContain("0%");
   });
 
-  it("handles empty discovery sources", () => {
+  it("handles empty discovery sources and territories", () => {
     const prompt = buildAnalyticsInsightsPrompt(makeData({
-      discoverySources: [],
+      dailyDownloadsBySource: [],
+      dailyTerritoryDownloads: [],
     }));
 
     expect(prompt).not.toContain("Discovery sources");
+    expect(prompt).not.toContain("Top territories");
   });
 
   it("handles crashes with no crashesByVersion", () => {

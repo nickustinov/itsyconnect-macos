@@ -154,7 +154,10 @@ function makeDemoAnalytics(appIndex: number) {
     date,
     search: noisyValue(rng, base * 0.5, base * 0.2, i),
     browse: noisyValue(rng, base * 0.25, base * 0.12, i),
+    appReferrer: noisyValue(rng, base * 0.08, base * 0.04, i),
     webReferrer: noisyValue(rng, base * 0.15, base * 0.08, i),
+    appClip: 0,
+    institutionalPurchase: 0,
     unavailable: noisyValue(rng, base * 0.1, base * 0.04, i),
   }));
 
@@ -177,33 +180,32 @@ function makeDemoAnalytics(appIndex: number) {
     appStoreTaps: noisyValue(rng, base * 0.2, base * 0.08, i),
   }));
 
-  const dailyTerritoryDownloads = generateDailyData(30, (date, i) => ({
-    date,
-    code: "US",
-    downloads: noisyValue(rng, base * 0.4, base * 0.15, i),
-  }));
-
-  const territories = [
-    { territory: "United States", code: "US", downloads: base * 12, revenue: revenueBase * 10 },
-    { territory: "United Kingdom", code: "GB", downloads: base * 4, revenue: revenueBase * 3 },
-    { territory: "Germany", code: "DE", downloads: base * 3, revenue: revenueBase * 2 },
-    { territory: "Japan", code: "JP", downloads: base * 3, revenue: revenueBase * 3 },
-    { territory: "Canada", code: "CA", downloads: base * 2, revenue: revenueBase * 2 },
-    { territory: "Australia", code: "AU", downloads: base * 2, revenue: revenueBase },
-    { territory: "France", code: "FR", downloads: base * 2, revenue: revenueBase },
+  // Share of downloads and proceeds per territory
+  const territoryShares = [
+    { code: "US", downloads: 0.4, revenue: 0.45 },
+    { code: "GB", downloads: 0.13, revenue: 0.13 },
+    { code: "DE", downloads: 0.1, revenue: 0.09 },
+    { code: "JP", downloads: 0.1, revenue: 0.13 },
+    { code: "CA", downloads: 0.07, revenue: 0.09 },
+    { code: "AU", downloads: 0.07, revenue: 0.05 },
+    { code: "FR", downloads: 0.07, revenue: 0.05 },
   ];
 
-  const totalSearch = dailyDownloadsBySource.reduce((s, d) => s + d.search, 0);
-  const totalBrowse = dailyDownloadsBySource.reduce((s, d) => s + d.browse, 0);
-  const totalWeb = dailyDownloadsBySource.reduce((s, d) => s + d.webReferrer, 0);
-  const totalUnavail = dailyDownloadsBySource.reduce((s, d) => s + d.unavailable, 0);
+  const dailyTerritoryDownloads = generateDailyData(30, (date, i) =>
+    territoryShares.map((t) => ({
+      date,
+      code: t.code,
+      downloads: noisyValue(rng, base * t.downloads, base * t.downloads * 0.35, i),
+    })),
+  ).flat();
 
-  const discoverySources = [
-    { source: "search", count: totalSearch, fill: "var(--color-search)" },
-    { source: "browse", count: totalBrowse, fill: "var(--color-browse)" },
-    { source: "webReferrer", count: totalWeb, fill: "var(--color-webReferrer)" },
-    { source: "unavailable", count: totalUnavail, fill: "var(--color-unavailable)" },
-  ];
+  const dailyTerritoryRevenue = generateDailyData(30, (date, i) =>
+    territoryShares.map((t) => ({
+      date,
+      code: t.code,
+      proceeds: noisyValue(rng, revenueBase * t.revenue, revenueBase * t.revenue * 0.3, i),
+    })),
+  ).flat();
 
   const crashesByVersion = [
     { version: "2.3.0", platform: "iOS 18.2", crashes: 12, uniqueDevices: 10 },
@@ -235,8 +237,7 @@ function makeDemoAnalytics(appIndex: number) {
     dailyOptIn,
     dailyWebPreview,
     dailyTerritoryDownloads,
-    territories,
-    discoverySources,
+    dailyTerritoryRevenue,
     crashesByVersion,
     crashesByDevice,
     dailyCrashes,

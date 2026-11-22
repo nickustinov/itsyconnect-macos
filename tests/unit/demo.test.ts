@@ -123,10 +123,10 @@ describe("demo", () => {
       expect(analytics!.dailyVersionSessions).toHaveLength(30);
       expect(analytics!.dailyOptIn).toHaveLength(30);
       expect(analytics!.dailyWebPreview).toHaveLength(30);
-      expect(analytics!.dailyTerritoryDownloads).toHaveLength(30);
+      expect(analytics!.dailyTerritoryDownloads.length).toBeGreaterThan(30);
+      expect(analytics!.dailyTerritoryRevenue.length).toBeGreaterThan(30);
       expect(analytics!.dailyCrashes).toHaveLength(30);
-      expect(analytics!.territories.length).toBeGreaterThan(0);
-      expect(analytics!.discoverySources.length).toBeGreaterThan(0);
+      expect(analytics!.dailyDownloadsBySource.some((d) => d.appReferrer > 0)).toBe(true);
       expect(analytics!.crashesByVersion.length).toBeGreaterThan(0);
       expect(analytics!.crashesByDevice.length).toBeGreaterThan(0);
       expect(analytics!.perfMetrics).toEqual([]);

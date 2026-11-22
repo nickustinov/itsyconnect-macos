@@ -25,6 +25,7 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { formatDateShort, formatDuration } from "@/lib/format";
+import { PAIRED_BAR_GAP } from "@/lib/chart-layout";
 import { useAnalytics } from "@/lib/analytics-context";
 import { parseRange, filterByDateRange, getStoredRange } from "@/lib/analytics-range";
 import { AnalyticsStateGuard } from "@/components/analytics-state-guard";
@@ -287,7 +288,7 @@ export default function UsagePage() {
               config={installDeleteConfig}
               className="h-[240px] w-full"
             >
-              <BarChart data={installsDeletes} accessibilityLayer>
+              <BarChart data={installsDeletes} barGap={PAIRED_BAR_GAP} accessibilityLayer>
                 <CartesianGrid vertical={false} />
                 <XAxis
                   dataKey="date"
@@ -343,7 +344,7 @@ export default function UsagePage() {
               config={optInConfig}
               className="h-[192px] w-full"
             >
-              <BarChart data={optIn} accessibilityLayer>
+              <BarChart data={optIn} barGap={PAIRED_BAR_GAP} accessibilityLayer>
                 <CartesianGrid vertical={false} />
                 <XAxis
                   dataKey="date"

@@ -254,7 +254,9 @@ describe("analytics insights route", () => {
       { params: Promise.resolve({ appId: "app-1" }) },
     );
 
-    expect(mockBuildAnalyticsInsightsPrompt).toHaveBeenCalledWith(analyticsData);
+    // The cached data reaches the prompt in the current shape
+    expect(mockBuildAnalyticsInsightsPrompt).toHaveBeenCalledWith(expect.objectContaining(analyticsData));
+    expect(mockBuildAnalyticsInsightsPrompt.mock.calls[0][0].dailyTerritoryRevenue).toEqual([]);
     expect(mockCreateLanguageModel).toHaveBeenCalledWith(
       "openai",
       "gpt-4.1-mini",

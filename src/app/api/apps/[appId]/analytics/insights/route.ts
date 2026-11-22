@@ -8,7 +8,7 @@ import { generateObjectWithRepair } from "@/lib/ai/structured-output";
 import { noThinkingOptions, samplingTemperature } from "@/lib/ai/provider-options";
 import { hasCredentials } from "@/lib/asc/client";
 import { isDemoMode, getDemoAnalytics } from "@/lib/demo";
-import type { AnalyticsData } from "@/lib/asc/analytics";
+import { getCachedAnalytics, type AnalyticsData } from "@/lib/asc/analytics";
 import { cacheGet, cacheSet } from "@/lib/cache";
 import { errorJson } from "@/lib/api-helpers";
 
@@ -71,7 +71,7 @@ export async function POST(
     if (isDemoMode()) {
       data = getDemoAnalytics(appId);
     } else if (hasCredentials()) {
-      data = cacheGet<AnalyticsData>(`analytics:${appId}`, true);
+      data = getCachedAnalytics(appId);
     } else {
       return NextResponse.json({ error: "No ASC credentials" }, { status: 400 });
     }

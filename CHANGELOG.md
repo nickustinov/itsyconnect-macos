@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.14.3
+
+- Fix charts going blank at some window widths – "Installations and deletions", "Analytics opt-in" and "Web preview engagement" drew their side-by-side bars a fraction of a pixel wide when the window was a certain size; the gap between bars now scales with the chart, so the bars stay visible (thanks @Gregorian-st)
+- Show every App Store source – "App referrer", "App Clip" and "Institutional purchase" were missing from the discovery sources legend (App referrer showed as an unlabelled black slice) and left out of "Total downloads by source"; all seven sources Apple reports are now counted, labelled and coloured (thanks @Gregorian-st)
+- Fix top territories and discovery sources ignoring the period in the MCP `get_insights` tool – they added up all fetched history, so they didn't change between week, month and quarter and could exceed the period's downloads and revenue; they now cover the requested period, and the discovery sources chart follows the selected date range too (thanks @Gregorian-st)
+- Re-read analytics history once after updating, so days fetched before 1.14.3 also get the new sources and per-territory revenue
+
 ## 1.14.2
 
 - Fix the app list not updating after switching or adding a team – the sidebar kept showing the previous team's apps until you visited Settings and came back; it now refreshes immediately (thanks @trszdev)

@@ -1,4 +1,4 @@
-import type { AnalyticsData } from "./analytics-types";
+import { DISCOVERY_SOURCES, type AnalyticsData, type DiscoverySource } from "./analytics-types";
 
 // ---------- Generic helpers ----------
 
@@ -60,12 +60,9 @@ export function aggregateDownloadsBySource(
     });
   return groupByDate(rows, "Date", (dateRows) => {
     const filtered = filterDl(dateRows);
-    return {
-      search: countByFieldValue(filtered, "Source Type", "App Store search"),
-      browse: countByFieldValue(filtered, "Source Type", "App Store browse"),
-      webReferrer: countByFieldValue(filtered, "Source Type", "Web referrer"),
-      unavailable: countByFieldValue(filtered, "Source Type", "Unavailable"),
-    };
+    return Object.fromEntries(
+      DISCOVERY_SOURCES.map(({ key, sourceType }) => [key, countByFieldValue(filtered, "Source Type", sourceType)]),
+    ) as Record<DiscoverySource, number>;
   });
 }
 
@@ -90,90 +87,24 @@ export function aggregateDailyTerritoryDownloads(
   });
 }
 
-export function aggregateTerritories(
-  rows: Array<Record<string, string>>,
+/** Proceeds in USD per day and territory, to the cent, sorted by date then territory. */
+export function aggregateDailyTerritoryRevenue(
   purchaseRows: Array<Record<string, string>>,
-): AnalyticsData["territories"] {
-  const displayNames = new Intl.DisplayNames(["en"], { type: "region" });
-
-  // Download counts by territory (first-time + redownload only, consistent with KPI)
-  const downloadsByTerritory = new Map<string, number>();
-  for (const row of rows) {
-    const code = row["Territory"];
-    const dlType = row["Download Type"];
-    if (!code) continue;
-    if (dlType && dlType !== "First-time download" && dlType !== "Redownload") continue;
-    downloadsByTerritory.set(
-      code,
-      (downloadsByTerritory.get(code) || 0) + (parseInt(row["Counts"] || row["Downloads"] || "1", 10) || 1),
-    );
-  }
-
-  // Revenue by territory
-  const revenueByTerritory = new Map<string, number>();
+): AnalyticsData["dailyTerritoryRevenue"] {
+  const map = new Map<string, number>(); // "date|code" -> proceeds
   for (const row of purchaseRows) {
+    const date = row["Date"];
     const code = row["Territory"];
-    if (!code) continue;
-    revenueByTerritory.set(
-      code,
-      (revenueByTerritory.get(code) || 0) + (parseFloat(row["Proceeds in USD"] || "0") || 0),
-    );
+    if (!date || !code) continue;
+    const key = `${date}|${code}`;
+    map.set(key, (map.get(key) ?? 0) + (parseFloat(row["Proceeds in USD"]) || 0));
   }
-
-  const allCodes = new Set([
-    ...downloadsByTerritory.keys(),
-    ...revenueByTerritory.keys(),
-  ]);
-
-  return Array.from(allCodes)
-    .map((code) => {
-      let territory: string;
-      try {
-        territory = displayNames.of(code) ?? code;
-      } catch {
-        territory = code;
-      }
-      return {
-        territory,
-        code,
-        downloads: downloadsByTerritory.get(code) || 0,
-        revenue: Math.round(revenueByTerritory.get(code) || 0),
-      };
+  return Array.from(map.entries())
+    .map(([key, proceeds]) => {
+      const [date, code] = key.split("|");
+      return { date, code, proceeds: Math.round(proceeds * 100) / 100 };
     })
-    .sort((a, b) => b.downloads - a.downloads)
-    .slice(0, 20);
-}
-
-export function aggregateDiscoverySources(
-  rows: Array<Record<string, string>>,
-): AnalyticsData["discoverySources"] {
-  const sourceMap = new Map<string, number>();
-  for (const row of rows) {
-    const source = row["Source Type"];
-    const dlType = row["Download Type"];
-    if (!source) continue;
-    // Only count first-time downloads and redownloads (consistent with KPI)
-    if (dlType && dlType !== "First-time download" && dlType !== "Redownload") continue;
-    sourceMap.set(
-      source,
-      (sourceMap.get(source) || 0) + (parseInt(row["Counts"] || row["Downloads"] || "1", 10) || 1),
-    );
-  }
-
-  const sourceKeyMap: Record<string, string> = {
-    "App Store search": "search",
-    "App Store browse": "browse",
-    "Web referrer": "webReferrer",
-    "Unavailable": "unavailable",
-  };
-
-  return Array.from(sourceMap.entries())
-    .map(([source, count]) => ({
-      source: sourceKeyMap[source] || source,
-      count,
-      fill: `var(--color-${sourceKeyMap[source] || source})`,
-    }))
-    .sort((a, b) => b.count - a.count);
+    .sort((a, b) => a.date.localeCompare(b.date) || a.code.localeCompare(b.code));
 }
 
 export function aggregateRevenue(

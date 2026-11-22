@@ -29,6 +29,7 @@ import {
   Timer,
 } from "@phosphor-icons/react";
 import { formatDateShort } from "@/lib/format";
+import { sumTerritories } from "@/lib/asc/analytics-summary";
 import { useAnalytics } from "@/lib/analytics-context";
 import { parseRange, filterByDateRange, previousRange, pctChange, getStoredRange } from "@/lib/analytics-range";
 import { KpiCard } from "@/components/kpi-card";
@@ -103,23 +104,12 @@ export default function AnalyticsOverviewPage() {
   );
   const totalPageViews = engagement.reduce((s, d) => s + d.pageViews, 0);
 
+  // A plain filter: filterByDateRange keeps one row per day, and there's one per territory
   const territories = useMemo(() => {
-    const displayNames = new Intl.DisplayNames(["en"], { type: "region" });
-    const filtered = (data?.dailyTerritoryDownloads ?? []).filter(
+    const inRange = (data?.dailyTerritoryDownloads ?? []).filter(
       (d) => d.date >= range.from && d.date <= range.to,
     );
-    const byCode = new Map<string, number>();
-    for (const row of filtered) {
-      byCode.set(row.code, (byCode.get(row.code) || 0) + row.downloads);
-    }
-    return Array.from(byCode.entries())
-      .map(([code, downloads]) => {
-        let territory: string;
-        try { territory = displayNames.of(code) ?? code; } catch { territory = code; }
-        return { territory, code, downloads };
-      })
-      .sort((a, b) => b.downloads - a.downloads)
-      .slice(0, 10);
+    return sumTerritories(inRange, []).slice(0, 10);
   }, [data, range]);
 
   const funnelData = [
